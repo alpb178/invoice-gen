@@ -490,7 +490,7 @@ export interface ApiInvoiceInvoice extends Struct.CollectionTypeSchema {
     clientSwift: Schema.Attribute.String;
     companyAddress: Schema.Attribute.Text;
     companyCIF: Schema.Attribute.String;
-    companyName: Schema.Attribute.String & Schema.Attribute.Required;
+    companyName: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

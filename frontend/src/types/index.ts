@@ -58,10 +58,10 @@ export interface Invoice {
   date: string;
   status: 'draft' | 'sent' | 'paid' | 'cancelled';
   currency: string;
-  companyName: string;
+  companyName?: string;
   companyCIF?: string;
   companyAddress?: string;
-  clientName: string;
+  clientName?: string;
   clientIBAN?: string;
   clientSwift?: string;
   clientBank?: string;

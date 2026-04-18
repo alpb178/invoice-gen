@@ -346,6 +346,12 @@ export default function DashboardPage() {
             </select>
           )}
           <Link
+            href="/reports"
+            className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
+          >
+            Reportes
+          </Link>
+          <Link
             href="/teams"
             className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
           >
@@ -466,7 +472,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="font-mono font-semibold text-ink-900 text-sm">
-                            {fmtMoney(a.totalAmount || 0, a.currency || cur)}
+                            {fmtMoney(a.totalAmount || 0, cur)}
                           </span>
                           <Link
                             href={`/invoices/${inv.id}`}
