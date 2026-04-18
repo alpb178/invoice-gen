@@ -1,0 +1,71 @@
+{
+  "kind": "collectionType",
+  "collectionName": "teams",
+  "info": {
+    "singularName": "team",
+    "pluralName": "teams",
+    "displayName": "Team",
+    "description": "Equipo o compañía que agrupa usuarios y facturas"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "companyName": {
+      "type": "string"
+    },
+    "companyCIF": {
+      "type": "string"
+    },
+    "companyAddress": {
+      "type": "text"
+    },
+    "defaultClientName": {
+      "type": "string"
+    },
+    "defaultClientIBAN": {
+      "type": "string"
+    },
+    "defaultClientSwift": {
+      "type": "string"
+    },
+    "defaultClientBank": {
+      "type": "text"
+    },
+    "defaultCurrency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "defaultNotes": {
+      "type": "text"
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "ownedTeams"
+    },
+    "members": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "memberOfTeams"
+    },
+    "invoices": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::invoice.invoice",
+      "mappedBy": "team"
+    },
+    "invitations": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::invitation.invitation",
+      "mappedBy": "team"
+    }
+  }
+}

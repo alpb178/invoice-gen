@@ -1,0 +1,83 @@
+{
+  "kind": "collectionType",
+  "collectionName": "invoices",
+  "info": {
+    "singularName": "invoice",
+    "pluralName": "invoices",
+    "displayName": "Invoice",
+    "description": "Factura principal"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "number": {
+      "type": "string",
+      "required": true
+    },
+    "date": {
+      "type": "date",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["draft", "sent", "paid", "cancelled"],
+      "default": "draft"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "companyName": {
+      "type": "string",
+      "required": true
+    },
+    "companyCIF": {
+      "type": "string"
+    },
+    "companyAddress": {
+      "type": "text"
+    },
+    "clientName": {
+      "type": "string",
+      "required": true
+    },
+    "clientIBAN": {
+      "type": "string"
+    },
+    "clientSwift": {
+      "type": "string"
+    },
+    "clientBank": {
+      "type": "text"
+    },
+    "notes": {
+      "type": "text"
+    },
+    "totalAmount": {
+      "type": "float",
+      "default": 0
+    },
+    "exportedAt": {
+      "type": "datetime"
+    },
+    "sections": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::section.section",
+      "mappedBy": "invoice"
+    },
+    "team": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::team.team",
+      "inversedBy": "invoices"
+    },
+    "createdBy": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "createdInvoices"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tasks",
+  "info": {
+    "singularName": "task",
+    "pluralName": "tasks",
+    "displayName": "Task",
+    "description": "Tarea individual dentro de una sección"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "number": {
+      "type": "integer"
+    },
+    "code": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text",
+      "required": true
+    },
+    "amount": {
+      "type": "float",
+      "required": true,
+      "default": 0
+    },
+    "hours": {
+      "type": "float"
+    },
+    "sortOrder": {
+      "type": "integer",
+      "default": 0
+    },
+    "section": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::section.section",
+      "inversedBy": "tasks"
+    }
+  }
+}

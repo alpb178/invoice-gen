@@ -1,0 +1,11 @@
+export default {
+  routes: [
+    { method: 'GET', path: '/invoices', handler: 'invoice.find', config: { policies: [] } },
+    { method: 'GET', path: '/invoices/:id', handler: 'invoice.findOne', config: { policies: [] } },
+    { method: 'POST', path: '/invoices', handler: 'invoice.create', config: { policies: [] } },
+    { method: 'PUT', path: '/invoices/:id', handler: 'invoice.update', config: { policies: [] } },
+    { method: 'DELETE', path: '/invoices/:id', handler: 'invoice.delete', config: { policies: [] } },
+    { method: 'POST', path: '/invoices/:id/export', handler: 'invoice.export', config: { policies: [] } },
+    { method: 'POST', path: '/invoices/parse-tasks', handler: 'invoice.parseTasks', config: { policies: [] } },
+  ],
+};

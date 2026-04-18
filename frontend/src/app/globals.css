@@ -1,0 +1,33 @@
+/* src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --border: #e5e5e7;
+  --accent: #18181b;
+  --muted: #71717a;
+}
+
+body {
+  background: var(--bg);
+  color: #18181b;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+input, textarea, select {
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e5e5e7; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #d4d4d8; }
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type="number"] { -moz-appearance: textfield; }

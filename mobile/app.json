@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Invoice Generator",
+    "slug": "invoice-gen",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": { "backgroundColor": "#0a0a0f" },
+    "android": { "package": "com.invoicegen.app" },
+    "ios": { "bundleIdentifier": "com.invoicegen.app" }
+  }
+}
