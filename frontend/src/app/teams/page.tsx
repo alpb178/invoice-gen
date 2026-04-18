@@ -287,7 +287,7 @@ export default function TeamsPage() {
                         </button>
                       </div>
                       <p className="text-[11px] text-ink-500 mt-1.5">
-                        Se enviará un email con un enlace. Si tu Strapi no tiene SMTP, puedes copiar el enlace y compartirlo.
+                        Se generará un enlace que puedes copiar y compartir con el usuario invitado.
                       </p>
                     </div>
 
