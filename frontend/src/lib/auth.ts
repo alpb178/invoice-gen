@@ -67,11 +67,11 @@ export async function loginWithPassword(identifier: string, password: string) {
   return body.user as StrapiUser;
 }
 
-export async function registerUser(username: string, email: string, password: string) {
+export async function registerUser(email: string, password: string) {
   const res = await fetch(`${STRAPI_URL}/api/auth/local/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, email, password }),
+    body: JSON.stringify({ username: email, email, password }),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {

@@ -127,7 +127,7 @@ export default factories.createCoreController(INVITATION, () => ({
         status: invitation.status,
         expired,
         team: { id: invitation.team?.id, name: invitation.team?.name },
-        invitedBy: invitation.invitedBy ? { username: invitation.invitedBy.username } : null,
+        invitedBy: invitation.invitedBy ? { email: invitation.invitedBy.email } : null,
       },
     };
   },

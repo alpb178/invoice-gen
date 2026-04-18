@@ -297,11 +297,11 @@ export default function DashboardPage() {
   );
 
   const perMember = useMemo(() => {
-    const map = new Map<string, { username: string; count: number; total: number }>();
+    const map = new Map<string, { email: string; count: number; total: number }>();
     for (const inv of invoices) {
       const a = inv.attributes || inv;
-      const name = a.createdBy?.username || '—';
-      const entry = map.get(name) || { username: name, count: 0, total: 0 };
+      const name = a.createdBy?.email || '—';
+      const entry = map.get(name) || { email: name, count: 0, total: 0 };
       entry.count += 1;
       entry.total += a.totalAmount || 0;
       map.set(name, entry);
@@ -461,7 +461,7 @@ export default function DashboardPage() {
                             )}
                           </div>
                           <div className="text-ink-500 text-xs mt-0.5 truncate">
-                            {a.clientName} · {a.date} · por {a.createdBy?.username || '—'}
+                            {a.clientName} · {a.date} · por {a.createdBy?.email || '—'}
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
@@ -509,8 +509,7 @@ export default function DashboardPage() {
                   {activeTeam?.owner && (
                     <li className="flex items-center justify-between text-sm">
                       <span className="truncate">
-                        <span className="font-medium text-ink-900">{activeTeam.owner.username}</span>
-                        <span className="text-ink-500 text-xs ml-2">{activeTeam.owner.email}</span>
+                        <span className="font-medium text-ink-900">{activeTeam.owner.email}</span>
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-ink-900 text-paper uppercase tracking-wide">
                         dueño
@@ -520,8 +519,7 @@ export default function DashboardPage() {
                   {(activeTeam?.members || []).map((m: any) => (
                     <li key={m.id} className="flex items-center justify-between text-sm">
                       <span className="truncate">
-                        <span className="font-medium text-ink-900">{m.username}</span>
-                        <span className="text-ink-500 text-xs ml-2">{m.email}</span>
+                        <span className="font-medium text-ink-900">{m.email}</span>
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full border border-ink-200 text-ink-700 uppercase tracking-wide">
                         miembro
@@ -546,9 +544,9 @@ export default function DashboardPage() {
                     {perMember.slice(0, 6).map((m) => {
                       const pct = kpi.total > 0 ? Math.round((m.total / kpi.total) * 100) : 0;
                       return (
-                        <li key={m.username}>
+                        <li key={m.email}>
                           <div className="flex justify-between text-xs mb-1">
-                            <span className="text-ink-800 truncate mr-2">{m.username}</span>
+                            <span className="text-ink-800 truncate mr-2">{m.email}</span>
                             <span className="text-ink-500">
                               {m.count} · <span className="text-ink-900 font-semibold">{fmtMoney(m.total, cur)}</span>
                             </span>

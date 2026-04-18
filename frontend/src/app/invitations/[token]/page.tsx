@@ -98,9 +98,9 @@ export default function AcceptInvitationPage() {
         ) : (
           <>
             <p className="text-sm text-ink-700 mb-4">
-              {info.invitedBy?.username ? (
+              {info.invitedBy?.email ? (
                 <>
-                  <span className="font-medium">{info.invitedBy.username}</span> te ha invitado a unirte a{' '}
+                  <span className="font-medium">{info.invitedBy.email}</span> te ha invitado a unirte a{' '}
                 </>
               ) : (
                 'Te han invitado a unirte a '

@@ -73,7 +73,7 @@ export default function InvoicesIndexPage() {
       const a = inv.attributes || inv;
       if (status !== 'all' && a.status !== status) return false;
       if (!q) return true;
-      const hay = [a.number, a.clientName, a.companyName, a.createdBy?.username].filter(Boolean).join(' ').toLowerCase();
+      const hay = [a.number, a.clientName, a.companyName, a.createdBy?.email].filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
   }, [invoices, query, status]);
@@ -150,7 +150,7 @@ export default function InvoicesIndexPage() {
                       )}
                     </div>
                     <div className="text-ink-500 text-sm mt-0.5 truncate">
-                      {a.clientName} · {a.date} · por {a.createdBy?.username || '—'}
+                      {a.clientName} · {a.date} · por {a.createdBy?.email || '—'}
                     </div>
                   </div>
                 </div>

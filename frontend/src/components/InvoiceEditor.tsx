@@ -201,7 +201,7 @@ export default function InvoiceEditor({ initial }: Props) {
           <h1 className="text-2xl font-bold text-ink-900">{initial ? `Factura #${initial.number}` : 'Nueva Factura'}</h1>
           {initial?.createdBy && (
             <p className="text-xs text-ink-500 mt-1">
-              Creada por <span className="text-ink-900 font-medium">{initial.createdBy.username}</span>
+              Creada por <span className="text-ink-900 font-medium">{initial.createdBy.email}</span>
             </p>
           )}
         </div>

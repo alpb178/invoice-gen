@@ -13,7 +13,6 @@ export default function RegisterPage() {
   const presetEmail = searchParams.get('email') || '';
   const invitationFlow = Boolean(next);
 
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState('');
   const [teamName, setTeamName] = useState('');
@@ -32,7 +31,7 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      await registerUser(username, email, password);
+      await registerUser(email, password);
       if (!invitationFlow) {
         const team = await createTeam({
           name: teamName,
@@ -71,21 +70,15 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-ink-600 mb-1">Usuario</label>
-            <input required value={username} onChange={(e) => setUsername(e.target.value)} className={inputClass} />
-          </div>
-          <div>
-            <label className="block text-xs text-ink-600 mb-1">Email</label>
-            <input
-              required
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
-            />
-          </div>
+        <div>
+          <label className="block text-xs text-ink-600 mb-1">Email</label>
+          <input
+            required
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={inputClass}
+          />
         </div>
 
         <div>
