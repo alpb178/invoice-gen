@@ -29,8 +29,7 @@
       "default": "USD"
     },
     "companyName": {
-      "type": "string",
-      "required": true
+      "type": "string"
     },
     "companyCIF": {
       "type": "string"
@@ -39,8 +38,7 @@
       "type": "text"
     },
     "clientName": {
-      "type": "string",
-      "required": true
+      "type": "string"
     },
     "clientIBAN": {
       "type": "string"

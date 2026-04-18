@@ -250,8 +250,7 @@ export default function TeamsPage() {
                               className="flex items-center justify-between text-sm text-ink-900 bg-ink-50 border border-ink-200 rounded-lg px-3 py-2"
                             >
                               <span>
-                                <span className="font-medium">{m.username}</span>
-                                <span className="text-ink-500 ml-2 text-xs">{m.email}</span>
+                                <span className="font-medium">{m.email}</span>
                               </span>
                               <button
                                 onClick={() => handleRemove(team.id, m.id)}
@@ -287,7 +286,7 @@ export default function TeamsPage() {
                         </button>
                       </div>
                       <p className="text-[11px] text-ink-500 mt-1.5">
-                        Se enviará un email con un enlace. Si tu Strapi no tiene SMTP, puedes copiar el enlace y compartirlo.
+                        Se generará un enlace que puedes copiar y compartir con el usuario invitado.
                       </p>
                     </div>
 
@@ -345,7 +344,7 @@ export default function TeamsPage() {
                 >
                   <div>
                     <h3 className="font-semibold text-ink-900">{team.name}</h3>
-                    <p className="text-xs text-ink-500 mt-0.5">Dueño: {team.owner?.username || '—'}</p>
+                    <p className="text-xs text-ink-500 mt-0.5">Dueño: {team.owner?.email || '—'}</p>
                   </div>
                   <button
                     onClick={() => selectActive(team.id)}

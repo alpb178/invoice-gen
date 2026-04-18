@@ -49,7 +49,7 @@ export interface Invitation {
   acceptUrl?: string;
   expiresAt?: string;
   team?: { id: number; name: string };
-  invitedBy?: { username?: string } | null;
+  invitedBy?: { email?: string } | null;
 }
 
 export interface Invoice {
@@ -58,10 +58,10 @@ export interface Invoice {
   date: string;
   status: 'draft' | 'sent' | 'paid' | 'cancelled';
   currency: string;
-  companyName: string;
+  companyName?: string;
   companyCIF?: string;
   companyAddress?: string;
-  clientName: string;
+  clientName?: string;
   clientIBAN?: string;
   clientSwift?: string;
   clientBank?: string;

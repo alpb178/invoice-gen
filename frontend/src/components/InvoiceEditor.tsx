@@ -41,6 +41,7 @@ export default function InvoiceEditor({ initial }: Props) {
   const [teamId, setTeamId] = useState<number | null>(null);
   const [isTeamOwner, setIsTeamOwner] = useState(false);
   const [importSectionIdx, setImportSectionIdx] = useState<number | null>(null);
+  const [partiesOpen, setPartiesOpen] = useState(false);
   const user = typeof window !== 'undefined' ? getUser() : null;
 
   useEffect(() => {
@@ -161,7 +162,8 @@ export default function InvoiceEditor({ initial }: Props) {
   const calcSectionTotal = (sec: Section) => sec.tasks.reduce((a, t) => a + (t.amount || 0), 0);
   const calcTotal = () => invoice.sections.reduce((a, s) => a + calcSectionTotal(s), 0);
 
-  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtMoney = (n: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD' }).format(n || 0);
 
   const handleSave = async () => {
     if (!teamId) {
@@ -201,7 +203,7 @@ export default function InvoiceEditor({ initial }: Props) {
           <h1 className="text-2xl font-bold text-ink-900">{initial ? `Factura #${initial.number}` : 'Nueva Factura'}</h1>
           {initial?.createdBy && (
             <p className="text-xs text-ink-500 mt-1">
-              Creada por <span className="text-ink-900 font-medium">{initial.createdBy.username}</span>
+              Creada por <span className="text-ink-900 font-medium">{initial.createdBy.email}</span>
             </p>
           )}
         </div>
@@ -283,31 +285,48 @@ export default function InvoiceEditor({ initial }: Props) {
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
               <option value="GBP">GBP</option>
+              <option value="BOB">BOB</option>
             </select>
           </div>
         </div>
       </div>
 
       {isTeamOwner && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-paper border border-ink-200 rounded-2xl p-6 shadow-card">
-            <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider mb-4">Emisor</h2>
-            <div className="space-y-3">
-              <div><label className={labelClass}>Empresa</label><input disabled={!canEdit} className={inputClass} placeholder="Emx Comunicaciones S.L.U." value={invoice.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
-              <div><label className={labelClass}>CIF</label><input disabled={!canEdit} className={inputClass} placeholder="B85173963" value={invoice.companyCIF || ''} onChange={(e) => update('companyCIF', e.target.value)} /></div>
-              <div><label className={labelClass}>Dirección</label><textarea disabled={!canEdit} className={inputClass + ' resize-none h-16'} placeholder="Calle..." value={invoice.companyAddress || ''} onChange={(e) => update('companyAddress', e.target.value)} /></div>
+        <div className="bg-paper border border-ink-200 rounded-2xl mb-6 shadow-card overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setPartiesOpen((v) => !v)}
+            className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-ink-50 transition-colors"
+            aria-expanded={partiesOpen}
+          >
+            <div>
+              <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider">Emisor y Cliente</h2>
+              <p className="text-xs text-ink-500 mt-0.5">Datos opcionales — por defecto se usan los del equipo</p>
             </div>
-          </div>
+            <span className={`text-ink-500 transition-transform ${partiesOpen ? 'rotate-180' : ''}`}>▾</span>
+          </button>
+          {partiesOpen && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 pb-6 border-t border-ink-200 pt-6">
+              <div>
+                <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider mb-3">Emisor</h3>
+                <div className="space-y-3">
+                  <div><label className={labelClass}>Empresa</label><input disabled={!canEdit} className={inputClass} placeholder="Emx Comunicaciones S.L.U." value={invoice.companyName || ''} onChange={(e) => update('companyName', e.target.value)} /></div>
+                  <div><label className={labelClass}>CIF</label><input disabled={!canEdit} className={inputClass} placeholder="B85173963" value={invoice.companyCIF || ''} onChange={(e) => update('companyCIF', e.target.value)} /></div>
+                  <div><label className={labelClass}>Dirección</label><textarea disabled={!canEdit} className={inputClass + ' resize-none h-16'} placeholder="Calle..." value={invoice.companyAddress || ''} onChange={(e) => update('companyAddress', e.target.value)} /></div>
+                </div>
+              </div>
 
-          <div className="bg-paper border border-ink-200 rounded-2xl p-6 shadow-card">
-            <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider mb-4">Cliente</h2>
-            <div className="space-y-3">
-              <div><label className={labelClass}>Nombre</label><input disabled={!canEdit} className={inputClass} placeholder="Alejandro Pérez" value={invoice.clientName} onChange={(e) => update('clientName', e.target.value)} /></div>
-              <div><label className={labelClass}>IBAN</label><input disabled={!canEdit} className={inputClass} placeholder="BE95905522553858" value={invoice.clientIBAN || ''} onChange={(e) => update('clientIBAN', e.target.value)} /></div>
-              <div><label className={labelClass}>Swift/BIC</label><input disabled={!canEdit} className={inputClass} placeholder="TRWIBEB1XXX" value={invoice.clientSwift || ''} onChange={(e) => update('clientSwift', e.target.value)} /></div>
-              <div><label className={labelClass}>Banco</label><input disabled={!canEdit} className={inputClass} placeholder="Wise, ..." value={invoice.clientBank || ''} onChange={(e) => update('clientBank', e.target.value)} /></div>
+              <div>
+                <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider mb-3">Cliente</h3>
+                <div className="space-y-3">
+                  <div><label className={labelClass}>Nombre</label><input disabled={!canEdit} className={inputClass} placeholder="Alejandro Pérez" value={invoice.clientName || ''} onChange={(e) => update('clientName', e.target.value)} /></div>
+                  <div><label className={labelClass}>IBAN</label><input disabled={!canEdit} className={inputClass} placeholder="BE95905522553858" value={invoice.clientIBAN || ''} onChange={(e) => update('clientIBAN', e.target.value)} /></div>
+                  <div><label className={labelClass}>Swift/BIC</label><input disabled={!canEdit} className={inputClass} placeholder="TRWIBEB1XXX" value={invoice.clientSwift || ''} onChange={(e) => update('clientSwift', e.target.value)} /></div>
+                  <div><label className={labelClass}>Banco</label><input disabled={!canEdit} className={inputClass} placeholder="Wise, ..." value={invoice.clientBank || ''} onChange={(e) => update('clientBank', e.target.value)} /></div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -320,7 +339,7 @@ export default function InvoiceEditor({ initial }: Props) {
                 <input disabled={!canEdit} className={inputClass} placeholder="Tareas de Desarrollo (Front-Diciembre)" value={sec.title} onChange={(e) => updateSection(sIdx, 'title', e.target.value)} />
               </div>
               <div>
-                <label className={labelClass}>Subtítulo / Desarrollador</label>
+                <label className={labelClass}>Responsable</label>
                 <input disabled={!canEdit} className={inputClass} placeholder="Richard, Jhoan..." value={sec.subtitle || ''} onChange={(e) => updateSection(sIdx, 'subtitle', e.target.value)} />
               </div>
             </div>
@@ -430,7 +449,7 @@ export default function InvoiceEditor({ initial }: Props) {
             ) : <span />}
             <div className="text-right">
               <span className="text-xs text-ink-500 mr-3">Subtotal Sección {sIdx + 1}:</span>
-              <span className="font-mono font-semibold text-ink-900">${fmt(calcSectionTotal(sec))}</span>
+              <span className="font-mono font-semibold text-ink-900">{fmtMoney(calcSectionTotal(sec))}</span>
             </div>
           </div>
         </div>
@@ -452,13 +471,13 @@ export default function InvoiceEditor({ initial }: Props) {
             <div className="text-ink-500 text-sm mt-1 space-y-0.5">
               {invoice.sections.map((sec, i) => (
                 <div key={i}>
-                  Subtotal Sección {i + 1} ({sec.title || '...'}): <span className="text-ink-800">${fmt(calcSectionTotal(sec))}</span>
+                  Subtotal Sección {i + 1} ({sec.title || '...'}): <span className="text-ink-800">{fmtMoney(calcSectionTotal(sec))}</span>
                 </div>
               ))}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold font-mono text-ink-900">${fmt(calcTotal())}</div>
+            <div className="text-3xl font-bold font-mono text-ink-900">{fmtMoney(calcTotal())}</div>
             <div className="text-ink-500 text-sm">{invoice.currency}</div>
           </div>
         </div>

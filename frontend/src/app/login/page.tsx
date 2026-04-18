@@ -44,10 +44,10 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-xs text-ink-600">Email o usuario</label>
+          <label className="block text-xs text-ink-600">Email</label>
           <input
-            type="text"
-            autoComplete="username"
+            type="email"
+            autoComplete="email"
             required
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { getMyTeams, updateTeam } from '@/lib/api';
 import { getUser, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
 
-const CURRENCIES = ['USD', 'EUR', 'GBP'];
+const CURRENCIES = ['USD', 'EUR', 'GBP', 'BOB'];
 
 export default function SettingsPage() {
   const [teams, setTeams] = useState<any[]>([]);
