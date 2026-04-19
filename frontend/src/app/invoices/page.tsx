@@ -84,7 +84,7 @@ export default function InvoicesIndexPage() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
-          <Link href="/" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
+          <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
             ← Dashboard
           </Link>
           <h1 className="text-2xl font-bold text-ink-900">Todas las facturas</h1>

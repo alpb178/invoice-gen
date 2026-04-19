@@ -45,7 +45,7 @@ export default function AcceptInvitationPage() {
       const data = await acceptInvitation(token);
       if (data?.team?.id) setActiveTeamId(data.team.id);
       setResult({ type: 'ok', text: `¡Te uniste al equipo ${data?.team?.name || ''}! Redirigiendo…` });
-      setTimeout(() => router.replace('/'), 900);
+      setTimeout(() => router.replace('/app'), 900);
     } catch (e: any) {
       setResult({ type: 'err', text: e.message });
       setProcessing(false);
@@ -114,7 +114,7 @@ export default function AcceptInvitationPage() {
             {info.status === 'accepted' && !result && (
               <div className="text-sm bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-3 py-2 mb-4">
                 Esta invitación ya fue aceptada.{' '}
-                <Link href="/" className="font-semibold underline">
+                <Link href="/app" className="font-semibold underline">
                   Ir al dashboard →
                 </Link>
               </div>

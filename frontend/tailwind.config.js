@@ -20,8 +20,9 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-serif)', 'Georgia', 'serif'],
+        mono: ['var(--font-mono)', 'monospace'],
       },
       boxShadow: {
         card: '0 1px 2px 0 rgba(15,15,20,0.04), 0 1px 3px 0 rgba(15,15,20,0.06)',

@@ -9,7 +9,7 @@ import { loginWithPassword } from '@/lib/auth';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') || '/';
+  const next = searchParams.get('next') || '/app';
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +84,7 @@ export default function LoginPage() {
         <p className="text-xs text-ink-500 text-center">
           ¿No tienes cuenta?{' '}
           <Link
-            href={`/register${next !== '/' ? `?next=${encodeURIComponent(next)}` : ''}`}
+            href={`/register${next !== '/app' ? `?next=${encodeURIComponent(next)}` : ''}`}
             className="text-ink-900 font-medium hover:underline"
           >
             Regístrate

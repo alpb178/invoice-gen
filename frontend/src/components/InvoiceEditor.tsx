@@ -173,7 +173,7 @@ export default function InvoiceEditor({ initial }: Props) {
     setSaving(true);
     try {
       await saveFullInvoice(invoice, teamId);
-      router.push('/');
+      router.push('/app');
     } catch (e: any) {
       alert('Error: ' + e.message);
     }
@@ -197,7 +197,7 @@ export default function InvoiceEditor({ initial }: Props) {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
         <div>
-          <button onClick={() => router.push('/')} className="text-ink-500 hover:text-ink-900 text-sm mb-2 inline-block">
+          <button onClick={() => router.push('/app')} className="text-ink-500 hover:text-ink-900 text-sm mb-2 inline-block">
             ← Volver
           </button>
           <h1 className="text-2xl font-bold text-ink-900">{initial ? `Factura #${initial.number}` : 'Nueva Factura'}</h1>

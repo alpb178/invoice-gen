@@ -1,117 +1,850 @@
-// src/app/page.tsx
-'use client';
-
-import { useEffect, useMemo, useState } from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import {
-  getInvoices,
-  deleteInvoice,
-  getMyTeams,
-  getMyInvitations,
-} from '@/lib/api';
-import { getUser, logout, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
+import Image from 'next/image';
+import { SITE_URL } from '@/lib/seo';
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Borrador',
-  sent: 'Enviada',
-  paid: 'Pagada',
-  cancelled: 'Cancelada',
+export const metadata: Metadata = {
+  title: 'Invoice Generator — Facturas profesionales en PDF, sin fricción',
+  description:
+    'Crea, personaliza y descarga facturas profesionales en PDF. Gestiona clientes, equipos, multi-moneda y reportes en un solo lugar. Gratis para empezar.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    url: SITE_URL,
+    title: 'Invoice Generator — Facturas profesionales en PDF, sin fricción',
+    description:
+      'Factura en segundos, con equipos, multi-moneda y reportes. Gratis para empezar.',
+    siteName: 'Invoice Generator',
+    locale: 'es_ES',
+  },
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: '#a1a1aa',
-  sent: '#3b82f6',
-  paid: '#10b981',
-  cancelled: '#ef4444',
-};
+const FEATURES = [
+  {
+    tag: '01 · PDF',
+    title: 'Facturas que imprimen bonito',
+    body:
+      'Plantillas limpias, tipografía de editorial y totales calculados al céntimo. Descargas el PDF y no hay que pedir disculpas por el diseño.',
+  },
+  {
+    tag: '02 · Equipos',
+    title: 'Colaborar sin pisarse',
+    body:
+      'Invita a tu equipo por email, asigna roles y ve quién creó qué. Cada miembro factura bajo la misma marca sin duplicar trabajo.',
+  },
+  {
+    tag: '03 · Moneda',
+    title: 'Multi-moneda por defecto',
+    body:
+      'EUR, USD, MXN, COP, ARS y la que uses. El total se formatea según el estándar de cada moneda. Cambiarla no rompe nada.',
+  },
+  {
+    tag: '04 · Clientes',
+    title: 'Ficheros de cliente reales',
+    body:
+      'Guarda razón social, CIF, dirección fiscal y notas. La próxima factura se autocompleta y no cometes un typo tres meses después.',
+  },
+  {
+    tag: '05 · Reportes',
+    title: 'Números que se entienden solos',
+    body:
+      'Facturación del mes, pendientes, pagadas, canceladas. Curvas en 6 meses y distribución por miembro. Sin hojas de cálculo.',
+  },
+  {
+    tag: '06 · Acceso',
+    title: 'Tu cuenta en un clic',
+    body:
+      'Email y contraseña. Sesión persistente, invitaciones por token, y tu historial contigo cuando cambies de dispositivo.',
+  },
+];
 
-const STATUS_PILL: Record<string, string> = {
-  draft: 'bg-ink-100 text-ink-700 border-ink-200',
-  sent: 'bg-blue-50 text-blue-700 border-blue-200',
-  paid: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  cancelled: 'bg-red-50 text-red-700 border-red-200',
-};
+const STEPS = [
+  {
+    n: '01',
+    title: 'Crea tu equipo',
+    body:
+      'Registra tu email y define el equipo/empresa. Tú eres el dueño. Tardas menos que en pedir un café.',
+  },
+  {
+    n: '02',
+    title: 'Emite la primera factura',
+    body:
+      'Añade cliente, líneas, impuestos. Los totales se calculan en vivo. Guardas como borrador o envías ya.',
+  },
+  {
+    n: '03',
+    title: 'Descarga, cobra, repite',
+    body:
+      'PDF con un click, estado de pago, reportes del mes. Tu equipo trabaja en paralelo sin bloquearse.',
+  },
+];
 
-function fmtMoney(n: number, cur = 'USD') {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: cur,
-    maximumFractionDigits: 0,
-  }).format(n || 0);
-}
+const FAQ = [
+  {
+    q: '¿Es realmente gratis?',
+    a: 'Sí. Puedes crear tu cuenta, tu equipo, y emitir facturas en PDF sin tarjeta ni periodo de prueba. Si más adelante necesitas funciones avanzadas te avisaremos; hoy el plan inicial cubre facturación profesional completa.',
+  },
+  {
+    q: '¿Puedo trabajar con varias monedas?',
+    a: 'Cada equipo define su moneda por defecto (EUR, USD, MXN, COP, ARS, etc.) y cada factura puede emitirse en cualquier moneda soportada. Los totales se formatean según el estándar de cada una.',
+  },
+  {
+    q: '¿Cómo invito a mi equipo?',
+    a: 'Desde la pestaña de Equipos envías una invitación por email. La persona recibe un enlace único, se registra, y entra al equipo con el rol que asignes. Puedes revocar invitaciones pendientes en cualquier momento.',
+  },
+  {
+    q: '¿Las facturas son válidas legalmente?',
+    a: 'Las facturas incluyen todos los campos fiscales estándar (emisor, cliente, CIF/NIF, concepto, base imponible, impuestos, total). La validez legal depende del régimen fiscal de tu país; el PDF es idéntico a uno emitido por software homologado.',
+  },
+];
 
-function monthKey(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function monthLabel(d: Date) {
-  return d.toLocaleDateString('es-ES', { month: 'short' });
-}
-
-function lastMonths(n: number): Date[] {
-  const now = new Date();
-  const out: Date[] = [];
-  for (let i = n - 1; i >= 0; i--) {
-    out.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
-  }
-  return out;
-}
-
-interface LineChartProps {
-  points: { label: string; value: number }[];
-  currency?: string;
-}
-
-function LineChart({ points, currency = 'USD' }: LineChartProps) {
-  const width = 560;
-  const height = 180;
-  const pad = { top: 16, right: 16, bottom: 28, left: 44 };
-  const innerW = width - pad.left - pad.right;
-  const innerH = height - pad.top - pad.bottom;
-  const max = Math.max(1, ...points.map((p) => p.value));
-  const step = points.length > 1 ? innerW / (points.length - 1) : innerW;
-
-  const coords = points.map((p, i) => {
-    const x = pad.left + step * i;
-    const y = pad.top + innerH - (p.value / max) * innerH;
-    return { x, y, ...p };
-  });
-
-  const path = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(' ');
-  const area =
-    coords.length > 0
-      ? `${path} L ${coords[coords.length - 1].x} ${pad.top + innerH} L ${coords[0].x} ${pad.top + innerH} Z`
-      : '';
-
-  const gridY = [0, 0.5, 1].map((t) => ({
-    y: pad.top + innerH - t * innerH,
-    value: Math.round(max * t),
-  }));
-
+export default function LandingPage() {
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
-      {gridY.map((g, i) => (
-        <g key={i}>
-          <line
-            x1={pad.left}
-            x2={width - pad.right}
-            y1={g.y}
-            y2={g.y}
-            stroke="#e5e5e7"
-            strokeDasharray="3 3"
-          />
-          <text x={pad.left - 6} y={g.y + 3} textAnchor="end" fontSize="9" fill="#71717a">
-            {fmtMoney(g.value, currency)}
-          </text>
-        </g>
+    <main
+      className="min-h-screen"
+      style={{ background: 'var(--cream)', color: '#18181b' }}
+    >
+      {/* ——— NAV ——— */}
+      <header
+        className="relative z-20 border-b"
+        style={{ borderColor: 'rgba(28,28,31,0.12)' }}
+      >
+        <div className="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <Image
+              src="/icon.png"
+              alt="Invoice Generator"
+              width={28}
+              height={28}
+              className="rounded-sm"
+            />
+            <span className="font-serif-display text-xl font-semibold tracking-tight">
+              Invoice<span style={{ color: 'var(--stamp)' }}>.</span>
+            </span>
+            <span className="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-ink-500 ml-1 pl-2 border-l border-ink-300">
+              Generator
+            </span>
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-8 text-sm text-ink-700">
+            <a href="#caracteristicas" className="hover:text-ink-950 transition-colors">
+              Características
+            </a>
+            <a href="#flujo" className="hover:text-ink-950 transition-colors">
+              Cómo funciona
+            </a>
+            <a href="#faq" className="hover:text-ink-950 transition-colors">
+              Preguntas
+            </a>
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="hidden sm:inline-flex px-3.5 py-2 text-sm text-ink-900 hover:text-ink-950 transition-colors"
+            >
+              Entrar
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-ink-950 text-[#f5f1e8] text-sm font-medium rounded-full hover:bg-ink-800 transition-colors"
+            >
+              Empezar gratis
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* ——— HERO ——— */}
+      <section className="relative overflow-hidden paper-grain">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 pt-14 md:pt-24 pb-20 md:pb-28">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-start">
+            {/* COPY */}
+            <div className="lg:col-span-7 rise">
+              <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-ink-600 mb-6">
+                <span
+                  className="inline-block w-6 h-px"
+                  style={{ background: '#1c1c1f' }}
+                />
+                <span className="font-mono-tight">
+                  Facturación · Ed. 2026
+                </span>
+                <span
+                  className="inline-block w-6 h-px"
+                  style={{ background: '#1c1c1f' }}
+                />
+              </div>
+
+              <h1 className="font-serif-display text-[44px] leading-[1.02] sm:text-[62px] lg:text-[78px] xl:text-[92px] font-medium tracking-[-0.02em]">
+                Tus facturas,
+                <br />
+                <span className="italic" style={{ fontWeight: 400 }}>
+                  finalmente
+                </span>{' '}
+                <span className="underline-pencil">a la altura</span>.
+              </h1>
+
+              <p className="mt-7 text-lg md:text-xl text-ink-700 leading-relaxed max-w-xl">
+                Emite facturas en PDF que parecen salidas de estudio, gestiona
+                clientes y equipos, y sigue tu facturación en tiempo real — sin
+                hojas de cálculo, sin plantillas rotas, sin tarjeta.
+              </p>
+
+              <div className="mt-9 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 bg-ink-950 text-[#f5f1e8] text-[15px] font-medium rounded-full hover:bg-ink-800 transition-all hover:gap-3"
+                >
+                  Empezar gratis
+                  <span aria-hidden>→</span>
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 text-[15px] font-medium text-ink-900 hover:text-ink-950 transition-colors border-b border-ink-900"
+                >
+                  Ya tengo cuenta
+                </Link>
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-ink-600 font-mono-tight">
+                <span className="flex items-center gap-1.5">
+                  <Check /> Sin tarjeta
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Check /> Setup en 2 min
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Check /> Multi-moneda
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Check /> PDF incluido
+                </span>
+              </div>
+            </div>
+
+            {/* MOCKED INVOICE */}
+            <div className="lg:col-span-5 relative rise" style={{ animationDelay: '160ms' }}>
+              <InvoicePreview />
+            </div>
+          </div>
+        </div>
+
+        {/* decorative ornament */}
+        <div
+          className="absolute left-0 right-0 bottom-0 h-px"
+          style={{ background: 'rgba(28,28,31,0.18)' }}
+        />
+      </section>
+
+      {/* ——— MARQUEE ——— */}
+      <section
+        className="border-b overflow-hidden"
+        style={{ borderColor: 'rgba(28,28,31,0.12)', background: '#ece6d6' }}
+      >
+        <div className="py-5 whitespace-nowrap font-mono-tight text-[13px] uppercase tracking-[0.32em] text-ink-700">
+          <div className="marquee-track">
+            <MarqueeContent />
+            <MarqueeContent />
+          </div>
+        </div>
+      </section>
+
+      {/* ——— FEATURES ——— */}
+      <section
+        id="caracteristicas"
+        className="relative py-20 md:py-28"
+      >
+        <div className="max-w-7xl mx-auto px-5 md:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-14 md:mb-20">
+            <div className="md:col-span-4">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-ink-500 font-mono-tight mb-4">
+                § Características
+              </div>
+              <h2 className="font-serif-display text-4xl md:text-5xl font-medium leading-[1.08] tracking-tight">
+                Todo lo que necesitas, <em className="italic font-normal">nada</em> de lo que sobra.
+              </h2>
+            </div>
+            <div className="md:col-span-7 md:col-start-6">
+              <p className="text-lg text-ink-700 leading-relaxed">
+                Diseñado para freelancers y equipos pequeños que quieren facturar
+                rápido y bien. Sin flujos de onboarding eternos, sin funciones que
+                nunca se usan, sin costes ocultos.
+              </p>
+            </div>
+          </div>
+
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px"
+            style={{ background: 'rgba(28,28,31,0.15)' }}
+          >
+            {FEATURES.map((f) => (
+              <article
+                key={f.tag}
+                className="p-7 md:p-8 flex flex-col gap-3 transition-colors hover:bg-[#ece6d6]"
+                style={{ background: 'var(--cream)' }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono-tight text-[11px] uppercase tracking-[0.18em] text-ink-500">
+                    {f.tag}
+                  </span>
+                  <span
+                    className="font-mono-tight text-[10px] uppercase tracking-wider"
+                    style={{ color: 'var(--stamp)' }}
+                  >
+                    ✓ incluido
+                  </span>
+                </div>
+                <h3 className="font-serif-display text-2xl md:text-[26px] font-medium leading-snug tracking-tight">
+                  {f.title}
+                </h3>
+                <p className="text-[15px] text-ink-700 leading-relaxed">
+                  {f.body}
+                </p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ——— DASHBOARD PREVIEW ——— */}
+      <section
+        className="relative py-20 md:py-28 border-t"
+        style={{ borderColor: 'rgba(28,28,31,0.12)', background: '#faf7ee' }}
+      >
+        <div className="max-w-7xl mx-auto px-5 md:px-8">
+          <div className="max-w-2xl mb-10 md:mb-14">
+            <div className="text-[11px] uppercase tracking-[0.22em] text-ink-500 font-mono-tight mb-4">
+              § Reportes
+            </div>
+            <h2 className="font-serif-display text-4xl md:text-5xl font-medium leading-[1.08] tracking-tight">
+              Ves cómo va el negocio <em className="italic font-normal">a primera vista</em>.
+            </h2>
+            <p className="mt-5 text-lg text-ink-700 leading-relaxed">
+              KPIs, tendencia de facturación, distribución por estado, contribución por miembro del equipo. Actualizado cada vez que alguien cierra una factura.
+            </p>
+          </div>
+
+          <DashboardPreview />
+        </div>
+      </section>
+
+      {/* ——— HOW IT WORKS ——— */}
+      <section
+        id="flujo"
+        className="relative py-20 md:py-28"
+        style={{ background: '#1c1c1f', color: '#f5f1e8' }}
+      >
+        <div className="max-w-7xl mx-auto px-5 md:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-14 md:mb-20">
+            <div className="md:col-span-5">
+              <div className="text-[11px] uppercase tracking-[0.22em] font-mono-tight mb-4" style={{ color: 'rgba(245,241,232,0.55)' }}>
+                § Flujo
+              </div>
+              <h2 className="font-serif-display text-4xl md:text-5xl font-medium leading-[1.08] tracking-tight">
+                De cero a tu primera factura, <em className="italic font-normal">en tres pasos</em>.
+              </h2>
+            </div>
+            <div className="md:col-span-6 md:col-start-7 flex items-end">
+              <p className="text-lg leading-relaxed" style={{ color: 'rgba(245,241,232,0.72)' }}>
+                Ni formularios kilométricos, ni tutoriales obligatorios. Abres una cuenta, creas tu equipo y ya estás facturando.
+              </p>
+            </div>
+          </div>
+
+          <ol className="grid grid-cols-1 md:grid-cols-3 gap-px" style={{ background: 'rgba(245,241,232,0.12)' }}>
+            {STEPS.map((s, i) => (
+              <li
+                key={s.n}
+                className="p-8 md:p-10 relative"
+                style={{ background: '#1c1c1f' }}
+              >
+                <div className="flex items-baseline gap-4 mb-6">
+                  <span className="font-serif-display text-7xl md:text-8xl font-medium leading-none" style={{ color: 'var(--stamp)' }}>
+                    {s.n}
+                  </span>
+                  <span className="font-mono-tight text-[11px] uppercase tracking-[0.22em]" style={{ color: 'rgba(245,241,232,0.5)' }}>
+                    / paso
+                  </span>
+                </div>
+                <h3 className="font-serif-display text-2xl md:text-[28px] font-medium leading-snug tracking-tight mb-3">
+                  {s.title}
+                </h3>
+                <p className="text-[15px] leading-relaxed" style={{ color: 'rgba(245,241,232,0.72)' }}>
+                  {s.body}
+                </p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-14 flex flex-wrap items-center gap-4">
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 px-7 py-4 text-[15px] font-medium rounded-full transition-all hover:gap-3"
+              style={{ background: 'var(--stamp)', color: '#fff8ee' }}
+            >
+              Crear mi primera factura
+              <span aria-hidden>→</span>
+            </Link>
+            <span className="font-mono-tight text-xs" style={{ color: 'rgba(245,241,232,0.55)' }}>
+              sin_tarjeta · sin_instalación · sin_compromiso
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ——— FAQ ——— */}
+      <section id="faq" className="py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-5 md:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
+            <div className="md:col-span-4">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-ink-500 font-mono-tight mb-4">
+                § Preguntas
+              </div>
+              <h2 className="font-serif-display text-4xl md:text-5xl font-medium leading-[1.08] tracking-tight">
+                Lo que la gente <em className="italic font-normal">realmente</em> pregunta.
+              </h2>
+            </div>
+            <div className="md:col-span-7 md:col-start-6">
+              <dl className="divide-y" style={{ borderColor: 'rgba(28,28,31,0.15)' }}>
+                {FAQ.map((item, i) => (
+                  <details
+                    key={item.q}
+                    className="group py-6 border-t"
+                    style={{ borderColor: 'rgba(28,28,31,0.18)' }}
+                    open={i === 0}
+                  >
+                    <summary className="cursor-pointer list-none flex items-start gap-4">
+                      <span className="font-mono-tight text-xs text-ink-500 pt-1 shrink-0 w-8">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <span className="flex-1 font-serif-display text-xl md:text-[22px] font-medium leading-snug tracking-tight">
+                        {item.q}
+                      </span>
+                      <span
+                        className="shrink-0 text-xl leading-none pt-1 transition-transform group-open:rotate-45"
+                        aria-hidden
+                        style={{ color: 'var(--stamp)' }}
+                      >
+                        +
+                      </span>
+                    </summary>
+                    <dd className="mt-3 pl-12 text-ink-700 leading-relaxed">
+                      {item.a}
+                    </dd>
+                  </details>
+                ))}
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ——— FINAL CTA ——— */}
+      <section
+        className="relative py-24 md:py-32 border-t overflow-hidden"
+        style={{ borderColor: 'rgba(28,28,31,0.12)', background: 'var(--cream-dark)' }}
+      >
+        <div className="max-w-5xl mx-auto px-5 md:px-8 text-center relative">
+          <div className="text-[11px] uppercase tracking-[0.28em] text-ink-500 font-mono-tight mb-6">
+            Empieza hoy
+          </div>
+          <h2 className="font-serif-display text-5xl md:text-7xl font-medium leading-[1.02] tracking-tight">
+            La siguiente factura <br />
+            <span className="italic font-normal">puede salir bien.</span>
+          </h2>
+          <p className="mt-7 text-lg md:text-xl text-ink-700 max-w-2xl mx-auto leading-relaxed">
+            Registro gratis, sin tarjeta, en menos de dos minutos. Tu equipo y tus clientes te lo agradecerán.
+          </p>
+          <div className="mt-9 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 px-7 py-4 bg-ink-950 text-[#f5f1e8] text-[15px] font-medium rounded-full hover:bg-ink-800 transition-all hover:gap-3"
+            >
+              Empezar gratis
+              <span aria-hidden>→</span>
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-7 py-4 text-[15px] font-medium text-ink-900 hover:text-ink-950 transition-colors border-b border-ink-900"
+            >
+              Iniciar sesión
+            </Link>
+          </div>
+
+          {/* stamp */}
+          <div
+            className="hidden md:block absolute top-8 right-8 stamp-rotate px-3 py-1.5 border-2 rounded-sm font-mono-tight text-[10px] uppercase tracking-[0.22em]"
+            style={{ borderColor: 'var(--stamp)', color: 'var(--stamp)' }}
+          >
+            Gratis · Ed. 2026
+          </div>
+        </div>
+      </section>
+
+      {/* ——— FOOTER ——— */}
+      <footer
+        className="border-t"
+        style={{ borderColor: 'rgba(28,28,31,0.15)', background: 'var(--cream)' }}
+      >
+        <div className="max-w-7xl mx-auto px-5 md:px-8 py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="col-span-2">
+              <div className="flex items-center gap-2.5 mb-4">
+                <Image src="/icon.png" alt="" width={24} height={24} className="rounded-sm" />
+                <span className="font-serif-display text-lg font-semibold">
+                  Invoice<span style={{ color: 'var(--stamp)' }}>.</span>Generator
+                </span>
+              </div>
+              <p className="text-sm text-ink-600 leading-relaxed max-w-sm">
+                Facturación profesional para equipos pequeños. Hecho con cariño por gente que también odia hacer facturas.
+              </p>
+            </div>
+            <div>
+              <div className="font-mono-tight text-[10px] uppercase tracking-[0.22em] text-ink-500 mb-4">
+                Producto
+              </div>
+              <ul className="space-y-2 text-sm text-ink-700">
+                <li><a href="#caracteristicas" className="hover:text-ink-950">Características</a></li>
+                <li><a href="#flujo" className="hover:text-ink-950">Cómo funciona</a></li>
+                <li><a href="#faq" className="hover:text-ink-950">Preguntas</a></li>
+              </ul>
+            </div>
+            <div>
+              <div className="font-mono-tight text-[10px] uppercase tracking-[0.22em] text-ink-500 mb-4">
+                Cuenta
+              </div>
+              <ul className="space-y-2 text-sm text-ink-700">
+                <li><Link href="/register" className="hover:text-ink-950">Crear cuenta</Link></li>
+                <li><Link href="/login" className="hover:text-ink-950">Iniciar sesión</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          <div
+            className="mt-10 pt-6 border-t flex flex-wrap items-center justify-between gap-3 text-xs text-ink-500 font-mono-tight"
+            style={{ borderColor: 'rgba(28,28,31,0.15)' }}
+          >
+            <span>
+              © {new Date().getFullYear()} Invoice Generator · Hecho en papel digital
+            </span>
+            <span>v.2026.04 · es-ES</span>
+          </div>
+        </div>
+      </footer>
+    </main>
+  );
+}
+
+/* ——— PARTS ——— */
+
+function Check() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+      <path
+        d="M2 6.3 L4.8 9 L10 3.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function MarqueeContent() {
+  const items = [
+    'Multi-equipo',
+    'PDF incluido',
+    'Multi-moneda',
+    'Reportes en vivo',
+    'Sin tarjeta',
+    'Invitaciones por email',
+    'Borradores · Enviadas · Pagadas',
+    'Tema claro · Tipografía editorial',
+  ];
+  return (
+    <>
+      {items.map((t, i) => (
+        <span key={i} className="px-10 inline-flex items-center gap-10">
+          <span>{t}</span>
+          <span aria-hidden style={{ color: 'var(--stamp)' }}>✦</span>
+        </span>
       ))}
-      {area && <path d={area} fill="#18181b" fillOpacity={0.06} />}
-      {path && <path d={path} fill="none" stroke="#18181b" strokeWidth={1.75} />}
+    </>
+  );
+}
+
+function InvoicePreview() {
+  return (
+    <div className="relative">
+      {/* decorative back-card */}
+      <div
+        className="absolute inset-0 tilt-left rounded-sm border shadow-[0_1px_0_0_rgba(28,28,31,0.1)]"
+        style={{ background: '#ece6d6', borderColor: 'rgba(28,28,31,0.15)', transform: 'rotate(-3deg) translate(-16px, 14px)' }}
+        aria-hidden
+      />
+      {/* front invoice */}
+      <div
+        className="relative tilt-right rounded-sm border bg-white overflow-hidden"
+        style={{
+          borderColor: 'rgba(28,28,31,0.2)',
+          boxShadow:
+            '0 1px 0 rgba(28,28,31,0.06), 0 24px 40px -16px rgba(28,28,31,0.22), 0 8px 16px -8px rgba(28,28,31,0.14)',
+        }}
+      >
+        {/* paid stamp */}
+        <div
+          className="absolute top-5 right-5 stamp-rotate px-2.5 py-1 border-2 rounded-sm font-mono-tight text-[9px] uppercase tracking-[0.22em] z-10"
+          style={{ borderColor: 'var(--stamp)', color: 'var(--stamp)' }}
+        >
+          Pagada · 14 abr
+        </div>
+
+        <div className="p-7">
+          {/* header */}
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <div className="font-mono-tight text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                Factura
+              </div>
+              <div className="font-serif-display text-3xl font-medium mt-0.5 leading-none">
+                Nº 2026-0047
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="font-mono-tight text-[10px] uppercase tracking-[0.2em] text-ink-500">
+                Emisor
+              </div>
+              <div className="text-sm font-semibold mt-0.5">Estudio Orbita</div>
+              <div className="text-xs text-ink-500">B-12345678</div>
+            </div>
+          </div>
+
+          <div className="h-px hairline mb-5" />
+
+          {/* meta grid */}
+          <div className="grid grid-cols-3 gap-4 text-xs mb-6">
+            <div>
+              <div className="text-ink-500 uppercase tracking-wide font-mono-tight text-[10px] mb-1">
+                Cliente
+              </div>
+              <div className="font-medium text-ink-900">Casa Lumina, S.L.</div>
+              <div className="text-ink-600">Madrid · ES</div>
+            </div>
+            <div>
+              <div className="text-ink-500 uppercase tracking-wide font-mono-tight text-[10px] mb-1">
+                Fecha
+              </div>
+              <div className="font-mono-tight num-dot text-ink-900">02 · 04 · 2026</div>
+              <div className="text-ink-600">Vto. 16 · 04</div>
+            </div>
+            <div>
+              <div className="text-ink-500 uppercase tracking-wide font-mono-tight text-[10px] mb-1">
+                Moneda
+              </div>
+              <div className="font-mono-tight text-ink-900">EUR €</div>
+              <div className="text-ink-600">Transferencia</div>
+            </div>
+          </div>
+
+          {/* line items */}
+          <div className="text-xs mb-5">
+            <div className="grid grid-cols-[1fr_auto_auto] gap-4 font-mono-tight uppercase tracking-[0.15em] text-[9px] text-ink-500 pb-2 border-b border-ink-200">
+              <span>Concepto</span>
+              <span>Qty</span>
+              <span className="text-right">Importe</span>
+            </div>
+            {[
+              ['Rediseño de identidad', '1', '1.800,00'],
+              ['Manual de marca (52 pág.)', '1', '640,00'],
+              ['Sesión de fotos producto', '3', '540,00'],
+              ['Retoque & entrega', '1', '180,00'],
+            ].map(([c, q, i]) => (
+              <div
+                key={c}
+                className="grid grid-cols-[1fr_auto_auto] gap-4 py-2 border-b border-dashed border-ink-200 text-ink-900"
+              >
+                <span>{c}</span>
+                <span className="font-mono-tight text-ink-600">{q}</span>
+                <span className="font-mono-tight text-right num-dot">{i}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* totals */}
+          <div className="flex justify-end">
+            <div className="w-56 space-y-1.5 text-xs">
+              <div className="flex justify-between text-ink-600">
+                <span>Subtotal</span>
+                <span className="font-mono-tight num-dot">3.160,00</span>
+              </div>
+              <div className="flex justify-between text-ink-600">
+                <span>IVA 21%</span>
+                <span className="font-mono-tight num-dot">663,60</span>
+              </div>
+              <div className="h-px hairline my-2" />
+              <div className="flex justify-between items-baseline">
+                <span className="font-mono-tight uppercase text-[10px] tracking-[0.18em] text-ink-500">
+                  Total
+                </span>
+                <span className="font-serif-display text-2xl font-medium num-dot">
+                  € 3.823,60
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* footer */}
+          <div className="mt-6 pt-4 border-t border-ink-200 flex items-center justify-between text-[10px] font-mono-tight text-ink-500 uppercase tracking-[0.16em]">
+            <span>Generado · Invoice Generator</span>
+            <span>Pág. 1 / 1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardPreview() {
+  return (
+    <div
+      className="relative rounded-2xl border overflow-hidden"
+      style={{
+        borderColor: 'rgba(28,28,31,0.18)',
+        background: '#ffffff',
+        boxShadow:
+          '0 1px 0 rgba(28,28,31,0.04), 0 24px 50px -20px rgba(28,28,31,0.18)',
+      }}
+    >
+      {/* browser chrome */}
+      <div
+        className="flex items-center gap-2 px-4 py-2.5 border-b"
+        style={{ borderColor: 'rgba(28,28,31,0.12)', background: '#faf7ee' }}
+      >
+        <span className="w-2.5 h-2.5 rounded-full bg-ink-200" />
+        <span className="w-2.5 h-2.5 rounded-full bg-ink-200" />
+        <span className="w-2.5 h-2.5 rounded-full bg-ink-200" />
+        <div className="ml-3 text-[11px] font-mono-tight text-ink-500">
+          invoicegen.app/app
+        </div>
+      </div>
+
+      {/* content */}
+      <div className="p-6 md:p-8">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <div>
+            <div className="font-serif-display text-2xl font-medium">Dashboard</div>
+            <div className="text-xs text-ink-500 mt-0.5">
+              <span className="text-ink-800 font-medium">Estudio Orbita</span> · eres dueño
+            </div>
+          </div>
+          <span
+            className="px-3.5 py-2 text-xs font-medium rounded-full"
+            style={{ background: '#18181b', color: '#f5f1e8' }}
+          >
+            + Nueva factura
+          </span>
+        </div>
+
+        {/* KPIs */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          {[
+            ['Total facturado', '€ 42.180', '18 facturas'],
+            ['Este mes', '€ 8.420', 'abril 2026'],
+            ['Pendientes', '3', '1 borrador · 2 enviadas'],
+            ['Exportadas', '14', '12 pagadas'],
+          ].map(([l, v, h]) => (
+            <div
+              key={l}
+              className="rounded-xl border p-4"
+              style={{ borderColor: 'rgba(28,28,31,0.12)' }}
+            >
+              <div className="text-[10px] uppercase tracking-wide text-ink-500 font-mono-tight">
+                {l}
+              </div>
+              <div className="font-mono-tight text-xl font-semibold mt-1 num-dot">{v}</div>
+              <div className="text-[11px] text-ink-500 mt-0.5">{h}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* chart + donut */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div
+            className="lg:col-span-2 rounded-xl border p-5"
+            style={{ borderColor: 'rgba(28,28,31,0.12)' }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs font-semibold">Últimos 6 meses</div>
+              <div className="text-[10px] font-mono-tight text-ink-500">EUR</div>
+            </div>
+            <MiniChart />
+          </div>
+          <div
+            className="rounded-xl border p-5 flex items-center gap-4"
+            style={{ borderColor: 'rgba(28,28,31,0.12)' }}
+          >
+            <MiniDonut />
+            <ul className="text-[11px] space-y-1.5 flex-1">
+              <li className="flex items-center gap-2"><i className="w-2 h-2 rounded-sm" style={{ background: '#10b981' }} /><span className="flex-1 text-ink-700">Pagadas</span><span className="font-semibold">12</span></li>
+              <li className="flex items-center gap-2"><i className="w-2 h-2 rounded-sm" style={{ background: '#3b82f6' }} /><span className="flex-1 text-ink-700">Enviadas</span><span className="font-semibold">4</span></li>
+              <li className="flex items-center gap-2"><i className="w-2 h-2 rounded-sm" style={{ background: '#a1a1aa' }} /><span className="flex-1 text-ink-700">Borradores</span><span className="font-semibold">2</span></li>
+              <li className="flex items-center gap-2"><i className="w-2 h-2 rounded-sm" style={{ background: '#ef4444' }} /><span className="flex-1 text-ink-700">Canceladas</span><span className="font-semibold">0</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniChart() {
+  const points = [
+    { label: 'nov', value: 3200 },
+    { label: 'dic', value: 5800 },
+    { label: 'ene', value: 4100 },
+    { label: 'feb', value: 6900 },
+    { label: 'mar', value: 7400 },
+    { label: 'abr', value: 8420 },
+  ];
+  const w = 520;
+  const h = 150;
+  const pad = { t: 10, r: 10, b: 22, l: 36 };
+  const iw = w - pad.l - pad.r;
+  const ih = h - pad.t - pad.b;
+  const max = Math.max(...points.map((p) => p.value));
+  const step = iw / (points.length - 1);
+  const coords = points.map((p, i) => ({
+    x: pad.l + step * i,
+    y: pad.t + ih - (p.value / max) * ih,
+    ...p,
+  }));
+  const path = coords
+    .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
+    .join(' ');
+  const area =
+    path +
+    ` L ${coords[coords.length - 1].x} ${pad.t + ih} L ${coords[0].x} ${pad.t + ih} Z`;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto">
+      {[0, 0.5, 1].map((t, i) => (
+        <line
+          key={i}
+          x1={pad.l}
+          x2={w - pad.r}
+          y1={pad.t + ih - t * ih}
+          y2={pad.t + ih - t * ih}
+          stroke="#e5e5e7"
+          strokeDasharray="3 3"
+        />
+      ))}
+      <path d={area} fill="#18181b" fillOpacity="0.06" />
+      <path d={path} fill="none" stroke="#18181b" strokeWidth="1.8" />
       {coords.map((c, i) => (
         <g key={i}>
-          <circle cx={c.x} cy={c.y} r={3} fill="#18181b" />
-          <text x={c.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#52525b">
+          <circle cx={c.x} cy={c.y} r="2.8" fill="#18181b" />
+          <text x={c.x} y={h - 6} textAnchor="middle" fontSize="9" fill="#71717a">
             {c.label}
           </text>
         </g>
@@ -120,466 +853,46 @@ function LineChart({ points, currency = 'USD' }: LineChartProps) {
   );
 }
 
-interface DonutProps {
-  segments: { key: string; label: string; value: number; color: string }[];
-}
-
-function Donut({ segments }: DonutProps) {
-  const total = segments.reduce((a, s) => a + s.value, 0);
-  const size = 140;
-  const r = 56;
-  const stroke = 18;
+function MiniDonut() {
+  const segs = [
+    { v: 12, c: '#10b981' },
+    { v: 4, c: '#3b82f6' },
+    { v: 2, c: '#a1a1aa' },
+  ];
+  const total = segs.reduce((a, s) => a + s.v, 0);
+  const size = 100;
+  const r = 40;
+  const stroke = 14;
   const C = 2 * Math.PI * r;
-  let offset = 0;
-
+  let off = 0;
   return (
-    <div className="flex items-center gap-4">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f4f4f5" strokeWidth={stroke} />
-        {total > 0 &&
-          segments.map((s, i) => {
-            const frac = s.value / total;
-            const len = C * frac;
-            const el = (
-              <circle
-                key={i}
-                cx={size / 2}
-                cy={size / 2}
-                r={r}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={stroke}
-                strokeDasharray={`${len} ${C - len}`}
-                strokeDashoffset={-offset}
-                transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                strokeLinecap="butt"
-              />
-            );
-            offset += len;
-            return el;
-          })}
-        <text x={size / 2} y={size / 2 - 4} textAnchor="middle" fontSize="18" fontWeight="700" fill="#18181b">
-          {total}
-        </text>
-        <text x={size / 2} y={size / 2 + 14} textAnchor="middle" fontSize="10" fill="#71717a">
-          facturas
-        </text>
-      </svg>
-      <ul className="space-y-1.5 text-xs flex-1">
-        {segments.map((s) => (
-          <li key={s.key} className="flex items-center gap-2">
-            <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
-            <span className="text-ink-700 flex-1">{s.label}</span>
-            <span className="text-ink-900 font-semibold">{s.value}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-export default function DashboardPage() {
-  const router = useRouter();
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [teams, setTeams] = useState<any[]>([]);
-  const [activeTeam, setActiveTeam] = useState<any>(null);
-  const [activeTeamId, setActiveTeamIdState] = useState<number | null>(null);
-  const [isOwnerOfActive, setIsOwnerOfActive] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [pendingInvitations, setPendingInvitations] = useState<any[]>([]);
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    setUser(getUser());
-  }, []);
-
-  const loadAll = async () => {
-    try {
-      const { owned, memberOf } = await getMyTeams();
-      const merged = [...owned, ...memberOf.filter((m: any) => !owned.find((o: any) => o.id === m.id))];
-      setTeams(merged);
-      if (merged.length === 0) {
-        router.replace('/teams');
-        return;
-      }
-      const saved = getActiveTeamId();
-      const pick = merged.find((t: any) => t.id === saved) || merged[0];
-      setActiveTeamIdState(pick.id);
-      setActiveTeamId(pick.id);
-      setActiveTeam(pick);
-      const u = getUser();
-      setIsOwnerOfActive(pick.owner?.id === u?.id);
-
-      const data = await getInvoices(pick.id);
-      setInvoices(data || []);
-
-      try {
-        const inv = await getMyInvitations();
-        setPendingInvitations(inv || []);
-      } catch {}
-    } catch (e) {
-      console.error(e);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadAll();
-  }, []);
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('¿Eliminar esta factura?')) return;
-    try {
-      await deleteInvoice(id);
-      await loadAll();
-    } catch (e: any) {
-      alert(e.message);
-    }
-  };
-
-  const changeTeam = (id: number) => {
-    setActiveTeamId(id);
-    window.location.reload();
-  };
-
-  const kpi = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-
-    let total = 0;
-    let thisMonth = 0;
-    let drafts = 0;
-    let sent = 0;
-    let paid = 0;
-    let cancelled = 0;
-    let exported = 0;
-
-    for (const inv of invoices) {
-      const a = inv.attributes || inv;
-      const amount = a.totalAmount || 0;
-      total += amount;
-      if (a.date) {
-        const d = new Date(a.date);
-        if (d.getFullYear() === year && d.getMonth() === month) thisMonth += amount;
-      }
-      if (a.status === 'draft') drafts++;
-      else if (a.status === 'sent') sent++;
-      else if (a.status === 'paid') paid++;
-      else if (a.status === 'cancelled') cancelled++;
-      if (a.exportedAt) exported++;
-    }
-
-    return { total, thisMonth, drafts, sent, paid, cancelled, exported };
-  }, [invoices]);
-
-  const monthlySeries = useMemo(() => {
-    const months = lastMonths(6);
-    const buckets = new Map(months.map((d) => [monthKey(d), 0]));
-    for (const inv of invoices) {
-      const a = inv.attributes || inv;
-      if (!a.date) continue;
-      const d = new Date(a.date);
-      const key = monthKey(d);
-      if (buckets.has(key)) buckets.set(key, (buckets.get(key) || 0) + (a.totalAmount || 0));
-    }
-    return months.map((d) => ({ label: monthLabel(d), value: buckets.get(monthKey(d)) || 0 }));
-  }, [invoices]);
-
-  const statusSegments = useMemo(
-    () => [
-      { key: 'draft', label: 'Borradores', value: kpi.drafts, color: STATUS_COLORS.draft },
-      { key: 'sent', label: 'Enviadas', value: kpi.sent, color: STATUS_COLORS.sent },
-      { key: 'paid', label: 'Pagadas', value: kpi.paid, color: STATUS_COLORS.paid },
-      { key: 'cancelled', label: 'Canceladas', value: kpi.cancelled, color: STATUS_COLORS.cancelled },
-    ],
-    [kpi],
-  );
-
-  const perMember = useMemo(() => {
-    const map = new Map<string, { email: string; count: number; total: number }>();
-    for (const inv of invoices) {
-      const a = inv.attributes || inv;
-      const name = a.author?.email || '—';
-      const entry = map.get(name) || { email: name, count: 0, total: 0 };
-      entry.count += 1;
-      entry.total += a.totalAmount || 0;
-      map.set(name, entry);
-    }
-    return Array.from(map.values()).sort((a, b) => b.total - a.total);
-  }, [invoices]);
-
-  const recent = useMemo(() => invoices.slice(0, 5), [invoices]);
-
-  const cur = activeTeam?.defaultCurrency || 'USD';
-  const memberCount = (activeTeam?.members?.length || 0) + 1;
-
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink-900">Dashboard</h1>
-          <p className="text-ink-500 text-sm mt-1">
-            {activeTeam ? (
-              <>
-                <span className="text-ink-800 font-medium">{activeTeam.name}</span>
-                {isOwnerOfActive ? ' · eres dueño' : ' · eres miembro'}
-              </>
-            ) : (
-              'Registro del equipo'
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {user?.email && <span className="text-xs text-ink-500 hidden sm:inline">{user.email}</span>}
-          {teams.length > 0 && (
-            <select
-              value={activeTeamId || ''}
-              onChange={(e) => changeTeam(Number(e.target.value))}
-              className="px-3 py-2 text-sm bg-paper border border-ink-200 rounded-xl text-ink-900 focus:outline-none focus:border-ink-900"
-            >
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          )}
-          <Link
-            href="/reports"
-            className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
-            Reportes
-          </Link>
-          <Link
-            href="/teams"
-            className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
-            Equipos
-          </Link>
-          <Link
-            href="/settings"
-            className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
-            Ajustes
-          </Link>
-          <Link
-            href="/invoices/new"
-            className="px-5 py-2 bg-ink-900 hover:bg-ink-800 text-paper font-semibold rounded-xl text-sm transition-colors"
-          >
-            + Nueva Factura
-          </Link>
-          <button
-            onClick={logout}
-            className="px-3 py-2 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
-            Salir
-          </button>
-        </div>
-      </div>
-
-      {pendingInvitations.length > 0 && (
-        <div className="mb-5 text-sm bg-ink-50 border border-ink-200 rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-          <span className="text-ink-800">
-            Tienes {pendingInvitations.length} invitación{pendingInvitations.length === 1 ? '' : 'es'} pendiente
-            {pendingInvitations.length === 1 ? '' : 's'}.
-          </span>
-          <div className="flex gap-2">
-            {pendingInvitations.map((inv: any) => (
-              <Link
-                key={inv.id}
-                href={`/invitations/${inv.token}`}
-                className="text-xs px-3 py-1.5 bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors"
-              >
-                {inv.team?.name || 'Equipo'}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="text-center py-20 text-ink-500">Cargando dashboard...</div>
-      ) : (
-        <>
-          {/* KPI cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <KpiCard label="Total facturado" value={fmtMoney(kpi.total, cur)} hint={`${invoices.length} facturas`} />
-            <KpiCard label="Este mes" value={fmtMoney(kpi.thisMonth, cur)} hint={new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })} />
-            <KpiCard
-              label="Pendientes"
-              value={`${kpi.drafts + kpi.sent}`}
-              hint={`${kpi.drafts} borradores · ${kpi.sent} enviadas`}
-            />
-            <KpiCard label="Exportadas" value={`${kpi.exported}`} hint={`${kpi.paid} pagadas`} />
-          </div>
-
-          {/* Charts row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-            <div className="lg:col-span-2 bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-ink-900">Facturación · últimos 6 meses</h2>
-                <span className="text-xs text-ink-500">{cur}</span>
-              </div>
-              <LineChart points={monthlySeries} currency={cur} />
-            </div>
-            <div className="bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
-              <h2 className="text-sm font-semibold text-ink-900 mb-3">Distribución por estado</h2>
-              <Donut segments={statusSegments} />
-            </div>
-          </div>
-
-          {/* Recent + team panel */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-ink-900">Últimas facturas</h2>
-                <span className="text-xs text-ink-500">{invoices.length} total</span>
-              </div>
-
-              {invoices.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-4xl mb-2">📄</p>
-                  <p className="text-ink-500 text-sm">Todavía no hay facturas en este equipo.</p>
-                  <Link href="/invoices/new" className="text-ink-900 text-sm mt-2 inline-block hover:underline font-medium">
-                    Crear la primera →
-                  </Link>
-                </div>
-              ) : (
-                <ul className="divide-y divide-ink-200">
-                  {recent.map((inv: any) => {
-                    const a = inv.attributes || inv;
-                    const status = a.status || 'draft';
-                    const creatorId = a.author?.id;
-                    const mineOrOwner = isOwnerOfActive || creatorId === user?.id;
-                    return (
-                      <li key={inv.id} className="py-3 flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-ink-900">#{a.number}</span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_PILL[status]}`}>
-                              {STATUS_LABELS[status]}
-                            </span>
-                            {a.exportedAt && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full border border-ink-900 text-ink-900 uppercase tracking-wide">
-                                exportada
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-ink-500 text-xs mt-0.5 truncate">
-                            {a.clientName} · {a.date} · por {a.author?.email || '—'}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="font-mono font-semibold text-ink-900 text-sm">
-                            {fmtMoney(a.totalAmount || 0, cur)}
-                          </span>
-                          <Link
-                            href={`/invoices/${inv.id}`}
-                            className="px-2.5 py-1 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors"
-                          >
-                            {mineOrOwner ? 'Editar' : 'Ver'}
-                          </Link>
-                          {mineOrOwner && (
-                            <button
-                              onClick={() => handleDelete(inv.id)}
-                              className="px-2 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-colors"
-                              aria-label="Eliminar"
-                            >
-                              ×
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-
-              {invoices.length > recent.length && (
-                <div className="mt-3 text-right">
-                  <Link href="/invoices" className="text-xs text-ink-900 hover:underline font-medium">
-                    Ver todas ({invoices.length}) →
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <div className="bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
-                <h2 className="text-sm font-semibold text-ink-900 mb-3">Equipo</h2>
-                <div className="text-xs text-ink-500 mb-3">
-                  {memberCount} persona{memberCount === 1 ? '' : 's'}
-                </div>
-                <ul className="space-y-2">
-                  {activeTeam?.owner && (
-                    <li className="flex items-center justify-between text-sm">
-                      <span className="truncate">
-                        <span className="font-medium text-ink-900">{activeTeam.owner.email}</span>
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-ink-900 text-paper uppercase tracking-wide">
-                        dueño
-                      </span>
-                    </li>
-                  )}
-                  {(activeTeam?.members || []).map((m: any) => (
-                    <li key={m.id} className="flex items-center justify-between text-sm">
-                      <span className="truncate">
-                        <span className="font-medium text-ink-900">{m.email}</span>
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full border border-ink-200 text-ink-700 uppercase tracking-wide">
-                        miembro
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                {isOwnerOfActive && (
-                  <Link
-                    href="/teams"
-                    className="mt-3 inline-block text-xs text-ink-900 hover:underline font-medium"
-                  >
-                    Gestionar equipo →
-                  </Link>
-                )}
-              </div>
-
-              {perMember.length > 0 && (
-                <div className="bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
-                  <h2 className="text-sm font-semibold text-ink-900 mb-3">Facturación por miembro</h2>
-                  <ul className="space-y-2">
-                    {perMember.slice(0, 6).map((m) => {
-                      const pct = kpi.total > 0 ? Math.round((m.total / kpi.total) * 100) : 0;
-                      return (
-                        <li key={m.email}>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-ink-800 truncate mr-2">{m.email}</span>
-                            <span className="text-ink-500">
-                              {m.count} · <span className="text-ink-900 font-semibold">{fmtMoney(m.total, cur)}</span>
-                            </span>
-                          </div>
-                          <div className="h-1.5 bg-ink-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-ink-900" style={{ width: `${pct}%` }} />
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function KpiCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
-      <div className="text-xs uppercase tracking-wide text-ink-500">{label}</div>
-      <div className="text-2xl font-bold text-ink-900 mt-1 font-mono">{value}</div>
-      {hint && <div className="text-xs text-ink-500 mt-1">{hint}</div>}
-    </div>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f4f4f5" strokeWidth={stroke} />
+      {segs.map((s, i) => {
+        const len = (s.v / total) * C;
+        const el = (
+          <circle
+            key={i}
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke={s.c}
+            strokeWidth={stroke}
+            strokeDasharray={`${len} ${C - len}`}
+            strokeDashoffset={-off}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        );
+        off += len;
+        return el;
+      })}
+      <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontSize="14" fontWeight="700">
+        {total}
+      </text>
+      <text x={size / 2} y={size / 2 + 12} textAnchor="middle" fontSize="8" fill="#71717a">
+        facturas
+      </text>
+    </svg>
   );
 }

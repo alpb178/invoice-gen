@@ -41,7 +41,7 @@ export default function RegisterPage() {
         });
         setActiveTeamId(team.id);
       }
-      router.replace(next || '/');
+      router.replace(next || '/app');
     } catch (err: any) {
       setError(err.message || 'No se pudo completar el registro');
     } finally {

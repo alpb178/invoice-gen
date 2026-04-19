@@ -120,7 +120,7 @@ export default function ReportsPage() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
-          <Link href="/" className="text-ink-500 hover:text-ink-900 text-sm mb-2 inline-block">← Volver</Link>
+          <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-2 inline-block">← Volver</Link>
           <h1 className="text-2xl font-bold tracking-tight text-ink-900">Reportes</h1>
           <p className="text-ink-500 text-sm mt-1">
             {activeTeam ? (
