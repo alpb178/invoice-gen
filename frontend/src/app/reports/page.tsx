@@ -218,7 +218,7 @@ export default function ReportsPage() {
                                   )}
                                 </div>
                                 <div className="text-ink-500 text-xs mt-0.5 truncate">
-                                  {a.clientName || '—'} · {a.date} · {a.createdBy?.email || '—'}
+                                  {a.clientName || '—'} · {a.date} · {a.author?.email || '—'}
                                 </div>
                               </div>
                               <span className="font-mono font-semibold text-ink-900 text-sm shrink-0">

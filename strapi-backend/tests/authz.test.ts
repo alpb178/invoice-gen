@@ -25,19 +25,19 @@ const team: AuthzTeam = {
 const invoiceByMember: AuthzInvoice = {
   id: 100,
   team,
-  createdBy: { id: MEMBER },
+  author: { id: MEMBER },
 };
 
 const invoiceByOwner: AuthzInvoice = {
   id: 101,
   team,
-  createdBy: { id: OWNER },
+  author: { id: OWNER },
 };
 
 const invoiceWithoutTeam: AuthzInvoice = {
   id: 102,
   team: null,
-  createdBy: { id: MEMBER },
+  author: { id: MEMBER },
 };
 
 describe('isTeamOwner', () => {

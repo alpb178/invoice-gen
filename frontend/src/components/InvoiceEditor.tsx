@@ -88,7 +88,7 @@ export default function InvoiceEditor({ initial }: Props) {
     }
   }, [teamId, teams, user?.id, initial]);
 
-  const creatorId = initial?.createdBy?.id;
+  const creatorId = initial?.author?.id;
   const mine = !initial || creatorId === user?.id;
   const canEdit = mine || isTeamOwner;
 
@@ -201,9 +201,9 @@ export default function InvoiceEditor({ initial }: Props) {
             ← Volver
           </button>
           <h1 className="text-2xl font-bold text-ink-900">{initial ? `Factura #${initial.number}` : 'Nueva Factura'}</h1>
-          {initial?.createdBy && (
+          {initial?.author && (
             <p className="text-xs text-ink-500 mt-1">
-              Creada por <span className="text-ink-900 font-medium">{initial.createdBy.email}</span>
+              Creada por <span className="text-ink-900 font-medium">{initial.author.email}</span>
             </p>
           )}
         </div>

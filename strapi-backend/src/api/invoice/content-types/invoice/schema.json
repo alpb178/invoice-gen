@@ -71,11 +71,11 @@
       "target": "api::team.team",
       "inversedBy": "invoices"
     },
-    "createdBy": {
+    "author": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
-      "inversedBy": "createdInvoices"
+      "inversedBy": "authoredInvoices"
     }
   }
 }
