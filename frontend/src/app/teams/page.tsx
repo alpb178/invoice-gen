@@ -133,7 +133,7 @@ export default function TeamsPage() {
 
   const selectActive = (teamId: number) => {
     setActiveTeamId(teamId);
-    router.push('/');
+    router.push('/app');
   };
 
   const inputClass =
@@ -143,7 +143,7 @@ export default function TeamsPage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
         <div>
-          <Link href="/" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
+          <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
             ← Facturas
           </Link>
           <h1 className="text-2xl font-bold text-ink-900">Equipos</h1>

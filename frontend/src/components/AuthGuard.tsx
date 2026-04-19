@@ -7,16 +7,17 @@ import { getToken } from '@/lib/auth';
 const PUBLIC_PREFIXES = ['/login', '/register', '/invitations/'];
 
 function isPublicPath(pathname: string) {
+  if (pathname === '/') return true;
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
+  const isPublic = isPublicPath(pathname);
+  const [ready, setReady] = useState(isPublic);
 
   useEffect(() => {
-    const isPublic = isPublicPath(pathname);
     const token = getToken();
     const isLoginOrRegister = pathname === '/login' || pathname === '/register';
 
@@ -25,11 +26,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
     if (isLoginOrRegister && token) {
-      router.replace('/');
+      router.replace('/app');
       return;
     }
     setReady(true);
-  }, [pathname, router]);
+  }, [pathname, router, isPublic]);
 
   if (!ready) {
     return (
