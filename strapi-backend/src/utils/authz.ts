@@ -15,7 +15,7 @@ export interface AuthzTeam {
 export interface AuthzInvoice {
   id?: number;
   team?: AuthzTeam | null;
-  createdBy?: { id: number } | null;
+  author?: { id: number } | null;
 }
 
 export function isTeamOwner(team: AuthzTeam | null | undefined, userId: number): boolean {
@@ -37,7 +37,7 @@ export function isTeamMember(team: AuthzTeam | null | undefined, userId: number)
 export function canEditInvoice(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
   if (!invoice) return false;
   if (isTeamOwner(invoice.team, userId)) return true;
-  return invoice.createdBy?.id === userId;
+  return invoice.author?.id === userId;
 }
 
 /**

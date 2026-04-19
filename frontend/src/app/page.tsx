@@ -311,7 +311,7 @@ export default function DashboardPage() {
     const map = new Map<string, { email: string; count: number; total: number }>();
     for (const inv of invoices) {
       const a = inv.attributes || inv;
-      const name = a.createdBy?.email || '—';
+      const name = a.author?.email || '—';
       const entry = map.get(name) || { email: name, count: 0, total: 0 };
       entry.count += 1;
       entry.total += a.totalAmount || 0;
@@ -464,7 +464,7 @@ export default function DashboardPage() {
                   {recent.map((inv: any) => {
                     const a = inv.attributes || inv;
                     const status = a.status || 'draft';
-                    const creatorId = a.createdBy?.id;
+                    const creatorId = a.author?.id;
                     const mineOrOwner = isOwnerOfActive || creatorId === user?.id;
                     return (
                       <li key={inv.id} className="py-3 flex items-center justify-between gap-3">
@@ -481,7 +481,7 @@ export default function DashboardPage() {
                             )}
                           </div>
                           <div className="text-ink-500 text-xs mt-0.5 truncate">
-                            {a.clientName} · {a.date} · por {a.createdBy?.email || '—'}
+                            {a.clientName} · {a.date} · por {a.author?.email || '—'}
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">

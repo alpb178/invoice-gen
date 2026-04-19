@@ -78,11 +78,11 @@
       "target": "api::team.team",
       "mappedBy": "owner"
     },
-    "createdInvoices": {
+    "authoredInvoices": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::invoice.invoice",
-      "mappedBy": "createdBy"
+      "mappedBy": "author"
     }
   }
 }

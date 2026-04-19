@@ -218,7 +218,7 @@ export async function saveFullInvoice(invoice: any, teamId: number) {
   delete invoiceData.sections;
   delete invoiceData.id;
   delete invoiceData.team;
-  delete invoiceData.createdBy;
+  delete invoiceData.author;
 
   let invoiceRecord: any;
   if (invoice.id) {

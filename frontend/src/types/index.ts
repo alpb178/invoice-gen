@@ -69,6 +69,6 @@ export interface Invoice {
   totalAmount?: number;
   exportedAt?: string | null;
   team?: Team | { id: number } | null;
-  createdBy?: TeamUser | null;
+  author?: TeamUser | null;
   sections: Section[];
 }

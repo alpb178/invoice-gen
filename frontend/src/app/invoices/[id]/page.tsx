@@ -21,12 +21,12 @@ function normalize(raw: any): Invoice {
     return { id: s.id, title: sa.title, subtitle: sa.subtitle, sortOrder: sa.sortOrder, tasks };
   });
 
-  const createdByRaw = attrs.createdBy?.data || attrs.createdBy;
-  const createdBy = createdByRaw
+  const authorRaw = attrs.author?.data || attrs.author;
+  const author = authorRaw
     ? {
-        id: createdByRaw.id,
-        username: createdByRaw.attributes?.username || createdByRaw.username,
-        email: createdByRaw.attributes?.email || createdByRaw.email,
+        id: authorRaw.id,
+        username: authorRaw.attributes?.username || authorRaw.username,
+        email: authorRaw.attributes?.email || authorRaw.email,
       }
     : null;
 
@@ -50,7 +50,7 @@ function normalize(raw: any): Invoice {
     totalAmount: attrs.totalAmount,
     exportedAt: attrs.exportedAt,
     team,
-    createdBy,
+    author,
     sections,
   };
 }

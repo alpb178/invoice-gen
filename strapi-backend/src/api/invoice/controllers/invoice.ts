@@ -15,7 +15,7 @@ const TEAM = 'api::team.team' as any;
 const INVOICE_POPULATE = {
   sections: { populate: { tasks: true } },
   team: { populate: { owner: true, members: true } },
-  createdBy: true,
+  author: true,
 } as const;
 
 async function teamsForUser(userId: number) {
@@ -83,9 +83,9 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
     if (!team) return ctx.notFound('Equipo no encontrado');
     if (!isTeamMember(team, user.id)) return ctx.forbidden('No perteneces a este equipo');
 
-    const { team: _t, createdBy: _c, sections: _s, ...rest } = body;
+    const { team: _t, author: _a, sections: _s, ...rest } = body;
     const invoice = await strapi.db.query(INVOICE).create({
-      data: { ...rest, team: team.id, createdBy: user.id },
+      data: { ...rest, team: team.id, author: user.id },
       populate: INVOICE_POPULATE,
     });
 
@@ -103,7 +103,7 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
     }
 
     const body = ctx.request.body?.data || {};
-    const { team: _t, createdBy: _c, sections: _s, ...rest } = body;
+    const { team: _t, author: _a, sections: _s, ...rest } = body;
 
     const updated = await strapi.db.query(INVOICE).update({
       where: { id: invoice.id },

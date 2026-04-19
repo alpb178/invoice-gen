@@ -7,14 +7,14 @@ const SECTION = 'api::section.section' as const;
 async function loadSectionWithInvoice(id: number) {
   return strapi.db.query(SECTION).findOne({
     where: { id },
-    populate: { invoice: { populate: { team: { populate: { owner: true, members: true } }, createdBy: true } } },
+    populate: { invoice: { populate: { team: { populate: { owner: true, members: true } }, author: true } } },
   });
 }
 
 async function loadTask(id: number) {
   return strapi.db.query(TASK).findOne({
     where: { id },
-    populate: { section: { populate: { invoice: { populate: { team: { populate: { owner: true, members: true } }, createdBy: true } } } } },
+    populate: { section: { populate: { invoice: { populate: { team: { populate: { owner: true, members: true } }, author: true } } } } },
   });
 }
 
