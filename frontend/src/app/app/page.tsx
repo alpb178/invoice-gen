@@ -21,16 +21,16 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   draft: '#a1a1aa',
-  sent: '#3b82f6',
+  sent: '#6366f1',
   paid: '#10b981',
-  cancelled: '#ef4444',
+  cancelled: '#f43f5e',
 };
 
 const STATUS_PILL: Record<string, string> = {
   draft: 'bg-ink-100 text-ink-700 border-ink-200',
-  sent: 'bg-blue-50 text-blue-700 border-blue-200',
+  sent: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   paid: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  cancelled: 'bg-red-50 text-red-700 border-red-200',
+  cancelled: 'bg-rose-50 text-rose-700 border-rose-200',
 };
 
 function fmtMoney(n: number, cur = 'USD') {
@@ -91,6 +91,17 @@ function LineChart({ points, currency = 'USD' }: LineChartProps) {
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
+      <defs>
+        <linearGradient id="lineStroke" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#8b5cf6" />
+          <stop offset="50%" stopColor="#d946ef" />
+          <stop offset="100%" stopColor="#f97316" />
+        </linearGradient>
+        <linearGradient id="lineArea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#d946ef" stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
       {gridY.map((g, i) => (
         <g key={i}>
           <line
@@ -98,7 +109,7 @@ function LineChart({ points, currency = 'USD' }: LineChartProps) {
             x2={width - pad.right}
             y1={g.y}
             y2={g.y}
-            stroke="#e5e5e7"
+            stroke="#ece9f3"
             strokeDasharray="3 3"
           />
           <text x={pad.left - 6} y={g.y + 3} textAnchor="end" fontSize="9" fill="#71717a">
@@ -106,11 +117,11 @@ function LineChart({ points, currency = 'USD' }: LineChartProps) {
           </text>
         </g>
       ))}
-      {area && <path d={area} fill="#18181b" fillOpacity={0.06} />}
-      {path && <path d={path} fill="none" stroke="#18181b" strokeWidth={1.75} />}
+      {area && <path d={area} fill="url(#lineArea)" />}
+      {path && <path d={path} fill="none" stroke="url(#lineStroke)" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />}
       {coords.map((c, i) => (
         <g key={i}>
-          <circle cx={c.x} cy={c.y} r={3} fill="#18181b" />
+          <circle cx={c.x} cy={c.y} r={4} fill="#ffffff" stroke="#8b5cf6" strokeWidth={2} />
           <text x={c.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#52525b">
             {c.label}
           </text>
@@ -318,7 +329,9 @@ export default function DashboardPage() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
           <p className="text-ink-500 text-sm mt-1">
             {activeTeam ? (
               <>
@@ -365,7 +378,7 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/invoices/new"
-            className="px-5 py-2 bg-ink-900 hover:bg-ink-800 text-paper font-semibold rounded-xl text-sm transition-colors"
+            className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 text-paper font-semibold rounded-xl text-sm shadow-sm shadow-violet-500/30 transition-all"
           >
             + Nueva Factura
           </Link>
@@ -404,14 +417,15 @@ export default function DashboardPage() {
         <>
           {/* KPI cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <KpiCard label="Total facturado" value={fmtMoney(kpi.total, cur)} hint={`${invoices.length} facturas`} />
-            <KpiCard label="Este mes" value={fmtMoney(kpi.thisMonth, cur)} hint={new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })} />
+            <KpiCard tone="violet" label="Total facturado" value={fmtMoney(kpi.total, cur)} hint={`${invoices.length} facturas`} />
+            <KpiCard tone="sky" label="Este mes" value={fmtMoney(kpi.thisMonth, cur)} hint={new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })} />
             <KpiCard
+              tone="amber"
               label="Pendientes"
               value={`${kpi.drafts + kpi.sent}`}
               hint={`${kpi.drafts} borradores · ${kpi.sent} enviadas`}
             />
-            <KpiCard label="Exportadas" value={`${kpi.exported}`} hint={`${kpi.paid} pagadas`} />
+            <KpiCard tone="emerald" label="Exportadas" value={`${kpi.exported}`} hint={`${kpi.paid} pagadas`} />
           </div>
 
           {/* Charts row */}
@@ -574,11 +588,50 @@ export default function DashboardPage() {
   );
 }
 
-function KpiCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+type KpiTone = 'violet' | 'sky' | 'amber' | 'emerald';
+
+const KPI_TONES: Record<KpiTone, { card: string; value: string; dot: string }> = {
+  violet: {
+    card: 'bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 border-violet-100',
+    value: 'bg-gradient-to-r from-violet-700 to-fuchsia-600 bg-clip-text text-transparent',
+    dot: 'bg-gradient-to-r from-violet-500 to-fuchsia-500',
+  },
+  sky: {
+    card: 'bg-gradient-to-br from-sky-50 via-white to-indigo-50 border-sky-100',
+    value: 'bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent',
+    dot: 'bg-gradient-to-r from-sky-500 to-indigo-500',
+  },
+  amber: {
+    card: 'bg-gradient-to-br from-amber-50 via-white to-orange-50 border-amber-100',
+    value: 'bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent',
+    dot: 'bg-gradient-to-r from-amber-400 to-orange-500',
+  },
+  emerald: {
+    card: 'bg-gradient-to-br from-emerald-50 via-white to-teal-50 border-emerald-100',
+    value: 'bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent',
+    dot: 'bg-gradient-to-r from-emerald-500 to-teal-500',
+  },
+};
+
+function KpiCard({
+  label,
+  value,
+  hint,
+  tone = 'violet',
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: KpiTone;
+}) {
+  const t = KPI_TONES[tone];
   return (
-    <div className="bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
-      <div className="text-xs uppercase tracking-wide text-ink-500">{label}</div>
-      <div className="text-2xl font-bold text-ink-900 mt-1 font-mono">{value}</div>
+    <div className={`relative overflow-hidden border rounded-2xl p-5 shadow-card ${t.card}`}>
+      <div className="flex items-center gap-2">
+        <span className={`inline-block w-1.5 h-1.5 rounded-full ${t.dot}`} />
+        <div className="text-xs uppercase tracking-wide text-ink-500">{label}</div>
+      </div>
+      <div className={`text-2xl font-bold mt-1 font-mono ${t.value}`}>{value}</div>
       {hint && <div className="text-xs text-ink-500 mt-1">{hint}</div>}
     </div>
   );
