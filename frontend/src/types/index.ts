@@ -16,6 +16,7 @@ export interface Section {
   subtitle?: string;
   sortOrder?: number;
   subtotal?: number;
+  author?: TeamUser | null;
   tasks: Task[];
 }
 

@@ -484,9 +484,13 @@ export interface ApiInvoiceInvoice extends Struct.CollectionTypeSchema {
     draftAndPublish: false;
   };
   attributes: {
+    author: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    >;
     clientBank: Schema.Attribute.Text;
     clientIBAN: Schema.Attribute.String;
-    clientName: Schema.Attribute.String & Schema.Attribute.Required;
+    clientName: Schema.Attribute.String;
     clientSwift: Schema.Attribute.String;
     companyAddress: Schema.Attribute.Text;
     companyCIF: Schema.Attribute.String;
@@ -1095,16 +1099,16 @@ export interface PluginUsersPermissionsUser
     timestamps: true;
   };
   attributes: {
+    authoredInvoices: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::invoice.invoice'
+    >;
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     confirmationToken: Schema.Attribute.String & Schema.Attribute.Private;
     confirmed: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    createdInvoices: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::invoice.invoice'
-    >;
     email: Schema.Attribute.Email &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMaxLength<{

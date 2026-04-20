@@ -1,7 +1,7 @@
 // src/components/InvoiceEditor.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Invoice, Section, Task } from '@/types';
 import { saveFullInvoice, markInvoiceExported, getMyTeams } from '@/lib/api';
@@ -88,9 +88,27 @@ export default function InvoiceEditor({ initial }: Props) {
     }
   }, [teamId, teams, user?.id, initial]);
 
-  const creatorId = initial?.author?.id;
-  const mine = !initial || creatorId === user?.id;
-  const canEdit = mine || isTeamOwner;
+  // Nueva factura solo la puede crear el dueño del equipo.
+  const isNew = !initial;
+  const canCreateInvoice = !isNew || isTeamOwner;
+  // La cabecera (datos de factura, emisor/cliente, notas) solo la edita el dueño.
+  const canEditHeader = isTeamOwner;
+  // Una sección es editable si: la estás creando (sin id), eres el autor,
+  // o eres dueño del equipo.
+  const canEditSection = (sec: Section) => {
+    if (!sec.id) return true;
+    if (isTeamOwner) return true;
+    return sec.author?.id === user?.id;
+  };
+  // Cualquier miembro del equipo puede añadir secciones.
+  const canAddSection = !!teamId;
+  // El botón "Guardar" tiene sentido siempre que el usuario pueda tocar algo.
+  const hasEditableSection = useMemo(
+    () => invoice.sections.some((s) => canEditSection(s)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [invoice.sections, isTeamOwner, user?.id],
+  );
+  const canSave = canCreateInvoice && (canEditHeader || hasEditableSection || canAddSection);
 
   const update = (field: keyof Invoice, value: any) => {
     setInvoice((prev) => ({ ...prev, [field]: value }));
@@ -172,7 +190,10 @@ export default function InvoiceEditor({ initial }: Props) {
     }
     setSaving(true);
     try {
-      await saveFullInvoice(invoice, teamId);
+      await saveFullInvoice(invoice, teamId, {
+        canEditHeader,
+        canEditSection: (sec) => canEditSection(sec),
+      });
       router.push('/app');
     } catch (e: any) {
       alert('Error: ' + e.message);
@@ -192,6 +213,23 @@ export default function InvoiceEditor({ initial }: Props) {
   const inputClass =
     'w-full px-3 py-2.5 bg-paper border border-ink-200 rounded-xl text-ink-900 text-sm placeholder:text-ink-400 focus:outline-none focus:border-ink-900 transition-colors disabled:bg-ink-50 disabled:text-ink-500';
   const labelClass = 'text-xs text-ink-600 mb-1.5 block tracking-wide';
+
+  if (isNew && !isTeamOwner && teamId) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold text-ink-900 mb-2">Solo el dueño puede crear facturas</h1>
+        <p className="text-ink-500 text-sm mb-6">
+          Pídele al dueño del equipo que cree la factura. Cuando esté creada podrás añadir y editar tus propias secciones.
+        </p>
+        <button
+          onClick={() => router.push('/app')}
+          className="px-5 py-2.5 bg-ink-900 hover:bg-ink-800 text-paper font-semibold rounded-xl text-sm transition-colors"
+        >
+          ← Volver al dashboard
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -230,16 +268,14 @@ export default function InvoiceEditor({ initial }: Props) {
               ))}
             </select>
           )}
-          {isTeamOwner ? (
+          {isTeamOwner && (
             <InvoicePDFButton
               invoice={{ ...invoice, totalAmount: calcTotal() }}
               showHours={showHours}
               onExported={handleMarkExported}
             />
-          ) : (
-            <span className="text-xs text-ink-500 italic">Solo el dueño puede exportar PDF</span>
           )}
-          {canEdit ? (
+          {canSave ? (
             <button
               onClick={handleSave}
               disabled={saving}
@@ -248,14 +284,14 @@ export default function InvoiceEditor({ initial }: Props) {
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
           ) : (
-            <span className="text-xs text-ink-500 italic">Solo el creador o el dueño pueden editar</span>
+            <span className="text-xs text-ink-500 italic">No tienes permisos para editar</span>
           )}
         </div>
       </div>
 
-      {!canEdit && (
+      {!canEditHeader && initial && (
         <div className="mb-5 text-xs text-ink-700 bg-ink-50 border border-ink-200 rounded-xl px-3 py-2">
-          Estás viendo una factura de otro miembro. No puedes modificarla.
+          Solo el dueño del equipo puede modificar la cabecera. Puedes añadir secciones nuevas y editar las tuyas.
         </div>
       )}
 
@@ -264,15 +300,15 @@ export default function InvoiceEditor({ initial }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className={labelClass}>Nº Factura</label>
-            <input disabled={!canEdit} className={inputClass} placeholder="29/2025" value={invoice.number} onChange={(e) => update('number', e.target.value)} />
+            <input disabled={!canEditHeader} className={inputClass} placeholder="29/2025" value={invoice.number} onChange={(e) => update('number', e.target.value)} />
           </div>
           <div>
             <label className={labelClass}>Fecha</label>
-            <input disabled={!canEdit} className={inputClass} type="date" value={invoice.date} onChange={(e) => update('date', e.target.value)} />
+            <input disabled={!canEditHeader} className={inputClass} type="date" value={invoice.date} onChange={(e) => update('date', e.target.value)} />
           </div>
           <div>
             <label className={labelClass}>Estado</label>
-            <select disabled={!canEdit} className={inputClass} value={invoice.status} onChange={(e) => update('status', e.target.value)}>
+            <select disabled={!canEditHeader} className={inputClass} value={invoice.status} onChange={(e) => update('status', e.target.value)}>
               <option value="draft">Borrador</option>
               <option value="sent">Enviada</option>
               <option value="paid">Pagada</option>
@@ -281,7 +317,7 @@ export default function InvoiceEditor({ initial }: Props) {
           </div>
           <div>
             <label className={labelClass}>Moneda</label>
-            <select disabled={!canEdit} className={inputClass} value={invoice.currency} onChange={(e) => update('currency', e.target.value)}>
+            <select disabled={!canEditHeader} className={inputClass} value={invoice.currency} onChange={(e) => update('currency', e.target.value)}>
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
               <option value="GBP">GBP</option>
@@ -310,19 +346,19 @@ export default function InvoiceEditor({ initial }: Props) {
               <div>
                 <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider mb-3">Emisor</h3>
                 <div className="space-y-3">
-                  <div><label className={labelClass}>Empresa</label><input disabled={!canEdit} className={inputClass} placeholder="Emx Comunicaciones S.L.U." value={invoice.companyName || ''} onChange={(e) => update('companyName', e.target.value)} /></div>
-                  <div><label className={labelClass}>CIF</label><input disabled={!canEdit} className={inputClass} placeholder="B85173963" value={invoice.companyCIF || ''} onChange={(e) => update('companyCIF', e.target.value)} /></div>
-                  <div><label className={labelClass}>Dirección</label><textarea disabled={!canEdit} className={inputClass + ' resize-none h-16'} placeholder="Calle..." value={invoice.companyAddress || ''} onChange={(e) => update('companyAddress', e.target.value)} /></div>
+                  <div><label className={labelClass}>Empresa</label><input disabled={!canEditHeader} className={inputClass} placeholder="Emx Comunicaciones S.L.U." value={invoice.companyName || ''} onChange={(e) => update('companyName', e.target.value)} /></div>
+                  <div><label className={labelClass}>CIF</label><input disabled={!canEditHeader} className={inputClass} placeholder="B85173963" value={invoice.companyCIF || ''} onChange={(e) => update('companyCIF', e.target.value)} /></div>
+                  <div><label className={labelClass}>Dirección</label><textarea disabled={!canEditHeader} className={inputClass + ' resize-none h-16'} placeholder="Calle..." value={invoice.companyAddress || ''} onChange={(e) => update('companyAddress', e.target.value)} /></div>
                 </div>
               </div>
 
               <div>
                 <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider mb-3">Cliente</h3>
                 <div className="space-y-3">
-                  <div><label className={labelClass}>Nombre</label><input disabled={!canEdit} className={inputClass} placeholder="Alejandro Pérez" value={invoice.clientName || ''} onChange={(e) => update('clientName', e.target.value)} /></div>
-                  <div><label className={labelClass}>IBAN</label><input disabled={!canEdit} className={inputClass} placeholder="BE95905522553858" value={invoice.clientIBAN || ''} onChange={(e) => update('clientIBAN', e.target.value)} /></div>
-                  <div><label className={labelClass}>Swift/BIC</label><input disabled={!canEdit} className={inputClass} placeholder="TRWIBEB1XXX" value={invoice.clientSwift || ''} onChange={(e) => update('clientSwift', e.target.value)} /></div>
-                  <div><label className={labelClass}>Banco</label><input disabled={!canEdit} className={inputClass} placeholder="Wise, ..." value={invoice.clientBank || ''} onChange={(e) => update('clientBank', e.target.value)} /></div>
+                  <div><label className={labelClass}>Nombre</label><input disabled={!canEditHeader} className={inputClass} placeholder="Alejandro Pérez" value={invoice.clientName || ''} onChange={(e) => update('clientName', e.target.value)} /></div>
+                  <div><label className={labelClass}>IBAN</label><input disabled={!canEditHeader} className={inputClass} placeholder="BE95905522553858" value={invoice.clientIBAN || ''} onChange={(e) => update('clientIBAN', e.target.value)} /></div>
+                  <div><label className={labelClass}>Swift/BIC</label><input disabled={!canEditHeader} className={inputClass} placeholder="TRWIBEB1XXX" value={invoice.clientSwift || ''} onChange={(e) => update('clientSwift', e.target.value)} /></div>
+                  <div><label className={labelClass}>Banco</label><input disabled={!canEditHeader} className={inputClass} placeholder="Wise, ..." value={invoice.clientBank || ''} onChange={(e) => update('clientBank', e.target.value)} /></div>
                 </div>
               </div>
             </div>
@@ -330,23 +366,31 @@ export default function InvoiceEditor({ initial }: Props) {
         </div>
       )}
 
-      {invoice.sections.map((sec, sIdx) => (
+      {invoice.sections.map((sec, sIdx) => {
+        const secEditable = canEditSection(sec);
+        return (
         <div key={sIdx} className="bg-paper border border-ink-200 rounded-2xl p-6 mb-4 shadow-card">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Título de sección</label>
-                <input disabled={!canEdit} className={inputClass} placeholder="Tareas de Desarrollo (Front-Diciembre)" value={sec.title} onChange={(e) => updateSection(sIdx, 'title', e.target.value)} />
+                <input disabled={!secEditable} className={inputClass} placeholder="Tareas de Desarrollo (Front-Diciembre)" value={sec.title} onChange={(e) => updateSection(sIdx, 'title', e.target.value)} />
               </div>
               <div>
                 <label className={labelClass}>Responsable</label>
-                <input disabled={!canEdit} className={inputClass} placeholder="Richard, Jhoan..." value={sec.subtitle || ''} onChange={(e) => updateSection(sIdx, 'subtitle', e.target.value)} />
+                <input disabled={!secEditable} className={inputClass} placeholder="Richard, Jhoan..." value={sec.subtitle || ''} onChange={(e) => updateSection(sIdx, 'subtitle', e.target.value)} />
               </div>
             </div>
-            {canEdit && invoice.sections.length > 1 && (
+            {secEditable && invoice.sections.length > 1 && (
               <button onClick={() => removeSection(sIdx)} className="ml-3 mt-5 text-red-600 hover:text-red-700 text-lg" title="Eliminar sección">✕</button>
             )}
           </div>
+
+          {sec.author?.email && !secEditable && (
+            <div className="mb-3 text-[11px] text-ink-500 italic">
+              Sección de {sec.author.email} — solo lectura.
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -365,7 +409,7 @@ export default function InvoiceEditor({ initial }: Props) {
                   <tr key={tIdx} className="border-b border-ink-200/70 group">
                     <td className="py-2 pr-2">
                       <input
-                        disabled={!canEdit}
+                        disabled={!secEditable}
                         className="w-10 px-2 py-1.5 bg-paper border border-ink-200 rounded-lg text-ink-700 text-xs text-center focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                         type="number"
                         value={task.number || tIdx + 1}
@@ -374,7 +418,7 @@ export default function InvoiceEditor({ initial }: Props) {
                     </td>
                     <td className="py-2 pr-2">
                       <input
-                        disabled={!canEdit}
+                        disabled={!secEditable}
                         className="w-full px-2 py-1.5 bg-paper border border-ink-200 rounded-lg text-ink-800 text-xs font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                         placeholder="TIK-230"
                         value={task.code || ''}
@@ -383,7 +427,7 @@ export default function InvoiceEditor({ initial }: Props) {
                     </td>
                     <td className="py-2 pr-2">
                       <input
-                        disabled={!canEdit}
+                        disabled={!secEditable}
                         className="w-full px-2 py-1.5 bg-paper border border-ink-200 rounded-lg text-ink-800 text-xs focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                         placeholder="Descripción de la tarea..."
                         value={task.description}
@@ -393,7 +437,7 @@ export default function InvoiceEditor({ initial }: Props) {
                     {showHours && (
                       <td className="py-2 pr-2">
                         <input
-                          disabled={!canEdit}
+                          disabled={!secEditable}
                           className="w-full px-2 py-1.5 bg-paper border border-ink-200 rounded-lg text-ink-800 text-xs text-right font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                           type="number"
                           step="0.5"
@@ -405,7 +449,7 @@ export default function InvoiceEditor({ initial }: Props) {
                     )}
                     <td className="py-2 pr-2">
                       <input
-                        disabled={!canEdit}
+                        disabled={!secEditable}
                         className="w-full px-2 py-1.5 bg-paper border border-ink-200 rounded-lg text-ink-900 text-xs text-right font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                         type="number"
                         step="0.01"
@@ -415,7 +459,7 @@ export default function InvoiceEditor({ initial }: Props) {
                       />
                     </td>
                     <td className="py-2 text-center">
-                      {canEdit && (
+                      {secEditable && (
                         <button
                           onClick={() => removeTask(sIdx, tIdx)}
                           className="text-red-500/60 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity text-sm"
@@ -431,7 +475,7 @@ export default function InvoiceEditor({ initial }: Props) {
           </div>
 
           <div className="flex items-center justify-between mt-3">
-            {canEdit ? (
+            {secEditable ? (
               <div className="flex gap-2">
                 <button
                   onClick={() => addTask(sIdx)}
@@ -453,9 +497,10 @@ export default function InvoiceEditor({ initial }: Props) {
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
 
-      {canEdit && (
+      {canAddSection && (
         <button
           onClick={addSection}
           className="w-full py-3 border-2 border-dashed border-ink-200 rounded-2xl text-ink-500 hover:text-ink-900 hover:border-ink-400 text-sm transition-colors mb-6"
@@ -486,7 +531,7 @@ export default function InvoiceEditor({ initial }: Props) {
       <div className="mt-6">
         <label className={labelClass}>Notas (opcional)</label>
         <textarea
-          disabled={!canEdit}
+          disabled={!canEditHeader}
           className={inputClass + ' resize-none h-20'}
           placeholder="Notas adicionales..."
           value={invoice.notes || ''}

@@ -253,6 +253,35 @@ export default function DashboardPage() {
     window.location.reload();
   };
 
+  // Para un miembro, el dashboard muestra SOLO lo que le corresponde:
+  // secciones que él creó, con su importe = suma de los subtotales de esas
+  // secciones. Las facturas en las que no tiene ninguna sección se omiten.
+  const myInvoices = useMemo(() => {
+    if (isOwnerOfActive) {
+      return invoices.map((inv: any) => {
+        const a = inv.attributes || inv;
+        return { ...inv, displayAmount: a.totalAmount || 0 };
+      });
+    }
+    return invoices
+      .map((inv: any) => {
+        const a = inv.attributes || inv;
+        const sections = a.sections?.data || a.sections || [];
+        const mine = sections.filter((s: any) => {
+          const sa = s.attributes || s;
+          const au = sa.author?.data || sa.author;
+          return au?.id === user?.id;
+        });
+        if (mine.length === 0) return null;
+        const own = mine.reduce((sum: number, s: any) => {
+          const sa = s.attributes || s;
+          return sum + (Number(sa.subtotal) || 0);
+        }, 0);
+        return { ...inv, displayAmount: own };
+      })
+      .filter(Boolean) as any[];
+  }, [invoices, isOwnerOfActive, user?.id]);
+
   const kpi = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -266,9 +295,9 @@ export default function DashboardPage() {
     let cancelled = 0;
     let exported = 0;
 
-    for (const inv of invoices) {
+    for (const inv of myInvoices) {
       const a = inv.attributes || inv;
-      const amount = a.totalAmount || 0;
+      const amount = inv.displayAmount || 0;
       total += amount;
       if (a.date) {
         const d = new Date(a.date);
@@ -282,20 +311,20 @@ export default function DashboardPage() {
     }
 
     return { total, thisMonth, drafts, sent, paid, cancelled, exported };
-  }, [invoices]);
+  }, [myInvoices]);
 
   const monthlySeries = useMemo(() => {
     const months = lastMonths(6);
     const buckets = new Map(months.map((d) => [monthKey(d), 0]));
-    for (const inv of invoices) {
+    for (const inv of myInvoices) {
       const a = inv.attributes || inv;
       if (!a.date) continue;
       const d = new Date(a.date);
       const key = monthKey(d);
-      if (buckets.has(key)) buckets.set(key, (buckets.get(key) || 0) + (a.totalAmount || 0));
+      if (buckets.has(key)) buckets.set(key, (buckets.get(key) || 0) + (inv.displayAmount || 0));
     }
     return months.map((d) => ({ label: monthLabel(d), value: buckets.get(monthKey(d)) || 0 }));
-  }, [invoices]);
+  }, [myInvoices]);
 
   const statusSegments = useMemo(
     () => [
@@ -320,7 +349,7 @@ export default function DashboardPage() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [invoices]);
 
-  const recent = useMemo(() => invoices.slice(0, 5), [invoices]);
+  const recent = useMemo(() => myInvoices.slice(0, 5), [myInvoices]);
 
   const cur = activeTeam?.defaultCurrency || 'USD';
   const memberCount = (activeTeam?.members?.length || 0) + 1;
@@ -376,12 +405,14 @@ export default function DashboardPage() {
           >
             Ajustes
           </Link>
-          <Link
-            href="/invoices/new"
-            className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 text-paper font-semibold rounded-xl text-sm shadow-sm shadow-violet-500/30 transition-all"
-          >
-            + Nueva Factura
-          </Link>
+          {isOwnerOfActive && (
+            <Link
+              href="/invoices/new"
+              className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 text-paper font-semibold rounded-xl text-sm shadow-sm shadow-violet-500/30 transition-all"
+            >
+              + Nueva Factura
+            </Link>
+          )}
           <button
             onClick={logout}
             className="px-3 py-2 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
@@ -417,7 +448,12 @@ export default function DashboardPage() {
         <>
           {/* KPI cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <KpiCard tone="violet" label="Total facturado" value={fmtMoney(kpi.total, cur)} hint={`${invoices.length} facturas`} />
+            <KpiCard
+              tone="violet"
+              label={isOwnerOfActive ? 'Total facturado' : 'Mi aporte'}
+              value={fmtMoney(kpi.total, cur)}
+              hint={`${myInvoices.length} factura${myInvoices.length === 1 ? '' : 's'}`}
+            />
             <KpiCard tone="sky" label="Este mes" value={fmtMoney(kpi.thisMonth, cur)} hint={new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })} />
             <KpiCard
               tone="amber"
@@ -448,24 +484,28 @@ export default function DashboardPage() {
             <div className="lg:col-span-2 bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold text-ink-900">Últimas facturas</h2>
-                <span className="text-xs text-ink-500">{invoices.length} total</span>
+                <span className="text-xs text-ink-500">{myInvoices.length} total</span>
               </div>
 
-              {invoices.length === 0 ? (
+              {myInvoices.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-4xl mb-2">📄</p>
-                  <p className="text-ink-500 text-sm">Todavía no hay facturas en este equipo.</p>
-                  <Link href="/invoices/new" className="text-ink-900 text-sm mt-2 inline-block hover:underline font-medium">
-                    Crear la primera →
-                  </Link>
+                  <p className="text-ink-500 text-sm">
+                    {isOwnerOfActive
+                      ? 'Todavía no hay facturas en este equipo.'
+                      : 'Todavía no has aportado a ninguna factura.'}
+                  </p>
+                  {isOwnerOfActive && (
+                    <Link href="/invoices/new" className="text-ink-900 text-sm mt-2 inline-block hover:underline font-medium">
+                      Crear la primera →
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <ul className="divide-y divide-ink-200">
                   {recent.map((inv: any) => {
                     const a = inv.attributes || inv;
                     const status = a.status || 'draft';
-                    const creatorId = a.author?.id;
-                    const mineOrOwner = isOwnerOfActive || creatorId === user?.id;
                     return (
                       <li key={inv.id} className="py-3 flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -486,15 +526,15 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="font-mono font-semibold text-ink-900 text-sm">
-                            {fmtMoney(a.totalAmount || 0, cur)}
+                            {fmtMoney(inv.displayAmount || 0, cur)}
                           </span>
                           <Link
                             href={`/invoices/${inv.id}`}
                             className="px-2.5 py-1 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors"
                           >
-                            {mineOrOwner ? 'Editar' : 'Ver'}
+                            Editar
                           </Link>
-                          {mineOrOwner && (
+                          {isOwnerOfActive && (
                             <button
                               onClick={() => handleDelete(inv.id)}
                               className="px-2 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-colors"
@@ -510,10 +550,10 @@ export default function DashboardPage() {
                 </ul>
               )}
 
-              {invoices.length > recent.length && (
+              {myInvoices.length > recent.length && (
                 <div className="mt-3 text-right">
                   <Link href="/invoices" className="text-xs text-ink-900 hover:underline font-medium">
-                    Ver todas ({invoices.length}) →
+                    Ver todas ({myInvoices.length}) →
                   </Link>
                 </div>
               )}
@@ -557,7 +597,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {perMember.length > 0 && (
+              {isOwnerOfActive && perMember.length > 0 && (
                 <div className="bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
                   <h2 className="text-sm font-semibold text-ink-900 mb-3">Facturación por miembro</h2>
                   <ul className="space-y-2">

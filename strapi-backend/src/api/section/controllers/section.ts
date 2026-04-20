@@ -1,5 +1,6 @@
 import { factories } from '@strapi/strapi';
-import { canEditInvoice } from '../../../utils/authz';
+import { canCreateSection, canEditSection } from '../../../utils/authz';
+import { recomputeInvoiceTotal } from '../../../utils/totals';
 
 const SECTION = 'api::section.section' as const;
 const INVOICE = 'api::invoice.invoice' as const;
@@ -14,7 +15,10 @@ async function loadInvoice(id: number) {
 async function loadSection(id: number) {
   return strapi.db.query(SECTION).findOne({
     where: { id },
-    populate: { invoice: { populate: { team: { populate: { owner: true, members: true } }, author: true } } },
+    populate: {
+      author: true,
+      invoice: { populate: { team: { populate: { owner: true, members: true } }, author: true } },
+    },
   });
 }
 
@@ -27,12 +31,16 @@ export default factories.createCoreController(SECTION, ({ strapi }) => ({
     if (!body.invoice) return ctx.badRequest('Falta la factura');
     const invoice = await loadInvoice(Number(body.invoice));
     if (!invoice) return ctx.notFound();
-    if (!canEditInvoice(invoice, user.id)) return ctx.forbidden('No puedes modificar esta factura');
+    if (!canCreateSection(invoice.team, user.id)) {
+      return ctx.forbidden('No perteneces a este equipo');
+    }
 
+    const { author: _a, ...rest } = body;
     const section = await strapi.db.query(SECTION).create({
-      data: body,
-      populate: { tasks: true },
+      data: { ...rest, author: user.id },
+      populate: { tasks: true, author: true },
     });
+    await recomputeInvoiceTotal(invoice.id);
     ctx.body = { data: section };
   },
 
@@ -42,14 +50,18 @@ export default factories.createCoreController(SECTION, ({ strapi }) => ({
 
     const section = await loadSection(Number(ctx.params.id));
     if (!section) return ctx.notFound();
-    if (!canEditInvoice(section.invoice, user.id)) return ctx.forbidden();
+    if (!canEditSection(section, user.id)) {
+      return ctx.forbidden('Solo puedes editar tus propias secciones');
+    }
 
     const body = ctx.request.body?.data || {};
+    const { author: _a, invoice: _i, ...rest } = body;
     const updated = await strapi.db.query(SECTION).update({
       where: { id: section.id },
-      data: body,
-      populate: { tasks: true },
+      data: rest,
+      populate: { tasks: true, author: true },
     });
+    if (section.invoice?.id) await recomputeInvoiceTotal(section.invoice.id);
     ctx.body = { data: updated };
   },
 
@@ -59,9 +71,13 @@ export default factories.createCoreController(SECTION, ({ strapi }) => ({
 
     const section = await loadSection(Number(ctx.params.id));
     if (!section) return ctx.notFound();
-    if (!canEditInvoice(section.invoice, user.id)) return ctx.forbidden();
+    if (!canEditSection(section, user.id)) {
+      return ctx.forbidden('Solo puedes borrar tus propias secciones');
+    }
 
+    const invoiceId = section.invoice?.id;
     await strapi.db.query(SECTION).delete({ where: { id: section.id } });
+    if (invoiceId) await recomputeInvoiceTotal(invoiceId);
     ctx.body = { data: { id: section.id } };
   },
 }));

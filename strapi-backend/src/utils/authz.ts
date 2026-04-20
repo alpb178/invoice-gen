@@ -18,6 +18,12 @@ export interface AuthzInvoice {
   author?: { id: number } | null;
 }
 
+export interface AuthzSection {
+  id?: number;
+  author?: { id: number } | null;
+  invoice?: AuthzInvoice | null;
+}
+
 export function isTeamOwner(team: AuthzTeam | null | undefined, userId: number): boolean {
   return !!team?.owner && team.owner.id === userId;
 }
@@ -29,29 +35,62 @@ export function isTeamMember(team: AuthzTeam | null | undefined, userId: number)
 }
 
 /**
- * Quién puede editar una factura:
- *  - dueño del equipo siempre
- *  - el creador de la factura
- *  - si la factura no tiene equipo (legacy), solo el creador
+ * Crear factura: SOLO el dueño del equipo.
  */
-export function canEditInvoice(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
-  if (!invoice) return false;
-  if (isTeamOwner(invoice.team, userId)) return true;
-  return invoice.author?.id === userId;
+export function canCreateInvoice(team: AuthzTeam | null | undefined, userId: number): boolean {
+  return isTeamOwner(team, userId);
 }
 
 /**
- * Quién puede exportar un PDF / marcar una factura como exportada:
- *  - SOLO el dueño del equipo
+ * Borrar factura: SOLO el dueño del equipo.
+ */
+export function canDeleteInvoice(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
+  return isTeamOwner(invoice?.team, userId);
+}
+
+/**
+ * Editar la cabecera de la factura (nº, fechas, cliente, notas, etc.):
+ * SOLO el dueño del equipo.
+ */
+export function canEditInvoiceHeader(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
+  return isTeamOwner(invoice?.team, userId);
+}
+
+/**
+ * Exportar PDF / marcar como exportada: SOLO el dueño del equipo.
  */
 export function canExportInvoice(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
   return isTeamOwner(invoice?.team, userId);
 }
 
 /**
- * Quién puede ver una factura:
- *  - cualquier miembro (incluyendo dueño) del equipo al que pertenece
+ * Ver una factura: cualquier miembro (incluido dueño) del equipo.
  */
 export function canViewInvoice(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
   return isTeamMember(invoice?.team, userId);
+}
+
+/**
+ * Crear una sección dentro de una factura: cualquier miembro del equipo
+ * al que pertenece la factura. El creador queda como author de la sección.
+ */
+export function canCreateSection(
+  team: AuthzTeam | null | undefined,
+  userId: number,
+): boolean {
+  return isTeamMember(team, userId);
+}
+
+/**
+ * Editar / borrar una sección (y sus tareas):
+ *  - dueño del equipo siempre
+ *  - el miembro que creó la sección (author)
+ */
+export function canEditSection(
+  section: AuthzSection | null | undefined,
+  userId: number,
+): boolean {
+  if (!section) return false;
+  if (isTeamOwner(section.invoice?.team, userId)) return true;
+  return section.author?.id === userId;
 }
