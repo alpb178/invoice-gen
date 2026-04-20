@@ -18,7 +18,15 @@ function normalize(raw: any): Invoice {
       const ta = t.attributes || t;
       return { id: t.id, number: ta.number, code: ta.code, description: ta.description, amount: ta.amount, hours: ta.hours, sortOrder: ta.sortOrder };
     });
-    return { id: s.id, title: sa.title, subtitle: sa.subtitle, sortOrder: sa.sortOrder, tasks };
+    const secAuthorRaw = sa.author?.data || sa.author;
+    const secAuthor = secAuthorRaw
+      ? {
+          id: secAuthorRaw.id,
+          username: secAuthorRaw.attributes?.username || secAuthorRaw.username,
+          email: secAuthorRaw.attributes?.email || secAuthorRaw.email,
+        }
+      : null;
+    return { id: s.id, title: sa.title, subtitle: sa.subtitle, sortOrder: sa.sortOrder, author: secAuthor, tasks };
   });
 
   const authorRaw = attrs.author?.data || attrs.author;

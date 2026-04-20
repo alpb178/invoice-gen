@@ -2,9 +2,9 @@ import { factories } from '@strapi/strapi';
 import fs from 'fs';
 import { parseTasksFromText, ParsedTask } from '../services/task-parser';
 import {
-  canEditInvoice,
-  canExportInvoice,
-  canViewInvoice,
+  canCreateInvoice,
+  canDeleteInvoice,
+  canEditInvoiceHeader,
   isTeamMember,
   isTeamOwner,
 } from '../../../utils/authz';
@@ -13,7 +13,7 @@ const INVOICE = 'api::invoice.invoice' as const;
 const TEAM = 'api::team.team' as any;
 
 const INVOICE_POPULATE = {
-  sections: { populate: { tasks: true } },
+  sections: { populate: { tasks: true, author: true } },
   team: { populate: { owner: true, members: true } },
   author: true,
 } as const;
@@ -31,6 +31,20 @@ async function loadInvoice(id: number) {
     where: { id },
     populate: INVOICE_POPULATE,
   });
+}
+
+/**
+ * Un miembro (no dueño) solo ve las secciones que él mismo creó.
+ * El dueño del equipo ve todas.
+ */
+function filterSectionsForViewer<T extends { team?: any; sections?: any[] }>(
+  invoice: T,
+  userId: number,
+): T {
+  if (!invoice || !Array.isArray(invoice.sections)) return invoice;
+  if (isTeamOwner(invoice.team, userId)) return invoice;
+  const sections = invoice.sections.filter((s: any) => s?.author?.id === userId);
+  return { ...invoice, sections };
 }
 
 export default factories.createCoreController(INVOICE, ({ strapi }) => ({
@@ -54,7 +68,8 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
       orderBy: { createdAt: 'desc' },
     });
 
-    ctx.body = { data: invoices };
+    const visible = invoices.map((inv: any) => filterSectionsForViewer(inv, user.id));
+    ctx.body = { data: visible };
   },
 
   async findOne(ctx) {
@@ -65,7 +80,7 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
     if (!invoice) return ctx.notFound();
     if (!isTeamMember(invoice.team, user.id)) return ctx.forbidden();
 
-    ctx.body = { data: invoice };
+    ctx.body = { data: filterSectionsForViewer(invoice, user.id) };
   },
 
   async create(ctx) {
@@ -81,7 +96,9 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
       populate: { owner: true, members: true },
     });
     if (!team) return ctx.notFound('Equipo no encontrado');
-    if (!isTeamMember(team, user.id)) return ctx.forbidden('No perteneces a este equipo');
+    if (!canCreateInvoice(team, user.id)) {
+      return ctx.forbidden('Solo el dueño del equipo puede crear facturas');
+    }
 
     const { team: _t, author: _a, sections: _s, ...rest } = body;
     const invoice = await strapi.db.query(INVOICE).create({
@@ -98,8 +115,8 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
 
     const invoice = await loadInvoice(Number(ctx.params.id));
     if (!invoice) return ctx.notFound();
-    if (!canEditInvoice(invoice, user.id)) {
-      return ctx.forbidden('No puedes modificar esta factura');
+    if (!canEditInvoiceHeader(invoice, user.id)) {
+      return ctx.forbidden('Solo el dueño del equipo puede modificar la factura');
     }
 
     const body = ctx.request.body?.data || {};
@@ -120,7 +137,9 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
 
     const invoice = await loadInvoice(Number(ctx.params.id));
     if (!invoice) return ctx.notFound();
-    if (!canEditInvoice(invoice, user.id)) return ctx.forbidden();
+    if (!canDeleteInvoice(invoice, user.id)) {
+      return ctx.forbidden('Solo el dueño del equipo puede borrar facturas');
+    }
 
     await strapi.db.query(INVOICE).delete({ where: { id: invoice.id } });
     ctx.body = { data: { id: invoice.id } };

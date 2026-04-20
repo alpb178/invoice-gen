@@ -37,6 +37,11 @@
       "relation": "oneToMany",
       "target": "api::task.task",
       "mappedBy": "section"
+    },
+    "author": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
     }
   }
 }

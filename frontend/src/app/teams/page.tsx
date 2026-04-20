@@ -11,20 +11,28 @@ import {
   inviteTeamMember,
   listTeamInvitations,
   cancelInvitation,
+  getMyInvitations,
+  acceptInvitation,
+  rejectInvitation,
 } from '@/lib/api';
 import { getUser, setActiveTeamId, logout } from '@/lib/auth';
 import { Invitation } from '@/types';
+
+type Tab = 'mine' | 'member' | 'requests';
 
 export default function TeamsPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [owned, setOwned] = useState<any[]>([]);
   const [memberOf, setMemberOf] = useState<any[]>([]);
+  const [incoming, setIncoming] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [creatingName, setCreatingName] = useState('');
   const [emailInputs, setEmailInputs] = useState<Record<number, string>>({});
   const [invitations, setInvitations] = useState<Record<number, Invitation[]>>({});
   const [flash, setFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [tab, setTab] = useState<Tab>('mine');
+  const [processingInvite, setProcessingInvite] = useState<number | null>(null);
 
   useEffect(() => {
     setUser(getUser());
@@ -46,6 +54,12 @@ export default function TeamsPage() {
         }),
       );
       setInvitations(inv);
+      try {
+        const mine = await getMyInvitations();
+        setIncoming(mine || []);
+      } catch {
+        setIncoming([]);
+      }
     } catch (e: any) {
       setFlash({ type: 'err', text: e.message });
     }
@@ -131,6 +145,35 @@ export default function TeamsPage() {
     }
   };
 
+  const handleAcceptIncoming = async (inv: Invitation) => {
+    if (!inv.token) return;
+    setProcessingInvite(inv.id);
+    try {
+      const data = await acceptInvitation(inv.token);
+      if (data?.team?.id) setActiveTeamId(data.team.id);
+      setFlash({ type: 'ok', text: `Te uniste al equipo ${data?.team?.name || ''}.` });
+      await load();
+      setTab('member');
+    } catch (e: any) {
+      setFlash({ type: 'err', text: e.message });
+    }
+    setProcessingInvite(null);
+  };
+
+  const handleRejectIncoming = async (inv: Invitation) => {
+    if (!inv.token) return;
+    if (!confirm('¿Rechazar esta invitación?')) return;
+    setProcessingInvite(inv.id);
+    try {
+      await rejectInvitation(inv.token);
+      setFlash({ type: 'ok', text: 'Invitación rechazada.' });
+      await load();
+    } catch (e: any) {
+      setFlash({ type: 'err', text: e.message });
+    }
+    setProcessingInvite(null);
+  };
+
   const selectActive = (teamId: number) => {
     setActiveTeamId(teamId);
     router.push('/app');
@@ -139,9 +182,43 @@ export default function TeamsPage() {
   const inputClass =
     'flex-1 px-3 py-2 bg-paper border border-ink-200 rounded-lg text-sm text-ink-900 focus:outline-none focus:border-ink-900';
 
+  const pendingIncoming = incoming.filter((i) => i.status === 'pending');
+
+  const tabs: { key: Tab; label: string; badge?: number }[] = [
+    { key: 'mine', label: 'Mis equipos', badge: owned.length || undefined },
+    { key: 'member', label: 'Equipos', badge: memberOf.length || undefined },
+    { key: 'requests', label: 'Solicitudes', badge: pendingIncoming.length || undefined },
+  ];
+
+  const tabBtn = (t: { key: Tab; label: string; badge?: number }) => {
+    const active = tab === t.key;
+    return (
+      <button
+        key={t.key}
+        onClick={() => setTab(t.key)}
+        className={`relative px-4 py-2 text-sm font-medium transition-colors ${
+          active
+            ? 'text-ink-900 border-b-2 border-ink-900'
+            : 'text-ink-500 hover:text-ink-900 border-b-2 border-transparent'
+        }`}
+      >
+        {t.label}
+        {t.badge ? (
+          <span
+            className={`ml-2 inline-flex items-center justify-center text-[10px] font-semibold rounded-full w-5 h-5 leading-none ${
+              active ? 'bg-ink-900 text-paper' : 'bg-ink-100 text-ink-700 border border-ink-200'
+            }`}
+          >
+            {t.badge}
+          </span>
+        ) : null}
+      </button>
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
             ← Facturas
@@ -177,35 +254,36 @@ export default function TeamsPage() {
         </div>
       )}
 
-      <div className="bg-paper border border-ink-200 rounded-2xl p-5 mb-6 shadow-card">
-        <h2 className="text-sm font-semibold text-ink-900 mb-3">Crear un nuevo equipo</h2>
-        <div className="flex gap-2">
-          <input
-            value={creatingName}
-            onChange={(e) => setCreatingName(e.target.value)}
-            placeholder="Nombre del equipo"
-            className="flex-1 px-3 py-2.5 bg-paper border border-ink-200 rounded-xl text-sm text-ink-900 focus:outline-none focus:border-ink-900"
-          />
-          <button
-            onClick={handleCreate}
-            className="px-5 py-2.5 bg-ink-900 hover:bg-ink-800 text-paper font-semibold rounded-xl text-sm transition-colors"
-          >
-            Crear
-          </button>
-        </div>
+      <div className="border-b border-ink-200 mb-6 flex gap-2 flex-wrap">
+        {tabs.map(tabBtn)}
       </div>
 
       {loading ? (
         <div className="text-center py-10 text-ink-500">Cargando...</div>
-      ) : (
+      ) : tab === 'mine' ? (
         <>
-          <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wide mb-3">
-            Equipos que soy dueño
-          </h2>
+          <div className="bg-paper border border-ink-200 rounded-2xl p-5 mb-6 shadow-card">
+            <h2 className="text-sm font-semibold text-ink-900 mb-3">Crear un nuevo equipo</h2>
+            <div className="flex gap-2">
+              <input
+                value={creatingName}
+                onChange={(e) => setCreatingName(e.target.value)}
+                placeholder="Nombre del equipo"
+                className="flex-1 px-3 py-2.5 bg-paper border border-ink-200 rounded-xl text-sm text-ink-900 focus:outline-none focus:border-ink-900"
+              />
+              <button
+                onClick={handleCreate}
+                className="px-5 py-2.5 bg-ink-900 hover:bg-ink-800 text-paper font-semibold rounded-xl text-sm transition-colors"
+              >
+                Crear
+              </button>
+            </div>
+          </div>
+
           {owned.length === 0 ? (
-            <p className="text-ink-500 text-sm mb-6">No eres dueño de ningún equipo.</p>
+            <p className="text-ink-500 text-sm">Aún no eres dueño de ningún equipo.</p>
           ) : (
-            <div className="space-y-4 mb-8">
+            <div className="space-y-4">
               {owned.map((team) => {
                 const pending = (invitations[team.id] || []).filter((i) => i.status === 'pending');
                 return (
@@ -329,34 +407,87 @@ export default function TeamsPage() {
               })}
             </div>
           )}
-
-          <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wide mb-3">
-            Equipos de los que soy miembro
-          </h2>
-          {memberOf.length === 0 ? (
-            <p className="text-ink-500 text-sm">No perteneces a ningún otro equipo.</p>
-          ) : (
-            <div className="space-y-3">
-              {memberOf.map((team) => (
-                <div
-                  key={team.id}
-                  className="bg-paper border border-ink-200 rounded-2xl p-4 flex items-center justify-between shadow-card"
-                >
-                  <div>
-                    <h3 className="font-semibold text-ink-900">{team.name}</h3>
-                    <p className="text-xs text-ink-500 mt-0.5">Dueño: {team.owner?.email || '—'}</p>
-                  </div>
-                  <button
-                    onClick={() => selectActive(team.id)}
-                    className="px-3 py-1.5 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors"
-                  >
-                    Usar
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </>
+      ) : tab === 'member' ? (
+        memberOf.length === 0 ? (
+          <p className="text-ink-500 text-sm">No perteneces a ningún otro equipo.</p>
+        ) : (
+          <div className="space-y-3">
+            {memberOf.map((team) => (
+              <div
+                key={team.id}
+                className="bg-paper border border-ink-200 rounded-2xl p-4 flex items-center justify-between shadow-card"
+              >
+                <div>
+                  <h3 className="font-semibold text-ink-900">{team.name}</h3>
+                  <p className="text-xs text-ink-500 mt-0.5">Dueño: {team.owner?.email || '—'}</p>
+                </div>
+                <button
+                  onClick={() => selectActive(team.id)}
+                  className="px-3 py-1.5 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors"
+                >
+                  Usar
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+        // requests tab
+        pendingIncoming.length === 0 ? (
+          <div className="text-center py-10 text-ink-500 text-sm">
+            No tienes solicitudes de invitación pendientes.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {pendingIncoming.map((inv) => {
+              const busy = processingInvite === inv.id;
+              return (
+                <div
+                  key={inv.id}
+                  className="bg-paper border border-ink-200 rounded-2xl p-5 shadow-card flex items-center justify-between gap-3 flex-wrap"
+                >
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-ink-900 truncate">
+                      {inv.team?.name || 'Equipo'}
+                    </h3>
+                    <p className="text-xs text-ink-500 mt-0.5">
+                      {inv.invitedBy?.email ? (
+                        <>
+                          Invitado por <span className="text-ink-800">{inv.invitedBy.email}</span>
+                        </>
+                      ) : (
+                        'Invitación recibida'
+                      )}
+                      {inv.expiresAt && (
+                        <>
+                          {' · expira '}
+                          {new Date(inv.expiresAt).toLocaleDateString('es-ES')}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleAcceptIncoming(inv)}
+                      disabled={busy}
+                      className="px-4 py-2 bg-ink-900 hover:bg-ink-800 disabled:opacity-50 text-paper text-sm font-semibold rounded-lg transition-colors"
+                    >
+                      {busy ? 'Uniéndote…' : 'Aceptar'}
+                    </button>
+                    <button
+                      onClick={() => handleRejectIncoming(inv)}
+                      disabled={busy}
+                      className="px-4 py-2 bg-paper hover:bg-ink-100 border border-ink-200 text-ink-900 text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
       )}
     </div>
   );

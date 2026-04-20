@@ -3,10 +3,15 @@ import assert from 'node:assert/strict';
 import {
   isTeamOwner,
   isTeamMember,
-  canEditInvoice,
+  canCreateInvoice,
+  canDeleteInvoice,
+  canEditInvoiceHeader,
   canExportInvoice,
   canViewInvoice,
+  canCreateSection,
+  canEditSection,
   AuthzInvoice,
+  AuthzSection,
   AuthzTeam,
 } from '../src/utils/authz';
 
@@ -38,6 +43,24 @@ const invoiceWithoutTeam: AuthzInvoice = {
   id: 102,
   team: null,
   author: { id: MEMBER },
+};
+
+const sectionByMember: AuthzSection = {
+  id: 200,
+  author: { id: MEMBER },
+  invoice: invoiceByOwner,
+};
+
+const sectionByOtherMember: AuthzSection = {
+  id: 201,
+  author: { id: OTHER_MEMBER },
+  invoice: invoiceByOwner,
+};
+
+const sectionByOwner: AuthzSection = {
+  id: 202,
+  author: { id: OWNER },
+  invoice: invoiceByOwner,
 };
 
 describe('isTeamOwner', () => {
@@ -78,27 +101,36 @@ describe('isTeamMember', () => {
   });
 });
 
-describe('canEditInvoice', () => {
-  it('el owner puede editar cualquier factura del equipo (incluyendo las de miembros)', () => {
-    assert.equal(canEditInvoice(invoiceByMember, OWNER), true);
-    assert.equal(canEditInvoice(invoiceByOwner, OWNER), true);
+describe('canCreateInvoice', () => {
+  it('SOLO el dueño del equipo puede crear facturas', () => {
+    assert.equal(canCreateInvoice(team, OWNER), true);
+    assert.equal(canCreateInvoice(team, MEMBER), false);
+    assert.equal(canCreateInvoice(team, OTHER_MEMBER), false);
+    assert.equal(canCreateInvoice(team, OUTSIDER), false);
+  });
+});
+
+describe('canDeleteInvoice', () => {
+  it('SOLO el dueño del equipo puede borrar facturas (incluso si la creó un miembro)', () => {
+    assert.equal(canDeleteInvoice(invoiceByMember, OWNER), true);
+    assert.equal(canDeleteInvoice(invoiceByMember, MEMBER), false);
+    assert.equal(canDeleteInvoice(invoiceByOwner, OTHER_MEMBER), false);
+    assert.equal(canDeleteInvoice(invoiceByMember, OUTSIDER), false);
   });
 
-  it('un miembro solo puede editar SUS facturas, no las del owner ni las de otros', () => {
-    assert.equal(canEditInvoice(invoiceByMember, MEMBER), true);
-    assert.equal(canEditInvoice(invoiceByOwner, MEMBER), false);
-    assert.equal(canEditInvoice(invoiceByMember, OTHER_MEMBER), false);
+  it('sin equipo, nadie puede borrar con este helper', () => {
+    assert.equal(canDeleteInvoice(invoiceWithoutTeam, MEMBER), false);
+    assert.equal(canDeleteInvoice(invoiceWithoutTeam, OWNER), false);
   });
+});
 
-  it('un usuario externo no puede editar nada', () => {
-    assert.equal(canEditInvoice(invoiceByMember, OUTSIDER), false);
-    assert.equal(canEditInvoice(invoiceByOwner, OUTSIDER), false);
-  });
-
-  it('si la factura no tiene equipo, solo el creador puede editar', () => {
-    assert.equal(canEditInvoice(invoiceWithoutTeam, MEMBER), true);
-    assert.equal(canEditInvoice(invoiceWithoutTeam, OWNER), false);
-    assert.equal(canEditInvoice(invoiceWithoutTeam, OUTSIDER), false);
+describe('canEditInvoiceHeader', () => {
+  it('SOLO el dueño del equipo puede editar la cabecera', () => {
+    assert.equal(canEditInvoiceHeader(invoiceByMember, OWNER), true);
+    assert.equal(canEditInvoiceHeader(invoiceByOwner, OWNER), true);
+    assert.equal(canEditInvoiceHeader(invoiceByMember, MEMBER), false);
+    assert.equal(canEditInvoiceHeader(invoiceByOwner, MEMBER), false);
+    assert.equal(canEditInvoiceHeader(invoiceByMember, OUTSIDER), false);
   });
 });
 
@@ -126,5 +158,42 @@ describe('canViewInvoice', () => {
 
   it('un usuario externo no puede ver', () => {
     assert.equal(canViewInvoice(invoiceByMember, OUTSIDER), false);
+  });
+});
+
+describe('canCreateSection', () => {
+  it('cualquier miembro del equipo (incluido owner) puede crear secciones', () => {
+    assert.equal(canCreateSection(team, OWNER), true);
+    assert.equal(canCreateSection(team, MEMBER), true);
+    assert.equal(canCreateSection(team, OTHER_MEMBER), true);
+  });
+
+  it('un externo no puede crear secciones', () => {
+    assert.equal(canCreateSection(team, OUTSIDER), false);
+  });
+});
+
+describe('canEditSection', () => {
+  it('el owner del equipo puede editar cualquier sección', () => {
+    assert.equal(canEditSection(sectionByMember, OWNER), true);
+    assert.equal(canEditSection(sectionByOtherMember, OWNER), true);
+    assert.equal(canEditSection(sectionByOwner, OWNER), true);
+  });
+
+  it('un miembro SOLO puede editar secciones que creó', () => {
+    assert.equal(canEditSection(sectionByMember, MEMBER), true);
+    assert.equal(canEditSection(sectionByOtherMember, MEMBER), false);
+    assert.equal(canEditSection(sectionByOwner, MEMBER), false);
+  });
+
+  it('un externo no puede editar ninguna sección', () => {
+    assert.equal(canEditSection(sectionByMember, OUTSIDER), false);
+    assert.equal(canEditSection(sectionByOwner, OUTSIDER), false);
+  });
+
+  it('sección sin author o null → no se puede editar', () => {
+    assert.equal(canEditSection(null, OWNER), false);
+    assert.equal(canEditSection(undefined, OWNER), false);
+    assert.equal(canEditSection({ id: 1, author: null, invoice: invoiceByOwner }, MEMBER), false);
   });
 });

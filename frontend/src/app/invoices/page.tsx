@@ -78,8 +78,6 @@ export default function InvoicesIndexPage() {
     });
   }, [invoices, query, status]);
 
-  const user = typeof window !== 'undefined' ? getUser() : null;
-
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
@@ -89,12 +87,14 @@ export default function InvoicesIndexPage() {
           </Link>
           <h1 className="text-2xl font-bold text-ink-900">Todas las facturas</h1>
         </div>
-        <Link
-          href="/invoices/new"
-          className="px-5 py-2 bg-ink-900 hover:bg-ink-800 text-paper font-semibold rounded-xl text-sm transition-colors"
-        >
-          + Nueva Factura
-        </Link>
+        {isOwner && (
+          <Link
+            href="/invoices/new"
+            className="px-5 py-2 bg-ink-900 hover:bg-ink-800 text-paper font-semibold rounded-xl text-sm transition-colors"
+          >
+            + Nueva Factura
+          </Link>
+        )}
       </div>
 
       <div className="flex gap-2 mb-5 flex-wrap">
@@ -126,8 +126,6 @@ export default function InvoicesIndexPage() {
           {filtered.map((inv: any) => {
             const a = inv.attributes || inv;
             const st = a.status || 'draft';
-            const creatorId = a.author?.id;
-            const mineOrOwner = isOwner || creatorId === user?.id;
             return (
               <div
                 key={inv.id}
@@ -162,9 +160,9 @@ export default function InvoicesIndexPage() {
                     href={`/invoices/${inv.id}`}
                     className="px-3 py-1.5 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors"
                   >
-                    {mineOrOwner ? 'Editar' : 'Ver'}
+                    Editar
                   </Link>
-                  {mineOrOwner && (
+                  {isOwner && (
                     <button
                       onClick={() => handleDelete(inv.id)}
                       className="px-3 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-colors"

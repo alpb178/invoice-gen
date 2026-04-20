@@ -213,25 +213,41 @@ export async function deleteTask(id: number) {
 
 // ── Utility: Save full invoice with sections and tasks ──
 
-export async function saveFullInvoice(invoice: any, teamId: number) {
+interface SaveOpts {
+  canEditHeader?: boolean;
+  canEditSection?: (sec: any) => boolean;
+}
+
+export async function saveFullInvoice(invoice: any, teamId: number, opts: SaveOpts = {}) {
+  const canEditHeader = opts.canEditHeader ?? true;
+  const canEditSection = opts.canEditSection ?? (() => true);
+
   const invoiceData: any = { ...invoice };
   delete invoiceData.sections;
   delete invoiceData.id;
   delete invoiceData.team;
   delete invoiceData.author;
 
-  let invoiceRecord: any;
+  let invoiceId: number;
   if (invoice.id) {
-    invoiceRecord = await updateInvoice(invoice.id, invoiceData);
+    // Solo el dueño toca la cabecera; un miembro se salta esta llamada para
+    // no recibir un 403 del backend.
+    if (canEditHeader) {
+      const rec = await updateInvoice(invoice.id, invoiceData);
+      invoiceId = rec.id;
+    } else {
+      invoiceId = invoice.id;
+    }
   } else {
-    invoiceRecord = await createInvoice({ ...invoiceData, team: teamId });
+    const rec = await createInvoice({ ...invoiceData, team: teamId });
+    invoiceId = rec.id;
   }
-  const invoiceId = invoiceRecord.id;
-
-  let totalAmount = 0;
 
   for (let i = 0; i < (invoice.sections || []).length; i++) {
     const sec = invoice.sections[i];
+    // Secciones que no le corresponden a este usuario se saltan en silencio.
+    if (!canEditSection(sec)) continue;
+
     const sectionData: any = {
       title: sec.title,
       subtitle: sec.subtitle || '',
@@ -268,11 +284,10 @@ export async function saveFullInvoice(invoice: any, teamId: number) {
       }
     }
 
+    // El subtotal sí puede tocarlo el autor de la sección; el total general
+    // lo recalcula el backend (utils/totals) tras cada mutación.
     await updateSection(sectionId, { subtotal });
-    totalAmount += subtotal;
   }
-
-  await updateInvoice(invoiceId, { totalAmount });
 
   return invoiceId;
 }
