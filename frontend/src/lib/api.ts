@@ -212,82 +212,54 @@ export async function deleteTask(id: number) {
 }
 
 // ── Utility: Save full invoice with sections and tasks ──
+//
+// Una sola llamada al backend: POST /invoices/save-full envía el árbol completo
+// y el servidor reconcilia cabecera + secciones + tareas dentro de una
+// transacción, aplicando permisos por item. Los opts se mantienen por
+// compatibilidad con llamadores antiguos, pero hoy no se usan: la autorización
+// real vive en el backend.
 
 interface SaveOpts {
   canEditHeader?: boolean;
   canEditSection?: (sec: any) => boolean;
 }
 
-export async function saveFullInvoice(invoice: any, teamId: number, opts: SaveOpts = {}) {
-  const canEditHeader = opts.canEditHeader ?? true;
-  const canEditSection = opts.canEditSection ?? (() => true);
-
-  const invoiceData: any = { ...invoice };
-  delete invoiceData.sections;
-  delete invoiceData.id;
-  delete invoiceData.team;
-  delete invoiceData.author;
-
-  let invoiceId: number;
-  if (invoice.id) {
-    // Solo el dueño toca la cabecera; un miembro se salta esta llamada para
-    // no recibir un 403 del backend.
-    if (canEditHeader) {
-      const rec = await updateInvoice(invoice.id, invoiceData);
-      invoiceId = rec.id;
-    } else {
-      invoiceId = invoice.id;
-    }
-  } else {
-    const rec = await createInvoice({ ...invoiceData, team: teamId });
-    invoiceId = rec.id;
-  }
-
-  for (let i = 0; i < (invoice.sections || []).length; i++) {
-    const sec = invoice.sections[i];
-    // Secciones que no le corresponden a este usuario se saltan en silencio.
-    if (!canEditSection(sec)) continue;
-
-    const sectionData: any = {
+export async function saveFullInvoice(invoice: any, teamId: number, _opts: SaveOpts = {}) {
+  const payload: any = {
+    id: invoice.id,
+    team: teamId,
+    number: invoice.number,
+    date: invoice.date,
+    status: invoice.status,
+    currency: invoice.currency,
+    companyName: invoice.companyName,
+    companyCIF: invoice.companyCIF,
+    companyAddress: invoice.companyAddress,
+    clientName: invoice.clientName,
+    clientIBAN: invoice.clientIBAN,
+    clientSwift: invoice.clientSwift,
+    clientBank: invoice.clientBank,
+    notes: invoice.notes,
+    sections: (invoice.sections || []).map((sec: any, i: number) => ({
+      id: sec.id,
       title: sec.title,
       subtitle: sec.subtitle || '',
       sortOrder: i,
-      invoice: invoiceId,
-    };
-
-    let sectionRecord: any;
-    if (sec.id) {
-      sectionRecord = await updateSection(sec.id, sectionData);
-    } else {
-      sectionRecord = await createSection(sectionData);
-    }
-    const sectionId = sectionRecord.id;
-
-    let subtotal = 0;
-    for (let j = 0; j < (sec.tasks || []).length; j++) {
-      const task = sec.tasks[j];
-      const taskData: any = {
-        number: task.number || j + 1,
-        code: task.code || '',
-        description: task.description,
-        amount: task.amount || 0,
-        hours: task.hours || null,
+      tasks: (sec.tasks || []).map((t: any, j: number) => ({
+        id: t.id,
+        number: t.number ?? j + 1,
+        code: t.code || '',
+        description: t.description,
+        amount: Number(t.amount) || 0,
+        hours: t.hours ?? null,
         sortOrder: j,
-        section: sectionId,
-      };
-      subtotal += task.amount || 0;
+      })),
+    })),
+  };
 
-      if (task.id) {
-        await updateTask(task.id, taskData);
-      } else {
-        await createTask(taskData);
-      }
-    }
-
-    // El subtotal sí puede tocarlo el autor de la sección; el total general
-    // lo recalcula el backend (utils/totals) tras cada mutación.
-    await updateSection(sectionId, { subtotal });
-  }
-
-  return invoiceId;
+  const res = await fetchAPI('/invoices/save-full', {
+    method: 'POST',
+    body: JSON.stringify({ data: payload }),
+  });
+  return res.data?.id as number;
 }

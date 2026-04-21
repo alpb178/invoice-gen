@@ -535,6 +535,10 @@ export interface ApiSectionSection extends Struct.CollectionTypeSchema {
     draftAndPublish: false;
   };
   attributes: {
+    author: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    >;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

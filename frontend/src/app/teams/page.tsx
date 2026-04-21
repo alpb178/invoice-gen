@@ -17,6 +17,7 @@ import {
 } from '@/lib/api';
 import { getUser, setActiveTeamId, logout } from '@/lib/auth';
 import { Invitation } from '@/types';
+import { SkeletonList } from '@/components/Skeleton';
 
 type Tab = 'mine' | 'member' | 'requests';
 
@@ -259,7 +260,7 @@ export default function TeamsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-10 text-ink-500">Cargando...</div>
+        <SkeletonList count={3} />
       ) : tab === 'mine' ? (
         <>
           <div className="bg-paper border border-ink-200 rounded-2xl p-5 mb-6 shadow-card">
