@@ -253,9 +253,10 @@ export default function DashboardPage() {
     window.location.reload();
   };
 
-  // Para un miembro, el dashboard muestra SOLO lo que le corresponde:
-  // secciones que él creó, con su importe = suma de los subtotales de esas
-  // secciones. Las facturas en las que no tiene ninguna sección se omiten.
+  // Dueño: muestra todas las facturas con el total de la factura.
+  // Miembro: muestra todas las facturas del equipo también (para poder entrar
+  // y añadir su sección), pero el importe visible es su aporte (suma de los
+  // subtotales de SUS secciones); 0 si aún no ha añadido ninguna.
   const myInvoices = useMemo(() => {
     if (isOwnerOfActive) {
       return invoices.map((inv: any) => {
@@ -263,23 +264,20 @@ export default function DashboardPage() {
         return { ...inv, displayAmount: a.totalAmount || 0 };
       });
     }
-    return invoices
-      .map((inv: any) => {
-        const a = inv.attributes || inv;
-        const sections = a.sections?.data || a.sections || [];
-        const mine = sections.filter((s: any) => {
-          const sa = s.attributes || s;
-          const au = sa.author?.data || sa.author;
-          return au?.id === user?.id;
-        });
-        if (mine.length === 0) return null;
-        const own = mine.reduce((sum: number, s: any) => {
-          const sa = s.attributes || s;
-          return sum + (Number(sa.subtotal) || 0);
-        }, 0);
-        return { ...inv, displayAmount: own };
-      })
-      .filter(Boolean) as any[];
+    return invoices.map((inv: any) => {
+      const a = inv.attributes || inv;
+      const sections = a.sections?.data || a.sections || [];
+      const mine = sections.filter((s: any) => {
+        const sa = s.attributes || s;
+        const au = sa.author?.data || sa.author;
+        return au?.id === user?.id;
+      });
+      const own = mine.reduce((sum: number, s: any) => {
+        const sa = s.attributes || s;
+        return sum + (Number(sa.subtotal) || 0);
+      }, 0);
+      return { ...inv, displayAmount: own };
+    });
   }, [invoices, isOwnerOfActive, user?.id]);
 
   const kpi = useMemo(() => {
@@ -388,6 +386,12 @@ export default function DashboardPage() {
             </select>
           )}
           <Link
+            href="/invoices"
+            className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
+          >
+            Facturas
+          </Link>
+          <Link
             href="/reports"
             className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
           >
@@ -493,7 +497,7 @@ export default function DashboardPage() {
                   <p className="text-ink-500 text-sm">
                     {isOwnerOfActive
                       ? 'Todavía no hay facturas en este equipo.'
-                      : 'Todavía no has aportado a ninguna factura.'}
+                      : 'El dueño aún no ha creado ninguna factura.'}
                   </p>
                   {isOwnerOfActive && (
                     <Link href="/invoices/new" className="text-ink-900 text-sm mt-2 inline-block hover:underline font-medium">
