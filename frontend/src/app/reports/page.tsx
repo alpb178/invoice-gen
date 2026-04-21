@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getInvoices, getMyTeams } from '@/lib/api';
-import { getActiveTeamId, setActiveTeamId } from '@/lib/auth';
+import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
 
 type Grouping = 'day' | 'month' | 'year';
 
@@ -48,6 +48,7 @@ export default function ReportsPage() {
   const router = useRouter();
   const [teams, setTeams] = useState<any[]>([]);
   const [activeTeam, setActiveTeam] = useState<any>(null);
+  const [isOwner, setIsOwner] = useState(false);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [grouping, setGrouping] = useState<Grouping>('month');
@@ -68,6 +69,8 @@ export default function ReportsPage() {
         const pick = merged.find((t: any) => t.id === saved) || merged[0];
         setActiveTeamId(pick.id);
         setActiveTeam(pick);
+        const u = getUser();
+        setIsOwner(pick.owner?.id === u?.id);
         const data = await getInvoices(pick.id);
         setInvoices(data || []);
       } catch (e) {
@@ -76,6 +79,16 @@ export default function ReportsPage() {
       setLoading(false);
     })();
   }, [router]);
+
+  const invoiceAmount = (inv: any) => {
+    const a = inv.attributes || inv;
+    if (isOwner) return a.totalAmount || 0;
+    const sections = a.sections?.data || a.sections || [];
+    return sections.reduce((sum: number, s: any) => {
+      const sa = s.attributes || s;
+      return sum + (Number(sa.subtotal) || 0);
+    }, 0);
+  };
 
   const cur = activeTeam?.defaultCurrency || 'USD';
   const fmtMoney = (n: number) =>
@@ -96,7 +109,7 @@ export default function ReportsPage() {
       const a = inv.attributes || inv;
       const key = groupKey(a.date, grouping);
       const entry = map.get(key) || { key, label: groupLabel(key, grouping), total: 0, count: 0, rows: [] };
-      entry.total += a.totalAmount || 0;
+      entry.total += invoiceAmount(inv);
       entry.count += 1;
       entry.rows.push(inv);
       map.set(key, entry);
@@ -110,7 +123,8 @@ export default function ReportsPage() {
       });
     }
     return arr;
-  }, [filtered, grouping]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, grouping, isOwner]);
 
   const grandTotal = useMemo(() => groups.reduce((a, g) => a + g.total, 0), [groups]);
 
@@ -222,7 +236,7 @@ export default function ReportsPage() {
                                 </div>
                               </div>
                               <span className="font-mono font-semibold text-ink-900 text-sm shrink-0">
-                                {fmtMoney(a.totalAmount || 0)}
+                                {fmtMoney(invoiceAmount(inv))}
                               </span>
                               <Link
                                 href={`/invoices/${inv.id}`}

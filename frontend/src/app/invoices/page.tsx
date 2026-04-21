@@ -69,14 +69,25 @@ export default function InvoicesIndexPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return invoices.filter((inv: any) => {
-      const a = inv.attributes || inv;
-      if (status !== 'all' && a.status !== status) return false;
-      if (!q) return true;
-      const hay = [a.number, a.clientName, a.companyName, a.author?.email].filter(Boolean).join(' ').toLowerCase();
-      return hay.includes(q);
-    });
-  }, [invoices, query, status]);
+    return invoices
+      .filter((inv: any) => {
+        const a = inv.attributes || inv;
+        if (status !== 'all' && a.status !== status) return false;
+        if (!q) return true;
+        const hay = [a.number, a.clientName, a.companyName, a.author?.email].filter(Boolean).join(' ').toLowerCase();
+        return hay.includes(q);
+      })
+      .map((inv: any) => {
+        const a = inv.attributes || inv;
+        if (isOwner) return { ...inv, displayAmount: a.totalAmount || 0 };
+        const sections = a.sections?.data || a.sections || [];
+        const own = sections.reduce((sum: number, s: any) => {
+          const sa = s.attributes || s;
+          return sum + (Number(sa.subtotal) || 0);
+        }, 0);
+        return { ...inv, displayAmount: own };
+      });
+  }, [invoices, query, status, isOwner]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -154,7 +165,7 @@ export default function InvoicesIndexPage() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="font-mono font-semibold text-ink-900 text-lg">
-                    {fmtMoney(a.totalAmount || 0, a.currency || 'USD')}
+                    {fmtMoney(inv.displayAmount || 0, a.currency || 'USD')}
                   </span>
                   <Link
                     href={`/invoices/${inv.id}`}
