@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getInvoices, deleteInvoice, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
+import { SkeletonList } from '@/components/Skeleton';
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Borrador',
@@ -129,7 +130,7 @@ export default function InvoicesIndexPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-20 text-ink-500">Cargando...</div>
+        <SkeletonList count={4} />
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-ink-500">Sin resultados.</div>
       ) : (

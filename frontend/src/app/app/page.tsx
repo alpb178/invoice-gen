@@ -11,6 +11,7 @@ import {
   getMyInvitations,
 } from '@/lib/api';
 import { getUser, logout, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
+import { Skeleton, SkeletonCard, SkeletonKpiGrid, SkeletonList } from '@/components/Skeleton';
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Borrador',
@@ -447,7 +448,32 @@ export default function DashboardPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-20 text-ink-500">Cargando dashboard...</div>
+        <div className="space-y-6">
+          <SkeletonKpiGrid />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <SkeletonCard className="lg:col-span-2 h-56">
+              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-40 w-full mt-4 rounded-xl" />
+            </SkeletonCard>
+            <SkeletonCard className="h-56">
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-32 w-32 rounded-full mt-4 mx-auto" />
+            </SkeletonCard>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <SkeletonList count={3} />
+            </div>
+            <SkeletonCard>
+              <Skeleton className="h-3 w-20" />
+              <div className="mt-4 space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </SkeletonCard>
+          </div>
+        </div>
       ) : (
         <>
           {/* KPI cards */}

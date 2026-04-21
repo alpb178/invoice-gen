@@ -7,6 +7,7 @@ const AUTH_ACTIONS = [
   'api::invoice.invoice.update',
   'api::invoice.invoice.delete',
   'api::invoice.invoice.export',
+  'api::invoice.invoice.saveFull',
   'api::invoice.invoice.parseTasks',
   'api::section.section.find',
   'api::section.section.findOne',

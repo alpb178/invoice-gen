@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getMyTeams, updateTeam } from '@/lib/api';
 import { getUser, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
+import { Skeleton, SkeletonCard } from '@/components/Skeleton';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'BOB'];
 
@@ -88,7 +89,23 @@ export default function SettingsPage() {
     'w-full px-3 py-2.5 bg-paper border border-ink-200 rounded-xl text-ink-900 text-sm focus:outline-none focus:border-ink-900 disabled:bg-ink-50';
   const labelClass = 'text-xs text-ink-600 mb-1.5 block';
 
-  if (loading) return <div className="text-center py-20 text-ink-500">Cargando...</div>;
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
+        <Skeleton className="h-7 w-40" />
+        <SkeletonCard>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-2.5 w-20" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+              </div>
+            ))}
+          </div>
+        </SkeletonCard>
+      </div>
+    );
+  }
 
   if (!teamId) {
     return (

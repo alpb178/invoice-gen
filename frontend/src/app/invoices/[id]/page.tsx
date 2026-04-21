@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getInvoice } from '@/lib/api';
 import InvoiceEditor from '@/components/InvoiceEditor';
+import { SkeletonInvoiceEditor } from '@/components/Skeleton';
 import { Invoice, Section, Task } from '@/types';
 
 function normalize(raw: any): Invoice {
@@ -80,7 +81,7 @@ export default function EditInvoicePage() {
     })();
   }, [params.id]);
 
-  if (loading) return <div className="text-center py-20 text-ink-500">Cargando factura...</div>;
+  if (loading) return <SkeletonInvoiceEditor />;
   if (!invoice) return <div className="text-center py-20 text-red-600">Factura no encontrada</div>;
 
   return <InvoiceEditor initial={invoice} />;

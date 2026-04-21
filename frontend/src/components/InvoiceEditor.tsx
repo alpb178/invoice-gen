@@ -137,7 +137,6 @@ export default function InvoiceEditor({ initial }: Props) {
   };
 
   const removeSection = (sIdx: number) => {
-    if (invoice.sections.length <= 1) return;
     setInvoice((prev) => ({ ...prev, sections: prev.sections.filter((_, i) => i !== sIdx) }));
   };
 
@@ -171,7 +170,6 @@ export default function InvoiceEditor({ initial }: Props) {
   const removeTask = (sIdx: number, tIdx: number) => {
     setInvoice((prev) => {
       const sections = [...prev.sections];
-      if (sections[sIdx].tasks.length <= 1) return prev;
       sections[sIdx] = { ...sections[sIdx], tasks: sections[sIdx].tasks.filter((_, i) => i !== tIdx) };
       return { ...prev, sections };
     });
@@ -381,7 +379,7 @@ export default function InvoiceEditor({ initial }: Props) {
                 <input disabled={!secEditable} className={inputClass} placeholder="Richard, Jhoan..." value={sec.subtitle || ''} onChange={(e) => updateSection(sIdx, 'subtitle', e.target.value)} />
               </div>
             </div>
-            {secEditable && invoice.sections.length > 1 && (
+            {secEditable && (
               <button onClick={() => removeSection(sIdx)} className="ml-3 mt-5 text-red-600 hover:text-red-700 text-lg" title="Eliminar sección">✕</button>
             )}
           </div>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getInvoices, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
+import { Skeleton, SkeletonCard, SkeletonKpiGrid } from '@/components/Skeleton';
 
 type Grouping = 'day' | 'month' | 'year';
 
@@ -173,7 +174,13 @@ export default function ReportsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-20 text-ink-500">Cargando reportes…</div>
+        <div className="space-y-4">
+          <SkeletonKpiGrid count={3} />
+          <SkeletonCard className="h-48">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-32 w-full mt-4 rounded-xl" />
+          </SkeletonCard>
+        </div>
       ) : (
         <>
           <div className="bg-paper border border-ink-200 rounded-2xl p-5 mb-6 shadow-card flex items-center justify-between flex-wrap gap-3">
