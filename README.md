@@ -57,7 +57,7 @@ Task (tarea)
 ### 1. Strapi Backend
 
 ```bash
-cd strapi-backend
+cd backend
 npm install
 # Configurar .env con tu PostgreSQL
 cp .env.example .env
