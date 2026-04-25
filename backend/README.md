@@ -3,9 +3,9 @@
 ## Instalación rápida
 
 ```bash
-npx create-strapi-app@latest strapi-backend --quickstart
+npx create-strapi-app@latest backend --quickstart
 # O con PostgreSQL:
-npx create-strapi-app@latest strapi-backend --dbclient=postgres
+npx create-strapi-app@latest backend --dbclient=postgres
 ```
 
 ## Content Types (crear desde Admin Panel o copiar schemas)
