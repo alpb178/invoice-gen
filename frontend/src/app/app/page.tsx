@@ -354,7 +354,7 @@ export default function DashboardPage() {
   const memberCount = (activeTeam?.members?.length || 0) + 1;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+    <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text text-transparent">
@@ -547,9 +547,9 @@ export default function DashboardPage() {
                             href={`/invoices/${inv.id}`}
                             className="px-2.5 py-1 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors"
                           >
-                            Editar
+                            {status === 'paid' ? 'Ver' : 'Editar'}
                           </Link>
-                          {isOwnerOfActive && (
+                          {isOwnerOfActive && status !== 'paid' && (
                             <button
                               onClick={() => handleDelete(inv.id)}
                               className="px-2 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-colors"

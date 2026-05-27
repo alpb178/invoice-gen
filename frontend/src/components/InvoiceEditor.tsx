@@ -41,7 +41,7 @@ export default function InvoiceEditor({ initial }: Props) {
   const [teamId, setTeamId] = useState<number | null>(null);
   const [isTeamOwner, setIsTeamOwner] = useState(false);
   const [importSectionIdx, setImportSectionIdx] = useState<number | null>(null);
-  const [partiesOpen, setPartiesOpen] = useState(false);
+  const [partiesOpen, setPartiesOpen] = useState(true);
   const user = typeof window !== 'undefined' ? getUser() : null;
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function InvoiceEditor({ initial }: Props) {
     const ownerId = team?.owner?.id;
     setIsTeamOwner(ownerId != null && ownerId === user?.id);
 
-    if (!initial && team) {
+    if (team) {
       setInvoice((prev) => ({
         ...prev,
         companyName: prev.companyName || team.companyName || '',
@@ -91,22 +91,25 @@ export default function InvoiceEditor({ initial }: Props) {
   // Nueva factura solo la puede crear el dueño del equipo.
   const isNew = !initial;
   const canCreateInvoice = !isNew || isTeamOwner;
+  // Una factura pagada queda congelada: nadie puede editarla.
+  const isLocked = invoice.status === 'paid';
   // La cabecera (datos de factura, emisor/cliente, notas) solo la edita el dueño.
-  const canEditHeader = isTeamOwner;
+  const canEditHeader = isTeamOwner && !isLocked;
   // Una sección es editable si: la estás creando (sin id), eres el autor,
-  // o eres dueño del equipo.
+  // o eres dueño del equipo. Y nunca si la factura está pagada.
   const canEditSection = (sec: Section) => {
+    if (isLocked) return false;
     if (!sec.id) return true;
     if (isTeamOwner) return true;
     return sec.author?.id === user?.id;
   };
-  // Cualquier miembro del equipo puede añadir secciones.
-  const canAddSection = !!teamId;
+  // Cualquier miembro del equipo puede añadir secciones (salvo si está pagada).
+  const canAddSection = !!teamId && !isLocked;
   // El botón "Guardar" tiene sentido siempre que el usuario pueda tocar algo.
   const hasEditableSection = useMemo(
     () => invoice.sections.some((s) => canEditSection(s)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [invoice.sections, isTeamOwner, user?.id],
+    [invoice.sections, isTeamOwner, user?.id, isLocked],
   );
   const canSave = canCreateInvoice && (canEditHeader || hasEditableSection || canAddSection);
 
@@ -268,7 +271,21 @@ export default function InvoiceEditor({ initial }: Props) {
           )}
           {isTeamOwner && (
             <InvoicePDFButton
-              invoice={{ ...invoice, totalAmount: calcTotal() }}
+              invoice={(() => {
+                const team = teams.find((t: any) => t.id === teamId);
+                return {
+                  ...invoice,
+                  totalAmount: calcTotal(),
+                  companyName: invoice.companyName || team?.companyName || '',
+                  companyCIF: invoice.companyCIF || team?.companyCIF || '',
+                  companyAddress: invoice.companyAddress || team?.companyAddress || '',
+                  clientName: invoice.clientName || team?.defaultClientName || '',
+                  clientIBAN: invoice.clientIBAN || team?.defaultClientIBAN || '',
+                  clientSwift: invoice.clientSwift || team?.defaultClientSwift || '',
+                  clientBank: invoice.clientBank || team?.defaultClientBank || '',
+                  notes: invoice.notes || team?.defaultNotes || '',
+                };
+              })()}
               showHours={showHours}
               onExported={handleMarkExported}
             />
@@ -287,7 +304,25 @@ export default function InvoiceEditor({ initial }: Props) {
         </div>
       </div>
 
-      {!canEditHeader && initial && (
+      {isLocked && (
+        <div className="mb-5 text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold shrink-0"
+            aria-hidden
+          >
+            ✓
+          </span>
+          <div className="text-emerald-900">
+            <div className="font-semibold">Factura pagada — solo lectura</div>
+            <div className="text-emerald-700 text-xs mt-0.5">
+              Esta factura está marcada como pagada y no puede modificarse. Cambia el estado a otro
+              valor si necesitas editarla.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!isLocked && !canEditHeader && initial && (
         <div className="mb-5 text-xs text-ink-700 bg-ink-50 border border-ink-200 rounded-xl px-3 py-2">
           Solo el dueño del equipo puede modificar la cabecera. Puedes añadir secciones nuevas y editar las tuyas.
         </div>

@@ -91,7 +91,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
+      <div className="w-full px-4 md:px-10 lg:px-16 py-8 space-y-4">
         <Skeleton className="h-7 w-40" />
         <SkeletonCard>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -109,7 +109,7 @@ export default function SettingsPage() {
 
   if (!teamId) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-10 text-center">
+      <div className="w-full px-4 md:px-10 lg:px-16 py-10 text-center">
         <p className="text-ink-700 mb-4">No perteneces a ningún equipo.</p>
         <Link href="/teams" className="text-ink-900 font-medium underline">
           Ir a equipos
@@ -119,7 +119,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-6 py-8">
+    <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
         <div>
           <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">

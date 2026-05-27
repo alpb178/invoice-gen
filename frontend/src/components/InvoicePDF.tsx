@@ -142,11 +142,12 @@ const styles = StyleSheet.create({
     color: '#999',
   },
 
-  // Signature (last page, right-aligned)
+  // Signature (last page only, bottom-right via fixed + render)
   signatureBlock: {
-    marginTop: 50,
-    alignSelf: 'flex-end',
-    width: 220,
+    position: 'absolute',
+    bottom: 50,
+    right: 50,
+    width: 230,
   },
   signatureLine: {
     borderTopWidth: 0.6,
@@ -168,6 +169,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Times-Italic',
     color: '#222',
     textAlign: 'right',
+  },
+
+  // Total block kept together
+  totalBlock: {
+    marginTop: 12,
   },
 });
 
@@ -293,38 +299,48 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
           );
         })}
 
-        {/* Total */}
-        <View style={styles.totalTitleRow}>
-          <Text style={styles.totalIcon}>🧾</Text>
-          <Text style={styles.totalTitle}>TOTAL GENERAL</Text>
-        </View>
-        {invoice.sections.map((sec, i) => (
-          <View key={i} style={styles.totalBullet}>
-            <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>
-              Subtotal Sección {i + 1}: <Text style={styles.bold}>{fmt(calcSubtotal(sec))} {cur}</Text>
+        {/* Total — kept together on the same page */}
+        <View style={styles.totalBlock} wrap={false}>
+          <View style={styles.totalTitleRow}>
+            <Text style={styles.totalIcon}>🧾</Text>
+            <Text style={styles.totalTitle}>TOTAL GENERAL</Text>
+          </View>
+          {invoice.sections.map((sec, i) => (
+            <View key={i} style={styles.totalBullet}>
+              <Text style={styles.bulletDot}>•</Text>
+              <Text style={styles.bulletText}>
+                Subtotal Sección {i + 1}: <Text style={styles.bold}>{fmt(calcSubtotal(sec))} {cur}</Text>
+              </Text>
+            </View>
+          ))}
+          <View style={styles.grandTotalRow}>
+            <Text style={styles.grandTotalIcon}>💰</Text>
+            <Text style={styles.grandTotal}>
+              TOTAL GENERAL A PAGAR: {fmt(total)} {cur}
             </Text>
           </View>
-        ))}
-        <View style={styles.grandTotalRow}>
-          <Text style={styles.grandTotalIcon}>💰</Text>
-          <Text style={styles.grandTotal}>
-            TOTAL GENERAL A PAGAR: {fmt(total)} {cur}
-          </Text>
         </View>
 
         {invoice.notes ? (
-          <View style={{ marginTop: 18 }}>
+          <View style={{ marginTop: 18 }} wrap={false}>
             <Text style={{ fontSize: 10, color: '#555' }}>Notas: {invoice.notes}</Text>
           </View>
         ) : null}
 
-        {/* Signature on last page, right-aligned */}
-        <View style={styles.signatureBlock} wrap={false}>
-          <View style={styles.signatureLine} />
-          <Text style={styles.signatureLabel}>Emitido por</Text>
-          <Text style={styles.signatureUrl}>https://invoices.corpsc.com/</Text>
-        </View>
+        {/* Signature: fixed bottom-right, rendered only on the last page */}
+        <View
+          style={styles.signatureBlock}
+          fixed
+          render={({ pageNumber, totalPages }) =>
+            pageNumber === totalPages ? (
+              <>
+                <View style={styles.signatureLine} />
+                <Text style={styles.signatureLabel}>Emitido por</Text>
+                <Text style={styles.signatureUrl}>https://invoices.corpsc.com/</Text>
+              </>
+            ) : null
+          }
+        />
 
         <Text style={styles.footer} fixed>
           {invoice.date}

@@ -218,7 +218,7 @@ export default function TeamsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-6 py-8">
+    <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
