@@ -87,7 +87,7 @@ export default function AcceptInvitationPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-paper">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-paper border border-ink-200 rounded-2xl p-8 shadow-card">
         <h1 className="text-xl font-semibold text-ink-900 mb-2">Invitación a un equipo</h1>
 

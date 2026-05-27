@@ -15,6 +15,7 @@ export default function RegisterPage() {
 
   const [email, setEmail] = useState(presetEmail);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [companyCIF, setCompanyCIF] = useState('');
@@ -53,7 +54,7 @@ export default function RegisterPage() {
     'w-full px-3 py-2.5 bg-paper border border-ink-200 rounded-lg text-sm text-ink-900 focus:outline-none focus:border-ink-900';
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-paper py-10">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <form
         onSubmit={onSubmit}
         className="w-full max-w-lg bg-paper border border-ink-200 rounded-2xl p-8 space-y-5 shadow-card"
@@ -83,14 +84,24 @@ export default function RegisterPage() {
 
         <div>
           <label className="block text-xs text-ink-600 mb-1">Contraseña</label>
-          <input
-            required
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputClass}
-            minLength={6}
-          />
+          <div className="relative">
+            <input
+              required
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={inputClass + ' pr-10'}
+              minLength={6}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-ink-500 hover:text-ink-900"
+            >
+              <EyeIcon open={showPassword} />
+            </button>
+          </div>
         </div>
 
         {!invitationFlow && (
@@ -153,5 +164,44 @@ export default function RegisterPage() {
         </p>
       </form>
     </div>
+  );
+}
+
+function EyeIcon({ open }: { open: boolean }) {
+  if (open) {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-5 h-5"
+        aria-hidden="true"
+      >
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="w-5 h-5"
+      aria-hidden="true"
+    >
+      <path d="M3 3l18 18" />
+      <path d="M10.6 6.2A10.9 10.9 0 0 1 12 6c6.5 0 10 6 10 6a17.7 17.7 0 0 1-3.2 4" />
+      <path d="M6.3 7.6A17.7 17.7 0 0 0 2 12s3.5 6 10 6c1.6 0 3-.3 4.2-.8" />
+      <path d="M9.9 9.9A3 3 0 0 0 14.1 14.1" />
+    </svg>
   );
 }

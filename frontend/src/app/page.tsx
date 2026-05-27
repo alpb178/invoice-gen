@@ -112,7 +112,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <Image
-              src="/icon.png"
+              src="/logo.png"
               alt="Invoice Generator"
               width={28}
               height={28}
@@ -235,19 +235,6 @@ export default function LandingPage() {
           className="absolute left-0 right-0 bottom-0 h-px"
           style={{ background: 'rgba(28,28,31,0.18)' }}
         />
-      </section>
-
-      {/* ——— MARQUEE ——— */}
-      <section
-        className="border-b overflow-hidden"
-        style={{ borderColor: 'rgba(28,28,31,0.12)', background: '#ece6d6' }}
-      >
-        <div className="py-5 whitespace-nowrap font-mono-tight text-[13px] uppercase tracking-[0.32em] text-ink-700">
-          <div className="marquee-track">
-            <MarqueeContent />
-            <MarqueeContent />
-          </div>
-        </div>
       </section>
 
       {/* ——— FEATURES ——— */}
@@ -482,56 +469,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ——— FOOTER ——— */}
-      <footer
-        className="border-t"
-        style={{ borderColor: 'rgba(28,28,31,0.15)', background: 'var(--cream)' }}
-      >
-        <div className="max-w-7xl mx-auto px-5 md:px-8 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="col-span-2">
-              <div className="flex items-center gap-2.5 mb-4">
-                <Image src="/icon.png" alt="" width={24} height={24} className="rounded-sm" />
-                <span className="font-serif-display text-lg font-semibold">
-                  Invoice<span style={{ color: 'var(--stamp)' }}>.</span>Generator
-                </span>
-              </div>
-              <p className="text-sm text-ink-600 leading-relaxed max-w-sm">
-                Facturación profesional para equipos pequeños. Hecho con cariño por gente que también odia hacer facturas.
-              </p>
-            </div>
-            <div>
-              <div className="font-mono-tight text-[10px] uppercase tracking-[0.22em] text-ink-500 mb-4">
-                Producto
-              </div>
-              <ul className="space-y-2 text-sm text-ink-700">
-                <li><a href="#caracteristicas" className="hover:text-ink-950">Características</a></li>
-                <li><a href="#flujo" className="hover:text-ink-950">Cómo funciona</a></li>
-                <li><a href="#faq" className="hover:text-ink-950">Preguntas</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-mono-tight text-[10px] uppercase tracking-[0.22em] text-ink-500 mb-4">
-                Cuenta
-              </div>
-              <ul className="space-y-2 text-sm text-ink-700">
-                <li><Link href="/register" className="hover:text-ink-950">Crear cuenta</Link></li>
-                <li><Link href="/login" className="hover:text-ink-950">Iniciar sesión</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div
-            className="mt-10 pt-6 border-t flex flex-wrap items-center justify-between gap-3 text-xs text-ink-500 font-mono-tight"
-            style={{ borderColor: 'rgba(28,28,31,0.15)' }}
-          >
-            <span>
-              © {new Date().getFullYear()} Invoice Generator · Hecho en papel digital
-            </span>
-            <span>v.2026.04 · es-ES</span>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }
@@ -549,29 +486,6 @@ function Check() {
         strokeLinejoin="round"
       />
     </svg>
-  );
-}
-
-function MarqueeContent() {
-  const items = [
-    'Multi-equipo',
-    'PDF incluido',
-    'Multi-moneda',
-    'Reportes en vivo',
-    'Sin tarjeta',
-    'Invitaciones por email',
-    'Borradores · Enviadas · Pagadas',
-    'Tema claro · Tipografía editorial',
-  ];
-  return (
-    <>
-      {items.map((t, i) => (
-        <span key={i} className="px-10 inline-flex items-center gap-10">
-          <span>{t}</span>
-          <span aria-hidden style={{ color: 'var(--stamp)' }}>✦</span>
-        </span>
-      ))}
-    </>
   );
 }
 

@@ -5,6 +5,10 @@ module.exports = {
     extend: {
       colors: {
         paper: '#ffffff',
+        cream: {
+          DEFAULT: '#f5f1e8',
+          dark: '#ece6d6',
+        },
         ink: {
           50: '#fafafa',
           100: '#f4f4f5',

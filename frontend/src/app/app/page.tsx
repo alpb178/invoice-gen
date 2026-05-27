@@ -354,7 +354,7 @@ export default function DashboardPage() {
   const memberCount = (activeTeam?.members?.length || 0) + 1;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text text-transparent">
@@ -377,7 +377,7 @@ export default function DashboardPage() {
             <select
               value={activeTeamId || ''}
               onChange={(e) => changeTeam(Number(e.target.value))}
-              className="px-3 py-2 text-sm bg-paper border border-ink-200 rounded-xl text-ink-900 focus:outline-none focus:border-ink-900"
+              className="px-3.5 py-2 text-sm font-medium bg-paper border border-ink-200 rounded-xl text-ink-900 shadow-card hover:border-ink-300 focus:outline-none focus:border-ink-900 transition-colors cursor-pointer"
             >
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -386,42 +386,27 @@ export default function DashboardPage() {
               ))}
             </select>
           )}
-          <Link
-            href="/invoices"
-            className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
+          <Link href="/invoices" className="nav-btn">
             Facturas
           </Link>
-          <Link
-            href="/reports"
-            className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
+          <Link href="/reports" className="nav-btn">
             Reportes
           </Link>
-          <Link
-            href="/teams"
-            className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
+          <Link href="/teams" className="nav-btn">
             Equipos
           </Link>
-          <Link
-            href="/settings"
-            className="px-3 py-2 text-sm bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
+          <Link href="/settings" className="nav-btn">
             Ajustes
           </Link>
           {isOwnerOfActive && (
             <Link
               href="/invoices/new"
-              className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 text-paper font-semibold rounded-xl text-sm shadow-sm shadow-violet-500/30 transition-all"
+              className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 active:from-violet-800 active:to-fuchsia-700 text-paper font-semibold rounded-xl text-sm shadow-md shadow-violet-500/30 hover:shadow-lg hover:shadow-violet-500/40 transition-all"
             >
               + Nueva Factura
             </Link>
           )}
-          <button
-            onClick={logout}
-            className="px-3 py-2 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
+          <button onClick={logout} className="nav-btn nav-btn-danger">
             Salir
           </button>
         </div>
@@ -562,9 +547,9 @@ export default function DashboardPage() {
                             href={`/invoices/${inv.id}`}
                             className="px-2.5 py-1 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors"
                           >
-                            Editar
+                            {status === 'paid' ? 'Ver' : 'Editar'}
                           </Link>
-                          {isOwnerOfActive && (
+                          {isOwnerOfActive && status !== 'paid' && (
                             <button
                               onClick={() => handleDelete(inv.id)}
                               className="px-2 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-colors"
