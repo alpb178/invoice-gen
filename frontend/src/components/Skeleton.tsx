@@ -88,7 +88,7 @@ export function SkeletonKpiGrid({ count = 4 }: { count?: number }) {
 
 export function SkeletonInvoiceEditor() {
   return (
-    <div aria-busy="true" className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <div aria-busy="true" className="w-full px-4 md:px-10 lg:px-16 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <Skeleton className="h-7 w-48" />
         <Skeleton className="h-9 w-28 rounded-xl" />

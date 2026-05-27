@@ -132,7 +132,7 @@ export default function ReportsPage() {
   const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
           <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-2 inline-block">← Volver</Link>

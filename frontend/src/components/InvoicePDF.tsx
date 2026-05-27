@@ -141,6 +141,34 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#999',
   },
+
+  // Signature (last page, right-aligned)
+  signatureBlock: {
+    marginTop: 50,
+    alignSelf: 'flex-end',
+    width: 220,
+  },
+  signatureLine: {
+    borderTopWidth: 0.6,
+    borderTopColor: '#444',
+    borderStyle: 'solid',
+    marginBottom: 6,
+  },
+  signatureLabel: {
+    fontSize: 8,
+    fontFamily: 'Times-Italic',
+    color: '#666',
+    textAlign: 'right',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  signatureUrl: {
+    fontSize: 11,
+    fontFamily: 'Times-Italic',
+    color: '#222',
+    textAlign: 'right',
+  },
 });
 
 const fmt = (n: number) => n.toFixed(2);
@@ -290,6 +318,13 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
             <Text style={{ fontSize: 10, color: '#555' }}>Notas: {invoice.notes}</Text>
           </View>
         ) : null}
+
+        {/* Signature on last page, right-aligned */}
+        <View style={styles.signatureBlock} wrap={false}>
+          <View style={styles.signatureLine} />
+          <Text style={styles.signatureLabel}>Emitido por</Text>
+          <Text style={styles.signatureUrl}>https://invoices.corpsc.com/</Text>
+        </View>
 
         <Text style={styles.footer} fixed>
           {invoice.date}

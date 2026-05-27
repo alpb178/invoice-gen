@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import { DM_Sans, Fraunces, JetBrains_Mono } from 'next/font/google';
 import AuthGuard from '@/components/AuthGuard';
+import SiteFooter from '@/components/SiteFooter';
 import { SITE_URL } from '@/lib/seo';
 import './globals.css';
 
@@ -98,7 +99,7 @@ const jsonLd = {
       '@id': `${SITE_URL}/#organization`,
       name: 'Invoice Generator',
       url: SITE_URL,
-      logo: `${SITE_URL}/icon.png`,
+      logo: `${SITE_URL}/logo.png`,
     },
     {
       '@type': 'WebSite',
@@ -149,7 +150,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="min-h-screen bg-paper text-ink-900 antialiased">
+      <body className="min-h-screen bg-cream text-ink-900 antialiased flex flex-col">
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe
@@ -161,7 +162,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </noscript>
         {/* End Google Tag Manager (noscript) */}
 
-        <AuthGuard>{children}</AuthGuard>
+        <AuthGuard>
+          <div className="flex-1 flex flex-col">{children}</div>
+          <SiteFooter />
+        </AuthGuard>
       </body>
     </html>
   );

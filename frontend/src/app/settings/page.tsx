@@ -119,7 +119,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 md:px-6 py-8">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
         <div>
           <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
