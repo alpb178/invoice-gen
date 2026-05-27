@@ -91,7 +91,7 @@ export default function InvoicesIndexPage() {
   }, [invoices, query, status, isOwner]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
           <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
@@ -172,9 +172,9 @@ export default function InvoicesIndexPage() {
                     href={`/invoices/${inv.id}`}
                     className="px-3 py-1.5 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors"
                   >
-                    Editar
+                    {st === 'paid' ? 'Ver' : 'Editar'}
                   </Link>
-                  {isOwner && (
+                  {isOwner && st !== 'paid' && (
                     <button
                       onClick={() => handleDelete(inv.id)}
                       className="px-3 py-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 transition-colors"

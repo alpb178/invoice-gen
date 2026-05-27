@@ -41,7 +41,7 @@ export default function InvoiceEditor({ initial }: Props) {
   const [teamId, setTeamId] = useState<number | null>(null);
   const [isTeamOwner, setIsTeamOwner] = useState(false);
   const [importSectionIdx, setImportSectionIdx] = useState<number | null>(null);
-  const [partiesOpen, setPartiesOpen] = useState(false);
+  const [partiesOpen, setPartiesOpen] = useState(true);
   const user = typeof window !== 'undefined' ? getUser() : null;
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function InvoiceEditor({ initial }: Props) {
     const ownerId = team?.owner?.id;
     setIsTeamOwner(ownerId != null && ownerId === user?.id);
 
-    if (!initial && team) {
+    if (team) {
       setInvoice((prev) => ({
         ...prev,
         companyName: prev.companyName || team.companyName || '',
@@ -91,22 +91,25 @@ export default function InvoiceEditor({ initial }: Props) {
   // Nueva factura solo la puede crear el dueño del equipo.
   const isNew = !initial;
   const canCreateInvoice = !isNew || isTeamOwner;
+  // Una factura pagada queda congelada: nadie puede editarla.
+  const isLocked = invoice.status === 'paid';
   // La cabecera (datos de factura, emisor/cliente, notas) solo la edita el dueño.
-  const canEditHeader = isTeamOwner;
+  const canEditHeader = isTeamOwner && !isLocked;
   // Una sección es editable si: la estás creando (sin id), eres el autor,
-  // o eres dueño del equipo.
+  // o eres dueño del equipo. Y nunca si la factura está pagada.
   const canEditSection = (sec: Section) => {
+    if (isLocked) return false;
     if (!sec.id) return true;
     if (isTeamOwner) return true;
     return sec.author?.id === user?.id;
   };
-  // Cualquier miembro del equipo puede añadir secciones.
-  const canAddSection = !!teamId;
+  // Cualquier miembro del equipo puede añadir secciones (salvo si está pagada).
+  const canAddSection = !!teamId && !isLocked;
   // El botón "Guardar" tiene sentido siempre que el usuario pueda tocar algo.
   const hasEditableSection = useMemo(
     () => invoice.sections.some((s) => canEditSection(s)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [invoice.sections, isTeamOwner, user?.id],
+    [invoice.sections, isTeamOwner, user?.id, isLocked],
   );
   const canSave = canCreateInvoice && (canEditHeader || hasEditableSection || canAddSection);
 
@@ -230,7 +233,7 @@ export default function InvoiceEditor({ initial }: Props) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
         <div>
           <button onClick={() => router.push('/app')} className="text-ink-500 hover:text-ink-900 text-sm mb-2 inline-block">
@@ -268,7 +271,21 @@ export default function InvoiceEditor({ initial }: Props) {
           )}
           {isTeamOwner && (
             <InvoicePDFButton
-              invoice={{ ...invoice, totalAmount: calcTotal() }}
+              invoice={(() => {
+                const team = teams.find((t: any) => t.id === teamId);
+                return {
+                  ...invoice,
+                  totalAmount: calcTotal(),
+                  companyName: invoice.companyName || team?.companyName || '',
+                  companyCIF: invoice.companyCIF || team?.companyCIF || '',
+                  companyAddress: invoice.companyAddress || team?.companyAddress || '',
+                  clientName: invoice.clientName || team?.defaultClientName || '',
+                  clientIBAN: invoice.clientIBAN || team?.defaultClientIBAN || '',
+                  clientSwift: invoice.clientSwift || team?.defaultClientSwift || '',
+                  clientBank: invoice.clientBank || team?.defaultClientBank || '',
+                  notes: invoice.notes || team?.defaultNotes || '',
+                };
+              })()}
               showHours={showHours}
               onExported={handleMarkExported}
             />
@@ -287,7 +304,25 @@ export default function InvoiceEditor({ initial }: Props) {
         </div>
       </div>
 
-      {!canEditHeader && initial && (
+      {isLocked && (
+        <div className="mb-5 text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold shrink-0"
+            aria-hidden
+          >
+            ✓
+          </span>
+          <div className="text-emerald-900">
+            <div className="font-semibold">Factura pagada — solo lectura</div>
+            <div className="text-emerald-700 text-xs mt-0.5">
+              Esta factura está marcada como pagada y no puede modificarse. Cambia el estado a otro
+              valor si necesitas editarla.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!isLocked && !canEditHeader && initial && (
         <div className="mb-5 text-xs text-ink-700 bg-ink-50 border border-ink-200 rounded-xl px-3 py-2">
           Solo el dueño del equipo puede modificar la cabecera. Puedes añadir secciones nuevas y editar las tuyas.
         </div>
@@ -394,49 +429,49 @@ export default function InvoiceEditor({ initial }: Props) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-ink-500 text-xs uppercase tracking-wider border-b border-ink-200">
-                  <th className="text-left py-2 w-12">Nº</th>
-                  <th className="text-left py-2 w-28">Código</th>
-                  <th className="text-left py-2">Descripción</th>
-                  {showHours && <th className="text-right py-2 w-20">Horas</th>}
-                  <th className="text-right py-2 w-28">Monto ({invoice.currency})</th>
+                  <th className="text-left py-3 pr-3 w-14">Nº</th>
+                  <th className="text-left py-3 pr-3 w-32">Código</th>
+                  <th className="text-left py-3 pr-3">Descripción</th>
+                  {showHours && <th className="text-right py-3 pr-3 w-24">Horas</th>}
+                  <th className="text-right py-3 pr-3 w-36">Monto ({invoice.currency})</th>
                   <th className="w-10"></th>
                 </tr>
               </thead>
               <tbody>
                 {sec.tasks.map((task, tIdx) => (
                   <tr key={tIdx} className="border-b border-ink-200/70 group">
-                    <td className="py-2 pr-2">
+                    <td className="py-2.5 pr-3">
                       <input
                         disabled={!secEditable}
-                        className="w-10 px-2 py-1.5 bg-paper border border-ink-200 rounded-lg text-ink-700 text-xs text-center focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
+                        className="w-12 px-2 py-2 bg-paper border border-ink-200 rounded-lg text-ink-700 text-sm text-center focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                         type="number"
                         value={task.number || tIdx + 1}
                         onChange={(e) => updateTask(sIdx, tIdx, 'number', parseInt(e.target.value) || 0)}
                       />
                     </td>
-                    <td className="py-2 pr-2">
+                    <td className="py-2.5 pr-3">
                       <input
                         disabled={!secEditable}
-                        className="w-full px-2 py-1.5 bg-paper border border-ink-200 rounded-lg text-ink-800 text-xs font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
+                        className="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-800 text-sm font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                         placeholder="TIK-230"
                         value={task.code || ''}
                         onChange={(e) => updateTask(sIdx, tIdx, 'code', e.target.value)}
                       />
                     </td>
-                    <td className="py-2 pr-2">
+                    <td className="py-2.5 pr-3">
                       <input
                         disabled={!secEditable}
-                        className="w-full px-2 py-1.5 bg-paper border border-ink-200 rounded-lg text-ink-800 text-xs focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
+                        className="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-800 text-sm focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                         placeholder="Descripción de la tarea..."
                         value={task.description}
                         onChange={(e) => updateTask(sIdx, tIdx, 'description', e.target.value)}
                       />
                     </td>
                     {showHours && (
-                      <td className="py-2 pr-2">
+                      <td className="py-2.5 pr-3">
                         <input
                           disabled={!secEditable}
-                          className="w-full px-2 py-1.5 bg-paper border border-ink-200 rounded-lg text-ink-800 text-xs text-right font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
+                          className="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-800 text-sm text-right font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                           type="number"
                           step="0.5"
                           placeholder="0"
@@ -445,10 +480,10 @@ export default function InvoiceEditor({ initial }: Props) {
                         />
                       </td>
                     )}
-                    <td className="py-2 pr-2">
+                    <td className="py-2.5 pr-3">
                       <input
                         disabled={!secEditable}
-                        className="w-full px-2 py-1.5 bg-paper border border-ink-200 rounded-lg text-ink-900 text-xs text-right font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
+                        className="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-900 text-sm text-right font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                         type="number"
                         step="0.01"
                         placeholder="0.00"
@@ -456,7 +491,7 @@ export default function InvoiceEditor({ initial }: Props) {
                         onChange={(e) => updateTask(sIdx, tIdx, 'amount', parseFloat(e.target.value) || 0)}
                       />
                     </td>
-                    <td className="py-2 text-center">
+                    <td className="py-2.5 text-center">
                       {secEditable && (
                         <button
                           onClick={() => removeTask(sIdx, tIdx)}
@@ -501,7 +536,7 @@ export default function InvoiceEditor({ initial }: Props) {
       {canAddSection && (
         <button
           onClick={addSection}
-          className="w-full py-3 border-2 border-dashed border-ink-200 rounded-2xl text-ink-500 hover:text-ink-900 hover:border-ink-400 text-sm transition-colors mb-6"
+          className="w-full py-3 bg-paper border-2 border-dashed border-ink-300 rounded-2xl text-ink-700 hover:text-ink-900 hover:border-ink-500 hover:bg-ink-50 text-sm font-medium transition-colors mb-6 shadow-card"
         >
           + Agregar Sección
         </button>

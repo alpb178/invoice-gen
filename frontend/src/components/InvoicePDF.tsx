@@ -141,11 +141,79 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#999',
   },
+
+  // Signature (last page only, bottom-right via fixed + render)
+  signatureBlock: {
+    position: 'absolute',
+    bottom: 50,
+    right: 50,
+    width: 230,
+  },
+  signatureLine: {
+    borderTopWidth: 0.6,
+    borderTopColor: '#444',
+    borderStyle: 'solid',
+    marginBottom: 6,
+  },
+  signatureLabel: {
+    fontSize: 8,
+    fontFamily: 'Times-Italic',
+    color: '#666',
+    textAlign: 'right',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  signatureUrl: {
+    fontSize: 11,
+    fontFamily: 'Times-Italic',
+    color: '#222',
+    textAlign: 'right',
+  },
+
+  // Total block kept together
+  totalBlock: {
+    marginTop: 12,
+  },
 });
 
 const fmt = (n: number) => n.toFixed(2);
 
 const calcSubtotal = (sec: Section) => sec.tasks.reduce((a, t) => a + (t.amount || 0), 0);
+
+function TaskRow({
+  task,
+  tIdx,
+  isLast,
+  showHours,
+}: {
+  task: any;
+  tIdx: number;
+  isLast: boolean;
+  showHours: boolean;
+}) {
+  return (
+    <View style={isLast ? styles.tableRowLast : styles.tableRow} wrap={false}>
+      <View style={styles.cellNum}>
+        <Text>{task.number || tIdx + 1}</Text>
+      </View>
+      <View style={styles.cellTask}>
+        <Text>
+          {task.code ? `${task.code} ` : ''}
+          {task.description}
+        </Text>
+      </View>
+      {showHours && (
+        <View style={styles.cellHours}>
+          <Text>{task.hours ? task.hours.toFixed(1) : '-'}</Text>
+        </View>
+      )}
+      <View style={styles.cellAmount}>
+        <Text>{fmt(task.amount || 0)}</Text>
+      </View>
+    </View>
+  );
+}
 
 interface Props {
   invoice: Invoice;
@@ -207,89 +275,138 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
         {/* Sections */}
         {invoice.sections.map((sec, sIdx) => {
           const subtotal = calcSubtotal(sec);
+          const lastIdx = sec.tasks.length - 1;
           return (
-            <View key={sIdx}>
-              <Text style={styles.sectionTitle}>
-                {sec.title}
-                {sec.subtitle ? ` ${sec.subtitle}` : ''}
-              </Text>
-
-              <View style={styles.table}>
-                <View style={styles.tableHeader}>
-                  <View style={styles.cellNum}>
-                    <Text style={styles.headerCellText}>Nº</Text>
-                  </View>
-                  <View style={styles.cellTask}>
-                    <Text style={styles.headerCellText}>Tarea</Text>
-                  </View>
-                  {showHours && (
-                    <View style={styles.cellHours}>
-                      <Text style={styles.headerCellText}>Horas</Text>
+            <View key={sIdx} minPresenceAhead={140}>
+              {/* Section start kept together: title + header + first row */}
+              <View wrap={false}>
+                <Text style={styles.sectionTitle}>
+                  {sec.title}
+                  {sec.subtitle ? ` ${sec.subtitle}` : ''}
+                </Text>
+                <View style={[styles.table, { borderBottomWidth: 0 }]}>
+                  <View style={styles.tableHeader}>
+                    <View style={styles.cellNum}>
+                      <Text style={styles.headerCellText}>Nº</Text>
                     </View>
+                    <View style={styles.cellTask}>
+                      <Text style={styles.headerCellText}>Tarea</Text>
+                    </View>
+                    {showHours && (
+                      <View style={styles.cellHours}>
+                        <Text style={styles.headerCellText}>Horas</Text>
+                      </View>
+                    )}
+                    <View style={styles.cellAmount}>
+                      <Text style={styles.headerCellText}>Estimación ({cur})</Text>
+                    </View>
+                  </View>
+                  {sec.tasks.length > 0 && (
+                    <TaskRow
+                      task={sec.tasks[0]}
+                      tIdx={0}
+                      isLast={lastIdx === 0}
+                      showHours={showHours}
+                    />
                   )}
-                  <View style={styles.cellAmount}>
-                    <Text style={styles.headerCellText}>Estimación ({cur})</Text>
-                  </View>
                 </View>
-
-                {sec.tasks.map((task, tIdx) => {
-                  const isLast = tIdx === sec.tasks.length - 1;
-                  return (
-                    <View key={tIdx} style={isLast ? styles.tableRowLast : styles.tableRow} wrap={false}>
-                      <View style={styles.cellNum}>
-                        <Text>{task.number || tIdx + 1}</Text>
-                      </View>
-                      <View style={styles.cellTask}>
-                        <Text>
-                          {task.code ? `${task.code} ` : ''}
-                          {task.description}
-                        </Text>
-                      </View>
-                      {showHours && (
-                        <View style={styles.cellHours}>
-                          <Text>{task.hours ? task.hours.toFixed(1) : '-'}</Text>
-                        </View>
-                      )}
-                      <View style={styles.cellAmount}>
-                        <Text>{fmt(task.amount || 0)}</Text>
-                      </View>
-                    </View>
-                  );
-                })}
               </View>
 
-              <Text style={styles.subtotalLine}>
-                Subtotal Sección {sIdx + 1}: {fmt(subtotal)} {cur}
-              </Text>
+              {/* Middle rows flow naturally */}
+              {sec.tasks.length > 2 && (
+                <View
+                  style={{
+                    borderLeftWidth: 1,
+                    borderRightWidth: 1,
+                    borderColor: '#9a9a9a',
+                  }}
+                >
+                  {sec.tasks.slice(1, -1).map((task, i) => (
+                    <TaskRow
+                      key={i + 1}
+                      task={task}
+                      tIdx={i + 1}
+                      isLast={false}
+                      showHours={showHours}
+                    />
+                  ))}
+                </View>
+              )}
+
+              {/* Last row + subtotal kept together to avoid orphan tails */}
+              {sec.tasks.length > 1 && (
+                <View wrap={false}>
+                  <View
+                    style={{
+                      borderLeftWidth: 1,
+                      borderRightWidth: 1,
+                      borderBottomWidth: 1,
+                      borderColor: '#9a9a9a',
+                    }}
+                  >
+                    <TaskRow
+                      task={sec.tasks[lastIdx]}
+                      tIdx={lastIdx}
+                      isLast
+                      showHours={showHours}
+                    />
+                  </View>
+                  <Text style={styles.subtotalLine}>
+                    Subtotal Sección {sIdx + 1}: {fmt(subtotal)} {cur}
+                  </Text>
+                </View>
+              )}
+              {sec.tasks.length <= 1 && (
+                <Text style={styles.subtotalLine} wrap={false}>
+                  Subtotal Sección {sIdx + 1}: {fmt(subtotal)} {cur}
+                </Text>
+              )}
             </View>
           );
         })}
 
-        {/* Total */}
-        <View style={styles.totalTitleRow}>
-          <Text style={styles.totalIcon}>🧾</Text>
-          <Text style={styles.totalTitle}>TOTAL GENERAL</Text>
-        </View>
-        {invoice.sections.map((sec, i) => (
-          <View key={i} style={styles.totalBullet}>
-            <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>
-              Subtotal Sección {i + 1}: <Text style={styles.bold}>{fmt(calcSubtotal(sec))} {cur}</Text>
+        {/* Total — kept together on the same page */}
+        <View style={styles.totalBlock} wrap={false}>
+          <View style={styles.totalTitleRow}>
+            <Text style={styles.totalIcon}>🧾</Text>
+            <Text style={styles.totalTitle}>TOTAL GENERAL</Text>
+          </View>
+          {invoice.sections.map((sec, i) => (
+            <View key={i} style={styles.totalBullet}>
+              <Text style={styles.bulletDot}>•</Text>
+              <Text style={styles.bulletText}>
+                Subtotal Sección {i + 1}: <Text style={styles.bold}>{fmt(calcSubtotal(sec))} {cur}</Text>
+              </Text>
+            </View>
+          ))}
+          <View style={styles.grandTotalRow}>
+            <Text style={styles.grandTotalIcon}>💰</Text>
+            <Text style={styles.grandTotal}>
+              TOTAL GENERAL A PAGAR: {fmt(total)} {cur}
             </Text>
           </View>
-        ))}
-        <View style={styles.grandTotalRow}>
-          <Text style={styles.grandTotalIcon}>💰</Text>
-          <Text style={styles.grandTotal}>
-            TOTAL GENERAL A PAGAR: {fmt(total)} {cur}
-          </Text>
         </View>
 
         {invoice.notes ? (
-          <View style={{ marginTop: 18 }}>
+          <View style={{ marginTop: 18 }} wrap={false}>
             <Text style={{ fontSize: 10, color: '#555' }}>Notas: {invoice.notes}</Text>
           </View>
         ) : null}
+
+        {/* Signature: fixed bottom-right, rendered only on the last page */}
+        <View
+          style={styles.signatureBlock}
+          fixed
+          render={({ pageNumber, totalPages }) =>
+            pageNumber === totalPages ? (
+              <>
+                <View style={styles.signatureLine} />
+                <Text style={styles.signatureLabel}>Emitido por</Text>
+                <Text style={styles.signatureUrl}>https://invoices.corpsc.com/</Text>
+              </>
+            ) : null
+          }
+        />
 
         <Text style={styles.footer} fixed>
           {invoice.date}

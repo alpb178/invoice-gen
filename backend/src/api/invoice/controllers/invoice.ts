@@ -145,6 +145,9 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
     if (!canDeleteInvoice(invoice, user.id)) {
       return ctx.forbidden('Solo el dueño del equipo puede borrar facturas');
     }
+    if (invoice.status === 'paid') {
+      return ctx.forbidden('No se puede borrar una factura pagada. Cambia el estado primero.');
+    }
 
     await strapi.db.query(INVOICE).delete({ where: { id: invoice.id } });
     ctx.body = { data: { id: invoice.id } };
@@ -199,6 +202,28 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
     }
 
     const isOwner = isTeamOwner(team, user.id);
+
+    // Una factura pagada queda congelada. Solo se admite cambiar el estado
+    // (para des-marcarla como pagada) si lo hace el dueño del equipo.
+    if (existing && existing.status === 'paid') {
+      const onlyStatusChange =
+        isOwner &&
+        body.status &&
+        body.status !== 'paid' &&
+        Array.isArray(body.sections) &&
+        body.sections.length === 0;
+      if (!onlyStatusChange) {
+        return ctx.forbidden(
+          'La factura está pagada y no puede modificarse. Cambia el estado primero.',
+        );
+      }
+      await strapi.db.query(INVOICE).update({
+        where: { id: existing.id },
+        data: { status: body.status },
+      });
+      ctx.body = { data: { id: existing.id } };
+      return;
+    }
 
     // Campos de cabecera que acepta la factura. Cualquier otro se ignora.
     const headerFields = [

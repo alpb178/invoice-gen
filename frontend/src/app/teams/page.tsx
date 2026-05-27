@@ -218,7 +218,7 @@ export default function TeamsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
@@ -228,16 +228,10 @@ export default function TeamsPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-ink-500 hidden sm:inline">{user?.email}</span>
-          <Link
-            href="/settings"
-            className="px-3 py-2 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
+          <Link href="/settings" className="nav-btn">
             Configuración
           </Link>
-          <button
-            onClick={logout}
-            className="px-3 py-2 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-xl text-ink-900 transition-colors"
-          >
+          <button onClick={logout} className="nav-btn nav-btn-danger">
             Salir
           </button>
         </div>
