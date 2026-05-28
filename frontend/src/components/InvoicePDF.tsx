@@ -397,15 +397,19 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
         <View
           style={styles.signatureBlock}
           fixed
-          render={({ pageNumber, totalPages }) =>
-            pageNumber === totalPages ? (
+          render={(props) => {
+            const { pageNumber, totalPages } = props as unknown as {
+              pageNumber: number;
+              totalPages: number;
+            };
+            return pageNumber === totalPages ? (
               <>
                 <View style={styles.signatureLine} />
                 <Text style={styles.signatureLabel}>Emitido por</Text>
                 <Text style={styles.signatureUrl}>https://invoices.corpsc.com/</Text>
               </>
-            ) : null
-          }
+            ) : null;
+          }}
         />
 
         <Text style={styles.footer} fixed>
