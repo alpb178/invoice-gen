@@ -181,6 +181,26 @@ export default function InvoiceEditor({ initial }: Props) {
   const calcSectionTotal = (sec: Section) => sec.tasks.reduce((a, t) => a + (t.amount || 0), 0);
   const calcTotal = () => invoice.sections.reduce((a, s) => a + calcSectionTotal(s), 0);
 
+  // Objeto que se pasa al botón de PDF. Lo memoizamos para que su referencia solo
+  // cambie cuando cambian los datos reales (no en cada render), evitando que
+  // PDFDownloadLink regenere el PDF de forma continua y bloquee la página.
+  const pdfInvoice = useMemo(() => {
+    const team = teams.find((t: any) => t.id === teamId);
+    return {
+      ...invoice,
+      totalAmount: calcTotal(),
+      companyName: invoice.companyName || team?.companyName || '',
+      companyCIF: invoice.companyCIF || team?.companyCIF || '',
+      companyAddress: invoice.companyAddress || team?.companyAddress || '',
+      clientName: invoice.clientName || team?.defaultClientName || '',
+      clientIBAN: invoice.clientIBAN || team?.defaultClientIBAN || '',
+      clientSwift: invoice.clientSwift || team?.defaultClientSwift || '',
+      clientBank: invoice.clientBank || team?.defaultClientBank || '',
+      notes: invoice.notes || team?.defaultNotes || '',
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoice, teams, teamId]);
+
   const fmtMoney = (n: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD' }).format(n || 0);
 
@@ -271,21 +291,7 @@ export default function InvoiceEditor({ initial }: Props) {
           )}
           {isTeamOwner && (
             <InvoicePDFButton
-              invoice={(() => {
-                const team = teams.find((t: any) => t.id === teamId);
-                return {
-                  ...invoice,
-                  totalAmount: calcTotal(),
-                  companyName: invoice.companyName || team?.companyName || '',
-                  companyCIF: invoice.companyCIF || team?.companyCIF || '',
-                  companyAddress: invoice.companyAddress || team?.companyAddress || '',
-                  clientName: invoice.clientName || team?.defaultClientName || '',
-                  clientIBAN: invoice.clientIBAN || team?.defaultClientIBAN || '',
-                  clientSwift: invoice.clientSwift || team?.defaultClientSwift || '',
-                  clientBank: invoice.clientBank || team?.defaultClientBank || '',
-                  notes: invoice.notes || team?.defaultNotes || '',
-                };
-              })()}
+              invoice={pdfInvoice}
               showHours={showHours}
               onExported={handleMarkExported}
             />
