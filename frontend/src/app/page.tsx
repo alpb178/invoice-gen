@@ -811,10 +811,10 @@ function MiniDonut() {
         off += len;
         return el;
       })}
-      <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontSize="14" fontWeight="700">
+      <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontSize="20" fontWeight="700">
         {total}
       </text>
-      <text x={size / 2} y={size / 2 + 12} textAnchor="middle" fontSize="8" fill="#71717a">
+      <text x={size / 2} y={size / 2 + 14} textAnchor="middle" fontSize="9" fill="#71717a">
         facturas
       </text>
     </svg>

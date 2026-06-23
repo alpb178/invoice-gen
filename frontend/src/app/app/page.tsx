@@ -127,15 +127,15 @@ interface DonutProps {
 
 function Donut({ segments }: DonutProps) {
   const total = segments.reduce((a, s) => a + s.value, 0);
-  const size = 180;
-  const r = 72;
-  const stroke = 22;
+  const size = 124;
+  const r = 50;
+  const stroke = 16;
   const C = 2 * Math.PI * r;
   let offset = 0;
 
   return (
-    <div className="flex flex-col items-center gap-5">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <div className="flex items-center gap-5">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f4f4f5" strokeWidth={stroke} />
         {total > 0 &&
           segments.map((s, i) => {
@@ -159,14 +159,14 @@ function Donut({ segments }: DonutProps) {
             offset += len;
             return el;
           })}
-        <text x={size / 2} y={size / 2 - 4} textAnchor="middle" fontSize="26" fontWeight="700" fill="#18181b">
+        <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontSize="20" fontWeight="700" fill="#18181b">
           {total}
         </text>
-        <text x={size / 2} y={size / 2 + 18} textAnchor="middle" fontSize="11" fill="#71717a">
+        <text x={size / 2} y={size / 2 + 14} textAnchor="middle" fontSize="9" fill="#71717a">
           facturas
         </text>
       </svg>
-      <ul className="w-full space-y-2 text-xs">
+      <ul className="flex-1 space-y-2.5 text-xs">
         {segments.map((s) => (
           <li key={s.key} className="flex items-center gap-2">
             <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
