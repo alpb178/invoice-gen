@@ -5,8 +5,8 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
 import { Invoice, Section } from '@/types';
 
-// Paleta editorial (papel crema + tinta + sello)
-const PAPER = '#fbfaf6';
+// Paleta editorial (papel blanco + tinta + sello)
+const PAPER = '#ffffff';
 const INK = '#1c1c1f';
 const MUTED = '#8a8782';
 const RULE = '#1c1c1f';
@@ -52,9 +52,14 @@ const styles = StyleSheet.create({
   },
 
   // — cabecera —
+  invoiceTitle: { fontFamily: 'Times-Bold', fontSize: 22, color: INK, marginBottom: 6 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  headerLeft: { flex: 1, paddingRight: 24 },
   invoiceNo: { fontFamily: 'Times-Bold', fontSize: 30, color: INK, marginTop: 4 },
   headerRight: { alignItems: 'flex-end', maxWidth: 240 },
+  metaGroup: { marginTop: 14, alignItems: 'flex-end' },
+  metaValueR: { fontFamily: 'Times-Bold', fontSize: 12, color: INK, textAlign: 'right', marginTop: 3 },
+  metaSubR: { fontSize: 9, color: MUTED, textAlign: 'right', marginTop: 2 },
   emisorName: { fontFamily: 'Times-Bold', fontSize: 13, color: INK, textAlign: 'right' },
   emisorMeta: { fontFamily: 'Courier', fontSize: 9, color: MUTED, textAlign: 'right', marginTop: 1 },
   emisorAddr: { fontSize: 8, color: MUTED, textAlign: 'right', marginTop: 1, lineHeight: 1.4 },
@@ -73,11 +78,13 @@ const styles = StyleSheet.create({
   ruleStrong: { borderTopWidth: 1, borderTopColor: RULE, borderStyle: 'solid', marginTop: 16 },
   ruleHair: { borderTopWidth: 0.6, borderTopColor: HAIR, borderStyle: 'solid' },
 
-  // — fila meta (cliente / fecha / moneda) —
-  metaRow: { flexDirection: 'row', marginTop: 16 },
-  metaCol: { flex: 1, paddingRight: 16 },
-  metaValue: { fontFamily: 'Times-Bold', fontSize: 12, color: INK, marginTop: 5 },
-  metaSub: { fontSize: 9, color: MUTED, marginTop: 2, lineHeight: 1.4 },
+  // — bloques de información (emisor / receptor), estilo factura —
+  infoBlock: { marginTop: 18 },
+  infoCompany: { fontFamily: 'Times-Bold', fontSize: 11, color: INK },
+  infoHeader: { fontFamily: 'Times-Bold', fontSize: 10.5, color: INK },
+  infoName: { fontFamily: 'Times-Bold', fontSize: 10.5, color: INK, marginTop: 1 },
+  infoLine: { fontFamily: 'Times-Roman', fontSize: 9.5, color: INK, marginTop: 1, lineHeight: 1.45 },
+  infoBold: { fontFamily: 'Times-Bold' },
 
   // — items —
   itemsHead: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 30, paddingBottom: 6 },
@@ -109,8 +116,8 @@ const styles = StyleSheet.create({
   notes: { marginTop: 22 },
   notesText: { fontSize: 9, color: '#555', lineHeight: 1.5 },
 
-  // — firma (última página, abajo a la derecha) —
-  signatureBlock: { position: 'absolute', bottom: 60, right: 48, width: 240 },
+  // — firma (al final del contenido, alineada a la derecha) —
+  signatureBlock: { marginTop: 48, marginBottom: 8, width: 240, alignSelf: 'flex-end' },
   signatureLine: { borderTopWidth: 0.6, borderTopColor: '#777', borderStyle: 'solid', marginBottom: 6 },
   signatureLabel: {
     fontSize: 7,
@@ -180,53 +187,70 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* ——— Cabecera ——— */}
+        {/* ——— Cabecera: izquierda emisor/cliente · derecha sello + fecha + moneda ——— */}
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.label}>FACTURA</Text>
-            <Text style={styles.invoiceNo}>Nº {invoice.number || '—'}</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.invoiceTitle}>FACTURA - No. {invoice.number || '—'}</Text>
+
+            {/* — Emisor — */}
+            <View style={styles.infoBlock}>
+              {invoice.companyName ? <Text style={styles.infoCompany}>{invoice.companyName}</Text> : null}
+              {invoice.companyCIF ? (
+                <Text style={styles.infoLine}>
+                  <Text style={styles.infoBold}>CIF: </Text>
+                  {invoice.companyCIF}
+                </Text>
+              ) : null}
+              {invoice.companyAddress
+                ? invoice.companyAddress.split('\n').map((l, i) => (
+                    <Text key={i} style={styles.infoLine}>
+                      {l}
+                    </Text>
+                  ))
+                : null}
+            </View>
+
+            {/* — Receptor — */}
+            {invoice.clientName || invoice.clientIBAN || invoice.clientSwift || invoice.clientBank ? (
+              <View style={styles.infoBlock}>
+                <Text style={styles.infoHeader}>Emitido a favor de:</Text>
+                {invoice.clientName ? <Text style={styles.infoName}>{invoice.clientName}</Text> : null}
+                {invoice.clientIBAN ? (
+                  <Text style={styles.infoLine}>
+                    IBAN: <Text style={styles.infoBold}>{invoice.clientIBAN}</Text>
+                  </Text>
+                ) : null}
+                {invoice.clientSwift ? (
+                  <Text style={styles.infoLine}>
+                    Swift/BIC: <Text style={styles.infoBold}>{invoice.clientSwift}</Text>
+                  </Text>
+                ) : null}
+                {invoice.clientBank ? (
+                  <Text style={styles.infoLine}>
+                    Nombre y dirección del Banco: <Text style={styles.infoBold}>{invoice.clientBank}</Text>
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
           </View>
 
+          {/* — Sello + fecha + moneda (derecha) — */}
           <View style={styles.headerRight}>
             <View style={styles.stamp}>
-              <Text style={styles.stampText}>
-                {statusLabel}
-                {invoice.date ? ` · ${fmtDate(invoice.date)}` : ''}
-              </Text>
+              <Text style={styles.stampText}>{statusLabel}</Text>
             </View>
-            <Text style={styles.label}>EMISOR</Text>
-            <Text style={styles.emisorName}>{invoice.companyName || '—'}</Text>
-            {invoice.companyCIF ? <Text style={styles.emisorMeta}>{invoice.companyCIF}</Text> : null}
-            {invoice.companyAddress
-              ? invoice.companyAddress.split('\n').map((l, i) => (
-                  <Text key={i} style={styles.emisorAddr}>
-                    {l}
-                  </Text>
-                ))
-              : null}
-          </View>
-        </View>
-
-        <View style={styles.ruleStrong} />
-
-        {/* ——— Cliente / Fecha / Moneda ——— */}
-        <View style={styles.metaRow}>
-          <View style={styles.metaCol}>
-            <Text style={styles.label}>CLIENTE</Text>
-            <Text style={styles.metaValue}>{invoice.clientName || '—'}</Text>
-            {invoice.clientBank ? <Text style={styles.metaSub}>{invoice.clientBank}</Text> : null}
-          </View>
-          <View style={styles.metaCol}>
-            <Text style={styles.label}>FECHA</Text>
-            <Text style={styles.metaValue}>{fmtDate(invoice.date) || '—'}</Text>
-          </View>
-          <View style={styles.metaCol}>
-            <Text style={styles.label}>MONEDA</Text>
-            <Text style={styles.metaValue}>
-              {cur}
-              {sym ? ` ${sym}` : ''}
-            </Text>
-            {hasBank ? <Text style={styles.metaSub}>Transferencia</Text> : null}
+            <View style={styles.metaGroup}>
+              <Text style={styles.label}>FECHA</Text>
+              <Text style={styles.metaValueR}>{fmtDate(invoice.date) || '—'}</Text>
+            </View>
+            <View style={styles.metaGroup}>
+              <Text style={styles.label}>MONEDA</Text>
+              <Text style={styles.metaValueR}>
+                {cur}
+                {sym ? ` ${sym}` : ''}
+              </Text>
+              {hasBank ? <Text style={styles.metaSubR}>Transferencia</Text> : null}
+            </View>
           </View>
         </View>
 
@@ -287,29 +311,20 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
           </View>
         ) : null}
 
-        {/* ——— Firma: solo última página, abajo a la derecha ——— */}
-        <View
-          style={styles.signatureBlock}
-          fixed
-          render={(props) => {
-            const { pageNumber, totalPages } = props as unknown as {
-              pageNumber: number;
-              totalPages: number;
-            };
-            return pageNumber === totalPages ? (
-              <>
-                <View style={styles.signatureLine} />
-                <Text style={styles.signatureLabel}>EMITIDO POR</Text>
-                <Link src="https://invoices.corpsc.com/" style={styles.signatureUrl}>
-                  https://invoices.corpsc.com/
-                </Link>
-                <Link src="https://www.corpsc.com/es" style={styles.signaturePromo}>
-                  corpsc.com
-                </Link>
-              </>
-            ) : null;
-          }}
-        />
+        {/* ——— Firma: última página, abajo a la derecha ———
+            Bloque absoluto NO fixed: al ser el último hijo del flujo se ancla
+            a la última página, sin depender de `totalPages` (que con `fixed`
+            fallaba y hacía desaparecer el "EMITIDO POR" en facturas largas). */}
+        <View style={styles.signatureBlock} wrap={false}>
+          <View style={styles.signatureLine} />
+          <Text style={styles.signatureLabel}>EMITIDO POR</Text>
+          <Link src="https://invoices.corpsc.com/" style={styles.signatureUrl}>
+            https://invoices.corpsc.com/
+          </Link>
+          <Link src="https://www.corpsc.com/es" style={styles.signaturePromo}>
+            corpsc.com
+          </Link>
+        </View>
 
         {/* ——— Pie: todas las páginas ——— */}
         <View
