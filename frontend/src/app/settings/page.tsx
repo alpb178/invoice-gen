@@ -122,9 +122,6 @@ export default function SettingsPage() {
     <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
         <div>
-          <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
-            ← Facturas
-          </Link>
           <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900">Configuración</h1>
           <p className="text-xs text-ink-500 mt-1">
             Define los datos del emisor y los valores por defecto del receptor para este equipo.
@@ -164,7 +161,7 @@ export default function SettingsPage() {
       )}
 
       <div className="bg-paper border border-ink-200 rounded-2xl p-6 mb-6 shadow-card">
-        <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider mb-4">Equipo</h2>
+        <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-4">Equipo</h2>
         <div>
           <label className={labelClass}>Nombre del equipo</label>
           <input
@@ -178,7 +175,7 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-paper border border-ink-200 rounded-2xl p-6 shadow-card">
-          <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider mb-4">Datos del emisor</h2>
+          <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-4">Datos del emisor</h2>
           <div className="space-y-3">
             <div>
               <label className={labelClass}>Empresa</label>
@@ -186,7 +183,7 @@ export default function SettingsPage() {
                 disabled={!isOwner}
                 value={form.companyName}
                 onChange={(e) => setField('companyName', e.target.value)}
-                placeholder="Emx Comunicaciones S.L.U."
+                placeholder="XXXX"
                 className={inputClass}
               />
             </div>
@@ -196,7 +193,7 @@ export default function SettingsPage() {
                 disabled={!isOwner}
                 value={form.companyCIF}
                 onChange={(e) => setField('companyCIF', e.target.value)}
-                placeholder="B85173963"
+                placeholder="XXXX"
                 className={inputClass}
               />
             </div>
@@ -214,7 +211,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="bg-paper border border-ink-200 rounded-2xl p-6 shadow-card">
-          <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider mb-4">Receptor por defecto</h2>
+          <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-4">Receptor por defecto</h2>
           <div className="space-y-3">
             <div>
               <label className={labelClass}>Nombre</label>
@@ -222,7 +219,7 @@ export default function SettingsPage() {
                 disabled={!isOwner}
                 value={form.defaultClientName}
                 onChange={(e) => setField('defaultClientName', e.target.value)}
-                placeholder="Alejandro Pérez"
+                placeholder="XXXX"
                 className={inputClass}
               />
             </div>
@@ -232,7 +229,7 @@ export default function SettingsPage() {
                 disabled={!isOwner}
                 value={form.defaultClientIBAN}
                 onChange={(e) => setField('defaultClientIBAN', e.target.value)}
-                placeholder="BE95905522553858"
+                placeholder="XXXX"
                 className={inputClass}
               />
             </div>
@@ -242,7 +239,7 @@ export default function SettingsPage() {
                 disabled={!isOwner}
                 value={form.defaultClientSwift}
                 onChange={(e) => setField('defaultClientSwift', e.target.value)}
-                placeholder="TRWIBEB1XXX"
+                placeholder="XXXX"
                 className={inputClass}
               />
             </div>
@@ -252,7 +249,7 @@ export default function SettingsPage() {
                 disabled={!isOwner}
                 value={form.defaultClientBank}
                 onChange={(e) => setField('defaultClientBank', e.target.value)}
-                placeholder="Wise, Rue du Trône 100, Brussels..."
+                placeholder="XXXX"
                 className={inputClass}
               />
             </div>
@@ -261,7 +258,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="bg-paper border border-ink-200 rounded-2xl p-6 mb-6 shadow-card">
-        <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider mb-4">Preferencias por defecto</h2>
+        <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-4">Preferencias por defecto</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className={labelClass}>Moneda</label>
