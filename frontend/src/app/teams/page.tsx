@@ -216,7 +216,7 @@ export default function TeamsPage() {
     <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-ink-900">Equipos</h1>
+          <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900">Equipos</h1>
         </div>
       </div>
 

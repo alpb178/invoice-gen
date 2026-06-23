@@ -125,7 +125,7 @@ export default function SettingsPage() {
           <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
             ← Facturas
           </Link>
-          <h1 className="text-2xl font-bold text-ink-900">Configuración</h1>
+          <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900">Configuración</h1>
           <p className="text-xs text-ink-500 mt-1">
             Define los datos del emisor y los valores por defecto del receptor para este equipo.
           </p>

@@ -215,7 +215,7 @@ export default function InvoiceEditor({ initial }: Props) {
         canEditHeader,
         canEditSection: (sec) => canEditSection(sec),
       });
-      router.push('/app');
+      router.push('/invoices');
     } catch (e: any) {
       alert('Error: ' + e.message);
     }
@@ -256,8 +256,8 @@ export default function InvoiceEditor({ initial }: Props) {
     <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
         <div>
-          <button onClick={() => router.push('/app')} className="text-ink-500 hover:text-ink-900 text-sm mb-2 inline-block">
-            ← Volver
+          <button onClick={() => router.push('/invoices')} className="text-ink-500 hover:text-ink-900 text-sm mb-2 inline-block">
+            ← Volver a facturas
           </button>
           <h1 className="text-2xl font-bold text-ink-900">{initial ? `Factura #${initial.number}` : 'Nueva Factura'}</h1>
           {initial?.author && (
@@ -339,7 +339,7 @@ export default function InvoiceEditor({ initial }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className={labelClass}>Nº Factura</label>
-            <input disabled={!canEditHeader} className={inputClass} placeholder="29/2025" value={invoice.number} onChange={(e) => update('number', e.target.value)} />
+            <input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.number} onChange={(e) => update('number', e.target.value)} />
           </div>
           <div>
             <label className={labelClass}>Fecha</label>
@@ -385,8 +385,8 @@ export default function InvoiceEditor({ initial }: Props) {
               <div>
                 <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider mb-3">Emisor</h3>
                 <div className="space-y-3">
-                  <div><label className={labelClass}>Empresa</label><input disabled={!canEditHeader} className={inputClass} placeholder="Emx Comunicaciones S.L.U." value={invoice.companyName || ''} onChange={(e) => update('companyName', e.target.value)} /></div>
-                  <div><label className={labelClass}>CIF</label><input disabled={!canEditHeader} className={inputClass} placeholder="B85173963" value={invoice.companyCIF || ''} onChange={(e) => update('companyCIF', e.target.value)} /></div>
+                  <div><label className={labelClass}>Empresa</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.companyName || ''} onChange={(e) => update('companyName', e.target.value)} /></div>
+                  <div><label className={labelClass}>CIF</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.companyCIF || ''} onChange={(e) => update('companyCIF', e.target.value)} /></div>
                   <div><label className={labelClass}>Dirección</label><textarea disabled={!canEditHeader} className={inputClass + ' resize-none h-16'} placeholder="Calle..." value={invoice.companyAddress || ''} onChange={(e) => update('companyAddress', e.target.value)} /></div>
                 </div>
               </div>
@@ -394,10 +394,10 @@ export default function InvoiceEditor({ initial }: Props) {
               <div>
                 <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider mb-3">Cliente</h3>
                 <div className="space-y-3">
-                  <div><label className={labelClass}>Nombre</label><input disabled={!canEditHeader} className={inputClass} placeholder="Alejandro Pérez" value={invoice.clientName || ''} onChange={(e) => update('clientName', e.target.value)} /></div>
-                  <div><label className={labelClass}>IBAN</label><input disabled={!canEditHeader} className={inputClass} placeholder="BE95905522553858" value={invoice.clientIBAN || ''} onChange={(e) => update('clientIBAN', e.target.value)} /></div>
-                  <div><label className={labelClass}>Swift/BIC</label><input disabled={!canEditHeader} className={inputClass} placeholder="TRWIBEB1XXX" value={invoice.clientSwift || ''} onChange={(e) => update('clientSwift', e.target.value)} /></div>
-                  <div><label className={labelClass}>Banco</label><input disabled={!canEditHeader} className={inputClass} placeholder="Wise, ..." value={invoice.clientBank || ''} onChange={(e) => update('clientBank', e.target.value)} /></div>
+                  <div><label className={labelClass}>Nombre</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.clientName || ''} onChange={(e) => update('clientName', e.target.value)} /></div>
+                  <div><label className={labelClass}>IBAN</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.clientIBAN || ''} onChange={(e) => update('clientIBAN', e.target.value)} /></div>
+                  <div><label className={labelClass}>Swift/BIC</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.clientSwift || ''} onChange={(e) => update('clientSwift', e.target.value)} /></div>
+                  <div><label className={labelClass}>Banco</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.clientBank || ''} onChange={(e) => update('clientBank', e.target.value)} /></div>
                 </div>
               </div>
             </div>
@@ -413,11 +413,11 @@ export default function InvoiceEditor({ initial }: Props) {
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Título de sección</label>
-                <input disabled={!secEditable} className={inputClass} placeholder="Tareas de Desarrollo (Front-Diciembre)" value={sec.title} onChange={(e) => updateSection(sIdx, 'title', e.target.value)} />
+                <input disabled={!secEditable} className={inputClass} placeholder="XXXX" value={sec.title} onChange={(e) => updateSection(sIdx, 'title', e.target.value)} />
               </div>
               <div>
                 <label className={labelClass}>Responsable</label>
-                <input disabled={!secEditable} className={inputClass} placeholder="Richard, Jhoan..." value={sec.subtitle || ''} onChange={(e) => updateSection(sIdx, 'subtitle', e.target.value)} />
+                <input disabled={!secEditable} className={inputClass} placeholder="XXXX" value={sec.subtitle || ''} onChange={(e) => updateSection(sIdx, 'subtitle', e.target.value)} />
               </div>
             </div>
             {secEditable && (
@@ -459,7 +459,7 @@ export default function InvoiceEditor({ initial }: Props) {
                       <input
                         disabled={!secEditable}
                         className="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-800 text-sm font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
-                        placeholder="TIK-230"
+                        placeholder="XXXX"
                         value={task.code || ''}
                         onChange={(e) => updateTask(sIdx, tIdx, 'code', e.target.value)}
                       />
@@ -522,12 +522,14 @@ export default function InvoiceEditor({ initial }: Props) {
                 >
                   + Agregar tarea
                 </button>
+                {/* Ocultado temporalmente — opción de importar texto o PDF
                 <button
                   onClick={() => setImportSectionIdx(sIdx)}
                   className="text-xs text-ink-900 bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg px-3 py-1.5 transition-colors"
                 >
                   📥 Importar (texto o PDF)
                 </button>
+                */}
               </div>
             ) : <span />}
             <div className="text-right">

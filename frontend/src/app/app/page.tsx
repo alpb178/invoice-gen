@@ -243,7 +243,7 @@ export default function DashboardPage() {
     if (!confirm('¿Eliminar esta factura?')) return;
     try {
       await deleteInvoice(id);
-      await loadAll();
+      router.push('/invoices');
     } catch (e: any) {
       alert(e.message);
     }
@@ -352,7 +352,7 @@ export default function DashboardPage() {
     <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text text-transparent">
+          <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900">
             Dashboard
           </h1>
           <p className="text-ink-500 text-sm mt-1">
@@ -369,7 +369,7 @@ export default function DashboardPage() {
         {isOwnerOfActive && (
           <Link
             href="/invoices/new"
-            className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 active:from-violet-800 active:to-fuchsia-700 text-paper font-semibold rounded-xl text-sm shadow-md shadow-violet-500/30 hover:shadow-lg hover:shadow-violet-500/40 transition-all"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-ink-950 hover:bg-ink-800 text-[#f5f1e8] font-medium rounded-full text-sm transition-colors"
           >
             + Nueva Factura
           </Link>
@@ -609,27 +609,13 @@ export default function DashboardPage() {
 
 type KpiTone = 'violet' | 'sky' | 'amber' | 'emerald';
 
-const KPI_TONES: Record<KpiTone, { card: string; value: string; dot: string }> = {
-  violet: {
-    card: 'bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 border-violet-100',
-    value: 'bg-gradient-to-r from-violet-700 to-fuchsia-600 bg-clip-text text-transparent',
-    dot: 'bg-gradient-to-r from-violet-500 to-fuchsia-500',
-  },
-  sky: {
-    card: 'bg-gradient-to-br from-sky-50 via-white to-indigo-50 border-sky-100',
-    value: 'bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent',
-    dot: 'bg-gradient-to-r from-sky-500 to-indigo-500',
-  },
-  amber: {
-    card: 'bg-gradient-to-br from-amber-50 via-white to-orange-50 border-amber-100',
-    value: 'bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent',
-    dot: 'bg-gradient-to-r from-amber-400 to-orange-500',
-  },
-  emerald: {
-    card: 'bg-gradient-to-br from-emerald-50 via-white to-teal-50 border-emerald-100',
-    value: 'bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent',
-    dot: 'bg-gradient-to-r from-emerald-500 to-teal-500',
-  },
+// Tono editorial: tarjeta crema/tinta uniforme; el color solo vive en el punto
+// de acento, tomado de la paleta de estado de la landing.
+const KPI_DOTS: Record<KpiTone, string> = {
+  violet: 'var(--stamp)',
+  sky: '#3b82f6',
+  amber: '#b0543f',
+  emerald: '#10b981',
 };
 
 function KpiCard({
@@ -643,14 +629,13 @@ function KpiCard({
   hint?: string;
   tone?: KpiTone;
 }) {
-  const t = KPI_TONES[tone];
   return (
-    <div className={`relative overflow-hidden border rounded-2xl p-5 shadow-card ${t.card}`}>
+    <div className="relative overflow-hidden border border-ink-200 rounded-2xl p-5 shadow-card bg-paper">
       <div className="flex items-center gap-2">
-        <span className={`inline-block w-1.5 h-1.5 rounded-full ${t.dot}`} />
-        <div className="text-xs uppercase tracking-wide text-ink-500">{label}</div>
+        <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: KPI_DOTS[tone] }} />
+        <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500 font-mono-tight">{label}</div>
       </div>
-      <div className={`text-2xl font-bold mt-1 font-mono ${t.value}`}>{value}</div>
+      <div className="text-2xl font-semibold mt-1.5 font-mono-tight num-dot text-ink-900">{value}</div>
       {hint && <div className="text-xs text-ink-500 mt-1">{hint}</div>}
     </div>
   );

@@ -121,7 +121,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {isOwner && (
         <Link
           href="/invoices/new"
-          className="mt-3 flex items-center gap-2 justify-center rounded-xl px-3 py-2.5 text-sm font-semibold text-paper bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 shadow-md shadow-violet-500/30 transition-all"
+          className="mt-3 flex items-center gap-2 justify-center rounded-full px-3 py-2.5 text-sm font-medium text-[#f5f1e8] bg-ink-950 hover:bg-ink-800 transition-colors"
         >
           <Plus size={18} />
           Nueva Factura
@@ -157,8 +157,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Menu size={20} />
         </button>
 
-        <Link href="/app" className="font-bold tracking-tight text-lg bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text text-transparent">
-          Invoice Generator
+        <Link href="/app" className="flex items-center gap-2 group">
+          <span className="font-serif-display text-xl font-semibold tracking-tight text-ink-900">
+            Invoice<span style={{ color: 'var(--stamp)' }}>.</span>
+          </span>
+          <span className="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-ink-500 pl-2 border-l border-ink-300">
+            Generator
+          </span>
         </Link>
 
         <div className="flex-1" />
@@ -198,8 +203,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             />
             <aside className="absolute top-0 left-0 h-full w-64 bg-paper border-r border-ink-200 shadow-xl flex flex-col">
               <div className="h-16 flex items-center justify-between px-4 border-b border-ink-200">
-                <span className="font-bold tracking-tight bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text text-transparent">
-                  Invoice Generator
+                <span className="font-serif-display text-lg font-semibold tracking-tight text-ink-900">
+                  Invoice<span style={{ color: 'var(--stamp)' }}>.</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-ink-500 ml-1.5 font-sans">Generator</span>
                 </span>
                 <button
                   onClick={() => setOpen(false)}

@@ -97,7 +97,7 @@ export default function InvoicesIndexPage() {
           <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
             ← Dashboard
           </Link>
-          <h1 className="text-2xl font-bold text-ink-900">Todas las facturas</h1>
+          <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900">Todas las facturas</h1>
         </div>
         {isOwner && (
           <Link
