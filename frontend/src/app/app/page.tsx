@@ -134,8 +134,8 @@ function Donut({ segments }: DonutProps) {
   let offset = 0;
 
   return (
-    <div className="flex items-center gap-5">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
+    <div className="flex items-center gap-4 sm:gap-5">
+      <svg viewBox={`0 0 ${size} ${size}`} className="shrink-0 w-28 sm:w-44 lg:w-[400px] h-auto">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f4f4f5" strokeWidth={stroke} />
         {total > 0 &&
           segments.map((s, i) => {
@@ -166,7 +166,7 @@ function Donut({ segments }: DonutProps) {
           Facturas
         </text>
       </svg>
-      <ul className="flex-1 space-y-2.5 text-lg">
+      <ul className="flex-1 min-w-0 space-y-2 text-sm sm:text-base lg:text-lg">
         {segments.map((s) => (
           <li key={s.key} className="flex items-center gap-2">
             <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
