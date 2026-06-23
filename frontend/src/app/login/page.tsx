@@ -40,7 +40,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-3">
             <Image src="/logo.png" alt="Invoice Generator" width={64} height={64} priority />
           </div>
-          <h1 className="text-xl font-semibold text-ink-900">Iniciar sesión</h1>
+          <h1 className="font-serif-display text-2xl md:text-3xl font-medium tracking-tight text-ink-900">Iniciar sesión</h1>
           <p className="text-ink-500 text-sm mt-1">Generador de facturas</p>
         </div>
 

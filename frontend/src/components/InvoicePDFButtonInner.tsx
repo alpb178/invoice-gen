@@ -1,8 +1,8 @@
 // src/components/InvoicePDFButtonInner.tsx
 'use client';
 
-import { useMemo } from 'react';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { useState } from 'react';
+import { pdf } from '@react-pdf/renderer';
 import InvoicePDF from './InvoicePDF';
 import { Invoice } from '@/types';
 
@@ -12,32 +12,48 @@ interface Props {
   onExported?: () => void;
 }
 
+// Generamos el PDF SOLO al hacer clic. Antes usábamos <PDFDownloadLink>, que
+// renderiza el documento de forma anticipada y lo vuelve a generar cada vez que
+// cambian sus props. Como `invoice` cambia en cada tecla y en cada "agregar
+// tarea/sección", con facturas grandes (decenas de tareas) eso disparaba un
+// render de PDF en el hilo principal en cada edición y dejaba la página sin
+// responder (Chrome y Firefox). Con generación bajo demanda no hay trabajo de
+// PDF en segundo plano mientras se edita.
 export default function InvoicePDFButtonInner({ invoice, showHours, onExported }: Props) {
-  const Link = PDFDownloadLink as any;
-  // El elemento del documento debe ser referencialmente estable: PDFDownloadLink
-  // regenera el PDF cada vez que cambia la prop `document`. Si creáramos un nuevo
-  // <InvoicePDF/> en cada render, los re-renders internos del propio link (al
-  // actualizar loading/url) volverían a generarlo, entrando en un bucle infinito
-  // que congela la página. Memoizamos para regenerar solo cuando cambian los datos.
-  const document = useMemo(
-    () => <InvoicePDF invoice={invoice} showHours={showHours} />,
-    [invoice, showHours],
-  );
+  const [generating, setGenerating] = useState(false);
+
+  const handleDownload = async () => {
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const blob = await pdf(
+        <InvoicePDF invoice={invoice} showHours={showHours} />,
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Factura_${invoice.number || 'borrador'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      onExported?.();
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo generar el PDF. Inténtalo de nuevo.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
-    <Link
-      document={document}
-      fileName={`Factura_${invoice.number || 'borrador'}.pdf`}
+    <button
+      type="button"
+      onClick={handleDownload}
+      disabled={generating}
+      className="px-4 py-2.5 bg-paper hover:bg-ink-100 border border-ink-200 text-ink-900 rounded-xl text-sm font-medium transition-colors disabled:opacity-60"
     >
-      {({ loading, url, error }: any) => (
-        <button
-          type="button"
-          onClick={() => url && onExported?.()}
-          className="px-4 py-2.5 bg-paper hover:bg-ink-100 border border-ink-200 text-ink-900 rounded-xl text-sm font-medium transition-colors disabled:opacity-60"
-          disabled={loading || !!error}
-        >
-          {error ? 'Error PDF' : loading ? 'Generando...' : 'Descargar PDF'}
-        </button>
-      )}
-    </Link>
+      {generating ? 'Generando...' : 'Descargar PDF'}
+    </button>
   );
 }

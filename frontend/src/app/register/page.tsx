@@ -61,7 +61,7 @@ export default function RegisterPage() {
       >
         <div className="text-center">
           <div className="text-4xl mb-2">🧾</div>
-          <h1 className="text-xl font-semibold text-ink-900">
+          <h1 className="font-serif-display text-2xl md:text-3xl font-medium tracking-tight text-ink-900">
             {invitationFlow ? 'Crea tu cuenta' : 'Crea tu cuenta y tu equipo'}
           </h1>
           <p className="text-ink-500 text-sm mt-1">

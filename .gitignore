@@ -10,6 +10,9 @@ node_modules/
 .env.local
 .env.*.local
 !.env.example
+# Stray editor/Finder duplicates of env files (e.g. ".env copy.example")
+*copy*.example
+*.env
 
 # Logs
 *.log
