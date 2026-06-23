@@ -214,11 +214,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        {/* Contenido */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <main className="flex-1">{children}</main>
-          <SiteFooter />
-        </div>
+        {/* Contenido — sin footer de marketing dentro del panel */}
+        <main className="flex-1 min-w-0">{children}</main>
       </div>
     </div>
   );
