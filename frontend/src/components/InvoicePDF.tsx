@@ -2,215 +2,170 @@
 'use client';
 
 import React from 'react';
-import { Document, Font, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
 import { Invoice, Section } from '@/types';
 
-if (typeof window !== 'undefined') {
-  try {
-    Font.registerEmojiSource({
-      format: 'png',
-      url: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/',
-    });
-  } catch (e) {
-    // fuente emoji opcional
-  }
-}
+// Paleta editorial (papel blanco + tinta + sello)
+const PAPER = '#ffffff';
+const INK = '#1c1c1f';
+const MUTED = '#8a8782';
+const RULE = '#1c1c1f';
+const HAIR = '#d9d5cb';
+const STAMP = '#b0543f';
+
+const CUR_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', BOB: 'Bs' };
+const STATUS_LABEL: Record<string, string> = {
+  draft: 'BORRADOR',
+  sent: 'ENVIADA',
+  paid: 'PAGADA',
+  cancelled: 'CANCELADA',
+};
+
+const money = (n: number) =>
+  new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+
+const fmtDate = (iso?: string) => {
+  if (!iso) return '';
+  const parts = iso.split('-');
+  if (parts.length !== 3) return iso;
+  const [y, m, d] = parts;
+  return `${d} · ${m} · ${y}`;
+};
 
 const styles = StyleSheet.create({
   page: {
-    padding: 50,
-    fontSize: 11,
-    fontFamily: 'Times-Roman',
-    color: '#000000',
-    backgroundColor: '#ffffff',
+    paddingTop: 48,
+    paddingBottom: 96,
+    paddingHorizontal: 48,
+    fontSize: 10,
+    fontFamily: 'Helvetica',
+    color: INK,
+    backgroundColor: PAPER,
   },
 
-  // Header
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
-  receiptIcon: { fontSize: 18, marginRight: 8 },
-  invoiceTitle: { fontSize: 26, fontFamily: 'Times-Bold', color: '#000000' },
-
-  // Company block
-  companyBlock: { marginBottom: 14, lineHeight: 1.35 },
-  companyName: { fontFamily: 'Times-Bold', fontSize: 11, marginBottom: 1 },
-  line: { fontSize: 11, marginBottom: 1 },
-  bold: { fontFamily: 'Times-Bold' },
-
-  // Client
-  clientBlock: { marginBottom: 20, lineHeight: 1.35 },
-
-  // Section title
-  sectionTitle: {
-    fontSize: 17,
-    fontFamily: 'Times-Bold',
-    marginTop: 14,
-    marginBottom: 10,
-    color: '#000000',
+  // — etiquetas pequeñas tipográficas —
+  label: {
+    fontSize: 7,
+    fontFamily: 'Helvetica',
+    color: MUTED,
+    letterSpacing: 1.6,
   },
 
-  // Table
-  table: {
-    borderWidth: 1,
-    borderColor: '#9a9a9a',
+  // — cabecera —
+  invoiceTitle: { fontFamily: 'Times-Bold', fontSize: 22, color: INK, marginBottom: 6 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  headerLeft: { flex: 1, paddingRight: 24 },
+  invoiceNo: { fontFamily: 'Times-Bold', fontSize: 30, color: INK, marginTop: 4 },
+  headerRight: { alignItems: 'flex-end', maxWidth: 240 },
+  metaGroup: { marginTop: 14, alignItems: 'flex-end' },
+  metaValueR: { fontFamily: 'Times-Bold', fontSize: 12, color: INK, textAlign: 'right', marginTop: 3 },
+  metaSubR: { fontSize: 9, color: MUTED, textAlign: 'right', marginTop: 2 },
+  emisorName: { fontFamily: 'Times-Bold', fontSize: 13, color: INK, textAlign: 'right' },
+  emisorMeta: { fontFamily: 'Courier', fontSize: 9, color: MUTED, textAlign: 'right', marginTop: 1 },
+  emisorAddr: { fontSize: 8, color: MUTED, textAlign: 'right', marginTop: 1, lineHeight: 1.4 },
+
+  stamp: {
+    borderWidth: 0.8,
+    borderColor: STAMP,
     borderStyle: 'solid',
-    marginBottom: 6,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#9a9a9a',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#bdbdbd',
-    minHeight: 22,
-  },
-  tableRowLast: {
-    flexDirection: 'row',
-    minHeight: 22,
-  },
-  cellNum: {
-    width: '7%',
-    borderRightWidth: 0.5,
-    borderRightColor: '#bdbdbd',
-    paddingVertical: 5,
-    paddingHorizontal: 5,
-    fontSize: 10,
-    justifyContent: 'center',
-  },
-  cellTask: {
-    flex: 1,
-    borderRightWidth: 0.5,
-    borderRightColor: '#bdbdbd',
-    paddingVertical: 5,
-    paddingHorizontal: 5,
-    fontSize: 10,
-    justifyContent: 'center',
-  },
-  cellHours: {
-    width: '12%',
-    borderRightWidth: 0.5,
-    borderRightColor: '#bdbdbd',
-    paddingVertical: 5,
-    paddingHorizontal: 5,
-    fontSize: 10,
-    textAlign: 'right',
-    justifyContent: 'center',
-  },
-  cellAmount: {
-    width: '18%',
-    paddingVertical: 5,
+    borderRadius: 2,
+    paddingVertical: 3,
     paddingHorizontal: 6,
-    fontSize: 10,
-    justifyContent: 'center',
+    marginBottom: 10,
   },
-  headerCellText: {
-    fontFamily: 'Times-Bold',
-    fontSize: 11,
-    textAlign: 'center',
-  },
+  stampText: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: STAMP, letterSpacing: 1.2 },
 
-  // Subtotal line
-  subtotalLine: {
-    fontSize: 11,
-    fontFamily: 'Times-Bold',
-    marginTop: 8,
-    marginBottom: 18,
-  },
+  ruleStrong: { borderTopWidth: 1, borderTopColor: RULE, borderStyle: 'solid', marginTop: 16 },
+  ruleHair: { borderTopWidth: 0.6, borderTopColor: HAIR, borderStyle: 'solid' },
 
-  // Total block
-  totalTitleRow: { flexDirection: 'row', alignItems: 'center', marginTop: 22, marginBottom: 10 },
-  totalIcon: { fontSize: 16, marginRight: 6 },
-  totalTitle: { fontSize: 20, fontFamily: 'Times-Bold' },
-  totalBullet: { flexDirection: 'row', marginLeft: 14, marginBottom: 4 },
-  bulletDot: { fontSize: 11, marginRight: 6 },
-  bulletText: { fontSize: 11 },
-  grandTotalRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
-  grandTotalIcon: { fontSize: 14, marginRight: 6 },
-  grandTotal: { fontSize: 13, fontFamily: 'Times-Bold' },
+  // — bloques de información (emisor / receptor), estilo factura —
+  infoBlock: { marginTop: 18 },
+  infoCompany: { fontFamily: 'Times-Bold', fontSize: 11, color: INK },
+  infoHeader: { fontFamily: 'Times-Bold', fontSize: 10.5, color: INK },
+  infoName: { fontFamily: 'Times-Bold', fontSize: 10.5, color: INK, marginTop: 1 },
+  infoLine: { fontFamily: 'Times-Roman', fontSize: 9.5, color: INK, marginTop: 1, lineHeight: 1.45 },
+  infoBold: { fontFamily: 'Times-Bold' },
 
-  // Footer
-  footer: {
-    position: 'absolute',
-    bottom: 24,
-    left: 50,
-    right: 50,
-    textAlign: 'center',
-    fontSize: 8,
-    color: '#999',
-  },
+  // — items —
+  itemsHead: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 30, paddingBottom: 6 },
+  itemsHeadConcept: { flex: 1 },
+  colQty: { width: 48, textAlign: 'right' },
+  colAmount: { width: 92, textAlign: 'right' },
 
-  // Signature (last page only, bottom-right via fixed + render)
-  signatureBlock: {
-    position: 'absolute',
-    bottom: 50,
-    right: 50,
-    width: 230,
-  },
-  signatureLine: {
-    borderTopWidth: 0.6,
-    borderTopColor: '#444',
-    borderStyle: 'solid',
-    marginBottom: 6,
-  },
+  sectionHead: { marginTop: 16, marginBottom: 2 },
+  sectionTitle: { fontFamily: 'Times-Bold', fontSize: 11, color: INK },
+  sectionSub: { fontSize: 8.5, color: MUTED, marginTop: 1 },
+
+  itemRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 7 },
+  itemDesc: { fontSize: 10.5, color: INK, lineHeight: 1.35 },
+  itemCode: { fontFamily: 'Courier', fontSize: 8, color: MUTED, marginTop: 2 },
+  itemQty: { width: 48, textAlign: 'right', fontFamily: 'Courier', fontSize: 10, color: INK },
+  itemAmount: { width: 92, textAlign: 'right', fontFamily: 'Courier', fontSize: 10, color: INK },
+
+  // — totales —
+  totalsBlock: { marginTop: 26, alignItems: 'flex-end' },
+  totalsInner: { width: 260 },
+  subtotalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
+  subtotalLabel: { fontSize: 9.5, color: MUTED, flex: 1, paddingRight: 12 },
+  subtotalVal: { fontFamily: 'Courier', fontSize: 9.5, color: INK, textAlign: 'right' },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
+  totalLabel: { fontSize: 8, fontFamily: 'Helvetica', color: MUTED, letterSpacing: 2 },
+  totalValue: { fontFamily: 'Times-Bold', fontSize: 24, color: INK },
+
+  // — notas —
+  notes: { marginTop: 22 },
+  notesText: { fontSize: 9, color: '#555', lineHeight: 1.5 },
+
+  // — firma (al final del contenido, alineada a la derecha) —
+  signatureBlock: { marginTop: 48, marginBottom: 8, width: 240, alignSelf: 'flex-end' },
+  signatureLine: { borderTopWidth: 0.6, borderTopColor: '#777', borderStyle: 'solid', marginBottom: 6 },
   signatureLabel: {
-    fontSize: 8,
-    fontFamily: 'Times-Italic',
-    color: '#666',
+    fontSize: 7,
+    fontFamily: 'Helvetica',
+    color: MUTED,
     textAlign: 'right',
-    marginBottom: 2,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.6,
+    marginBottom: 3,
   },
   signatureUrl: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: 'Times-Italic',
-    color: '#222',
+    color: INK,
     textAlign: 'right',
+    textDecoration: 'none',
+  },
+  signaturePromo: {
+    fontSize: 9,
+    fontFamily: 'Times-Italic',
+    color: MUTED,
+    textAlign: 'right',
+    textDecoration: 'none',
+    marginTop: 2,
   },
 
-  // Total block kept together
-  totalBlock: {
-    marginTop: 12,
+  // — pie (todas las páginas) —
+  footer: {
+    position: 'absolute',
+    bottom: 28,
+    left: 48,
+    right: 48,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
+  footerText: { fontSize: 7.5, color: MUTED, letterSpacing: 1.2 },
 });
-
-const fmt = (n: number) => n.toFixed(2);
 
 const calcSubtotal = (sec: Section) => sec.tasks.reduce((a, t) => a + (t.amount || 0), 0);
 
-function TaskRow({
-  task,
-  tIdx,
-  isLast,
-  showHours,
-}: {
-  task: any;
-  tIdx: number;
-  isLast: boolean;
-  showHours: boolean;
-}) {
+function ItemRow({ task, showHours }: { task: any; showHours: boolean }) {
   return (
-    <View style={isLast ? styles.tableRowLast : styles.tableRow} wrap={false}>
-      <View style={styles.cellNum}>
-        <Text>{task.number || tIdx + 1}</Text>
+    <View style={styles.itemRow} wrap={false}>
+      <View style={{ flex: 1, paddingRight: 12 }}>
+        <Text style={styles.itemDesc}>{task.description || '—'}</Text>
+        {task.code ? <Text style={styles.itemCode}>{task.code}</Text> : null}
       </View>
-      <View style={styles.cellTask}>
-        <Text>
-          {task.code ? `${task.code} ` : ''}
-          {task.description}
-        </Text>
-      </View>
-      {showHours && (
-        <View style={styles.cellHours}>
-          <Text>{task.hours ? task.hours.toFixed(1) : '-'}</Text>
-        </View>
-      )}
-      <View style={styles.cellAmount}>
-        <Text>{fmt(task.amount || 0)}</Text>
-      </View>
+      {showHours && <Text style={styles.itemQty}>{task.hours ? task.hours.toFixed(1) : '—'}</Text>}
+      <Text style={styles.itemAmount}>{money(task.amount || 0)}</Text>
     </View>
   );
 }
@@ -223,198 +178,173 @@ interface Props {
 const InvoicePDF = ({ invoice, showHours }: Props) => {
   const total = invoice.sections.reduce((a, s) => a + calcSubtotal(s), 0);
   const cur = invoice.currency || 'USD';
+  const sym = CUR_SYMBOL[cur] || '';
+  const multiSection = invoice.sections.length > 1;
+  const status = invoice.status || 'draft';
+  const statusLabel = STATUS_LABEL[status] || status.toUpperCase();
+  const hasBank = !!(invoice.clientIBAN || invoice.clientSwift || invoice.clientBank);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header */}
+        {/* ——— Cabecera: izquierda emisor/cliente · derecha sello + fecha + moneda ——— */}
         <View style={styles.headerRow}>
-          <Text style={styles.receiptIcon}>🧾</Text>
-          <Text style={styles.invoiceTitle}>FACTURA - No. {invoice.number}</Text>
-        </View>
+          <View style={styles.headerLeft}>
+            <Text style={styles.invoiceTitle}>FACTURA - No. {invoice.number || '—'}</Text>
 
-        {/* Company */}
-        <View style={styles.companyBlock}>
-          <Text style={styles.companyName}>{invoice.companyName}</Text>
-          {invoice.companyCIF ? (
-            <Text style={styles.line}>
-              <Text style={styles.bold}>CIF: </Text>
-              {invoice.companyCIF}
-            </Text>
-          ) : null}
-          {invoice.companyAddress
-            ? invoice.companyAddress.split('\n').map((l, i) => (
-                <Text key={i} style={styles.line}>
-                  {l}
+            {/* — Emisor — */}
+            <View style={styles.infoBlock}>
+              {invoice.companyName ? <Text style={styles.infoCompany}>{invoice.companyName}</Text> : null}
+              {invoice.companyCIF ? (
+                <Text style={styles.infoLine}>
+                  <Text style={styles.infoBold}>CIF: </Text>
+                  {invoice.companyCIF}
                 </Text>
-              ))
-            : null}
-        </View>
-
-        {/* Client */}
-        <View style={styles.clientBlock}>
-          <Text style={[styles.line, styles.bold]}>Emitido a favor de:</Text>
-          <Text style={[styles.line, styles.bold]}>{invoice.clientName}</Text>
-          {invoice.clientIBAN ? (
-            <Text style={styles.line}>
-              IBAN: <Text style={styles.bold}>{invoice.clientIBAN}</Text>
-            </Text>
-          ) : null}
-          {invoice.clientSwift ? (
-            <Text style={styles.line}>
-              Swift/BIC: <Text style={styles.bold}>{invoice.clientSwift}</Text>
-            </Text>
-          ) : null}
-          {invoice.clientBank ? (
-            <Text style={styles.line}>
-              Nombre y dirección del Banco: <Text style={styles.bold}>{invoice.clientBank}</Text>
-            </Text>
-          ) : null}
-        </View>
-
-        {/* Sections */}
-        {invoice.sections.map((sec, sIdx) => {
-          const subtotal = calcSubtotal(sec);
-          const lastIdx = sec.tasks.length - 1;
-          return (
-            <View key={sIdx} minPresenceAhead={140}>
-              {/* Section start kept together: title + header + first row */}
-              <View wrap={false}>
-                <Text style={styles.sectionTitle}>
-                  {sec.title}
-                  {sec.subtitle ? ` ${sec.subtitle}` : ''}
-                </Text>
-                <View style={[styles.table, { borderBottomWidth: 0 }]}>
-                  <View style={styles.tableHeader}>
-                    <View style={styles.cellNum}>
-                      <Text style={styles.headerCellText}>Nº</Text>
-                    </View>
-                    <View style={styles.cellTask}>
-                      <Text style={styles.headerCellText}>Tarea</Text>
-                    </View>
-                    {showHours && (
-                      <View style={styles.cellHours}>
-                        <Text style={styles.headerCellText}>Horas</Text>
-                      </View>
-                    )}
-                    <View style={styles.cellAmount}>
-                      <Text style={styles.headerCellText}>Estimación ({cur})</Text>
-                    </View>
-                  </View>
-                  {sec.tasks.length > 0 && (
-                    <TaskRow
-                      task={sec.tasks[0]}
-                      tIdx={0}
-                      isLast={lastIdx === 0}
-                      showHours={showHours}
-                    />
-                  )}
-                </View>
-              </View>
-
-              {/* Middle rows flow naturally */}
-              {sec.tasks.length > 2 && (
-                <View
-                  style={{
-                    borderLeftWidth: 1,
-                    borderRightWidth: 1,
-                    borderColor: '#9a9a9a',
-                  }}
-                >
-                  {sec.tasks.slice(1, -1).map((task, i) => (
-                    <TaskRow
-                      key={i + 1}
-                      task={task}
-                      tIdx={i + 1}
-                      isLast={false}
-                      showHours={showHours}
-                    />
-                  ))}
-                </View>
-              )}
-
-              {/* Last row + subtotal kept together to avoid orphan tails */}
-              {sec.tasks.length > 1 && (
-                <View wrap={false}>
-                  <View
-                    style={{
-                      borderLeftWidth: 1,
-                      borderRightWidth: 1,
-                      borderBottomWidth: 1,
-                      borderColor: '#9a9a9a',
-                    }}
-                  >
-                    <TaskRow
-                      task={sec.tasks[lastIdx]}
-                      tIdx={lastIdx}
-                      isLast
-                      showHours={showHours}
-                    />
-                  </View>
-                  <Text style={styles.subtotalLine}>
-                    Subtotal Sección {sIdx + 1}: {fmt(subtotal)} {cur}
-                  </Text>
-                </View>
-              )}
-              {sec.tasks.length <= 1 && (
-                <Text style={styles.subtotalLine} wrap={false}>
-                  Subtotal Sección {sIdx + 1}: {fmt(subtotal)} {cur}
-                </Text>
-              )}
+              ) : null}
+              {invoice.companyAddress
+                ? invoice.companyAddress.split('\n').map((l, i) => (
+                    <Text key={i} style={styles.infoLine}>
+                      {l}
+                    </Text>
+                  ))
+                : null}
             </View>
-          );
-        })}
 
-        {/* Total — kept together on the same page */}
-        <View style={styles.totalBlock} wrap={false}>
-          <View style={styles.totalTitleRow}>
-            <Text style={styles.totalIcon}>🧾</Text>
-            <Text style={styles.totalTitle}>TOTAL GENERAL</Text>
+            {/* — Receptor — */}
+            {invoice.clientName || invoice.clientIBAN || invoice.clientSwift || invoice.clientBank ? (
+              <View style={styles.infoBlock}>
+                <Text style={styles.infoHeader}>Emitido a favor de:</Text>
+                {invoice.clientName ? <Text style={styles.infoName}>{invoice.clientName}</Text> : null}
+                {invoice.clientIBAN ? (
+                  <Text style={styles.infoLine}>
+                    IBAN: <Text style={styles.infoBold}>{invoice.clientIBAN}</Text>
+                  </Text>
+                ) : null}
+                {invoice.clientSwift ? (
+                  <Text style={styles.infoLine}>
+                    Swift/BIC: <Text style={styles.infoBold}>{invoice.clientSwift}</Text>
+                  </Text>
+                ) : null}
+                {invoice.clientBank ? (
+                  <Text style={styles.infoLine}>
+                    Nombre y dirección del Banco: <Text style={styles.infoBold}>{invoice.clientBank}</Text>
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
           </View>
-          {invoice.sections.map((sec, i) => (
-            <View key={i} style={styles.totalBullet}>
-              <Text style={styles.bulletDot}>•</Text>
-              <Text style={styles.bulletText}>
-                Subtotal Sección {i + 1}: <Text style={styles.bold}>{fmt(calcSubtotal(sec))} {cur}</Text>
+
+          {/* — Sello + fecha + moneda (derecha) — */}
+          <View style={styles.headerRight}>
+            <View style={styles.stamp}>
+              <Text style={styles.stampText}>{statusLabel}</Text>
+            </View>
+            <View style={styles.metaGroup}>
+              <Text style={styles.label}>FECHA</Text>
+              <Text style={styles.metaValueR}>{fmtDate(invoice.date) || '—'}</Text>
+            </View>
+            <View style={styles.metaGroup}>
+              <Text style={styles.label}>MONEDA</Text>
+              <Text style={styles.metaValueR}>
+                {cur}
+                {sym ? ` ${sym}` : ''}
+              </Text>
+              {hasBank ? <Text style={styles.metaSubR}>Transferencia</Text> : null}
+            </View>
+          </View>
+        </View>
+
+        {/* ——— Items ——— */}
+        <View style={styles.itemsHead}>
+          <Text style={[styles.label, styles.itemsHeadConcept]}>CONCEPTO</Text>
+          {showHours && <Text style={[styles.label, styles.colQty]}>HORAS</Text>}
+          <Text style={[styles.label, styles.colAmount]}>IMPORTE{sym ? ` (${sym})` : ''}</Text>
+        </View>
+        <View style={styles.ruleHair} />
+
+        {invoice.sections.map((sec, sIdx) => (
+          <View key={sIdx} minPresenceAhead={90}>
+            {sec.title || sec.subtitle ? (
+              <View style={styles.sectionHead} wrap={false}>
+                {sec.title ? <Text style={styles.sectionTitle}>{sec.title}</Text> : null}
+                {sec.subtitle ? <Text style={styles.sectionSub}>{sec.subtitle}</Text> : null}
+              </View>
+            ) : null}
+            {sec.tasks.map((task, tIdx) => (
+              <ItemRow key={tIdx} task={task} showHours={showHours} />
+            ))}
+          </View>
+        ))}
+
+        <View style={styles.ruleHair} />
+
+        {/* ——— Totales ——— */}
+        <View style={styles.totalsBlock} wrap={false}>
+          <View style={styles.totalsInner}>
+            {multiSection &&
+              invoice.sections.map((sec, i) => (
+                <View key={i} style={styles.subtotalRow}>
+                  <Text style={styles.subtotalLabel}>Subtotal · {sec.title || `Sección ${i + 1}`}</Text>
+                  <Text style={styles.subtotalVal}>{money(calcSubtotal(sec))}</Text>
+                </View>
+              ))}
+            {multiSection && <View style={[styles.ruleHair, { marginTop: 6 }]} />}
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>TOTAL</Text>
+              <Text style={styles.totalValue}>
+                {sym ? `${sym} ` : ''}
+                {money(total)}
               </Text>
             </View>
-          ))}
-          <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalIcon}>💰</Text>
-            <Text style={styles.grandTotal}>
-              TOTAL GENERAL A PAGAR: {fmt(total)} {cur}
-            </Text>
           </View>
         </View>
 
+        {/* ——— Notas ——— */}
         {invoice.notes ? (
-          <View style={{ marginTop: 18 }} wrap={false}>
-            <Text style={{ fontSize: 10, color: '#555' }}>Notas: {invoice.notes}</Text>
+          <View style={styles.notes} wrap={false}>
+            <Text style={styles.label}>NOTAS</Text>
+            {invoice.notes.split('\n').map((l, i) => (
+              <Text key={i} style={[styles.notesText, { marginTop: i === 0 ? 5 : 0 }]}>
+                {l}
+              </Text>
+            ))}
           </View>
         ) : null}
 
-        {/* Signature: fixed bottom-right, rendered only on the last page */}
+        {/* ——— Firma: última página, abajo a la derecha ———
+            Bloque absoluto NO fixed: al ser el último hijo del flujo se ancla
+            a la última página, sin depender de `totalPages` (que con `fixed`
+            fallaba y hacía desaparecer el "EMITIDO POR" en facturas largas). */}
+        <View style={styles.signatureBlock} wrap={false}>
+          <View style={styles.signatureLine} />
+          <Text style={styles.signatureLabel}>EMITIDO POR</Text>
+          <Link src="https://invoices.corpsc.com/" style={styles.signatureUrl}>
+            https://invoices.corpsc.com/
+          </Link>
+          <Link src="https://www.corpsc.com/es" style={styles.signaturePromo}>
+            corpsc.com
+          </Link>
+        </View>
+
+        {/* ——— Pie: todas las páginas ——— */}
         <View
-          style={styles.signatureBlock}
+          style={styles.footer}
           fixed
           render={(props) => {
             const { pageNumber, totalPages } = props as unknown as {
               pageNumber: number;
               totalPages: number;
             };
-            return pageNumber === totalPages ? (
+            return (
               <>
-                <View style={styles.signatureLine} />
-                <Text style={styles.signatureLabel}>Emitido por</Text>
-                <Text style={styles.signatureUrl}>https://invoices.corpsc.com/</Text>
+                <Text style={styles.footerText}>GENERADO · INVOICE GENERATOR</Text>
+                <Text style={styles.footerText}>
+                  PÁG. {pageNumber} / {totalPages}
+                </Text>
               </>
-            ) : null;
+            );
           }}
         />
-
-        <Text style={styles.footer} fixed>
-          {invoice.date}
-        </Text>
       </Page>
     </Document>
   );

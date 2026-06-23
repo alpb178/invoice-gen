@@ -10,7 +10,7 @@ import {
   getMyTeams,
   getMyInvitations,
 } from '@/lib/api';
-import { getUser, logout, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
+import { getUser, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
 import { Skeleton, SkeletonCard, SkeletonKpiGrid, SkeletonList } from '@/components/Skeleton';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -92,17 +92,6 @@ function LineChart({ points, currency = 'USD' }: LineChartProps) {
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
-      <defs>
-        <linearGradient id="lineStroke" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#8b5cf6" />
-          <stop offset="50%" stopColor="#d946ef" />
-          <stop offset="100%" stopColor="#f97316" />
-        </linearGradient>
-        <linearGradient id="lineArea" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#d946ef" stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
       {gridY.map((g, i) => (
         <g key={i}>
           <line
@@ -110,7 +99,7 @@ function LineChart({ points, currency = 'USD' }: LineChartProps) {
             x2={width - pad.right}
             y1={g.y}
             y2={g.y}
-            stroke="#ece9f3"
+            stroke="#e5e5e7"
             strokeDasharray="3 3"
           />
           <text x={pad.left - 6} y={g.y + 3} textAnchor="end" fontSize="9" fill="#71717a">
@@ -118,11 +107,11 @@ function LineChart({ points, currency = 'USD' }: LineChartProps) {
           </text>
         </g>
       ))}
-      {area && <path d={area} fill="url(#lineArea)" />}
-      {path && <path d={path} fill="none" stroke="url(#lineStroke)" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />}
+      {area && <path d={area} fill="#18181b" fillOpacity="0.06" />}
+      {path && <path d={path} fill="none" stroke="#18181b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />}
       {coords.map((c, i) => (
         <g key={i}>
-          <circle cx={c.x} cy={c.y} r={4} fill="#ffffff" stroke="#8b5cf6" strokeWidth={2} />
+          <circle cx={c.x} cy={c.y} r={3.5} fill="#18181b" />
           <text x={c.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#52525b">
             {c.label}
           </text>
@@ -138,15 +127,15 @@ interface DonutProps {
 
 function Donut({ segments }: DonutProps) {
   const total = segments.reduce((a, s) => a + s.value, 0);
-  const size = 140;
-  const r = 56;
-  const stroke = 18;
+  const size = 400;
+  const r = 150;
+  const stroke = 30;
   const C = 2 * Math.PI * r;
   let offset = 0;
 
   return (
-    <div className="flex items-center gap-4">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <div className="flex items-center gap-4 sm:gap-5">
+      <svg viewBox={`0 0 ${size} ${size}`} className="shrink-0 w-28 sm:w-44 lg:w-[400px] h-auto">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f4f4f5" strokeWidth={stroke} />
         {total > 0 &&
           segments.map((s, i) => {
@@ -170,14 +159,14 @@ function Donut({ segments }: DonutProps) {
             offset += len;
             return el;
           })}
-        <text x={size / 2} y={size / 2 - 4} textAnchor="middle" fontSize="18" fontWeight="700" fill="#18181b">
+        <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontSize="48" fontWeight="700" fill="#18181b">
           {total}
         </text>
-        <text x={size / 2} y={size / 2 + 14} textAnchor="middle" fontSize="10" fill="#71717a">
-          facturas
+        <text x={size / 2} y={size / 2 + 14} textAnchor="middle" fontSize="16" fill="#71717a">
+          Facturas
         </text>
       </svg>
-      <ul className="space-y-1.5 text-xs flex-1">
+      <ul className="flex-1 min-w-0 space-y-2 text-sm sm:text-base lg:text-lg">
         {segments.map((s) => (
           <li key={s.key} className="flex items-center gap-2">
             <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
@@ -243,15 +232,10 @@ export default function DashboardPage() {
     if (!confirm('¿Eliminar esta factura?')) return;
     try {
       await deleteInvoice(id);
-      await loadAll();
+      router.push('/invoices');
     } catch (e: any) {
       alert(e.message);
     }
-  };
-
-  const changeTeam = (id: number) => {
-    setActiveTeamId(id);
-    window.location.reload();
   };
 
   // Dueño: muestra todas las facturas con el total de la factura.
@@ -357,7 +341,7 @@ export default function DashboardPage() {
     <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text text-transparent">
+          <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900">
             Dashboard
           </h1>
           <p className="text-ink-500 text-sm mt-1">
@@ -371,45 +355,14 @@ export default function DashboardPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {user?.email && <span className="text-xs text-ink-500 hidden sm:inline">{user.email}</span>}
-          {teams.length > 0 && (
-            <select
-              value={activeTeamId || ''}
-              onChange={(e) => changeTeam(Number(e.target.value))}
-              className="px-3.5 py-2 text-sm font-medium bg-paper border border-ink-200 rounded-xl text-ink-900 shadow-card hover:border-ink-300 focus:outline-none focus:border-ink-900 transition-colors cursor-pointer"
-            >
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          )}
-          <Link href="/invoices" className="nav-btn">
-            Facturas
+        {isOwnerOfActive && (
+          <Link
+            href="/invoices/new"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-ink-950 hover:bg-ink-800 text-[#f5f1e8] font-medium rounded-full text-sm transition-colors"
+          >
+            + Nueva Factura
           </Link>
-          <Link href="/reports" className="nav-btn">
-            Reportes
-          </Link>
-          <Link href="/teams" className="nav-btn">
-            Equipos
-          </Link>
-          <Link href="/settings" className="nav-btn">
-            Ajustes
-          </Link>
-          {isOwnerOfActive && (
-            <Link
-              href="/invoices/new"
-              className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 active:from-violet-800 active:to-fuchsia-700 text-paper font-semibold rounded-xl text-sm shadow-md shadow-violet-500/30 hover:shadow-lg hover:shadow-violet-500/40 transition-all"
-            >
-              + Nueva Factura
-            </Link>
-          )}
-          <button onClick={logout} className="nav-btn nav-btn-danger">
-            Salir
-          </button>
-        </div>
+        )}
       </div>
 
       {pendingInvitations.length > 0 && (
@@ -483,7 +436,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             <div className="lg:col-span-2 bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-ink-900">Facturación · últimos 6 meses</h2>
+                <h2 className="text-sm font-semibold text-ink-900">Últimos 6 meses</h2>
                 <span className="text-xs text-ink-500">{cur}</span>
               </div>
               <LineChart points={monthlySeries} currency={cur} />
@@ -645,48 +598,23 @@ export default function DashboardPage() {
 
 type KpiTone = 'violet' | 'sky' | 'amber' | 'emerald';
 
-const KPI_TONES: Record<KpiTone, { card: string; value: string; dot: string }> = {
-  violet: {
-    card: 'bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 border-violet-100',
-    value: 'bg-gradient-to-r from-violet-700 to-fuchsia-600 bg-clip-text text-transparent',
-    dot: 'bg-gradient-to-r from-violet-500 to-fuchsia-500',
-  },
-  sky: {
-    card: 'bg-gradient-to-br from-sky-50 via-white to-indigo-50 border-sky-100',
-    value: 'bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent',
-    dot: 'bg-gradient-to-r from-sky-500 to-indigo-500',
-  },
-  amber: {
-    card: 'bg-gradient-to-br from-amber-50 via-white to-orange-50 border-amber-100',
-    value: 'bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent',
-    dot: 'bg-gradient-to-r from-amber-400 to-orange-500',
-  },
-  emerald: {
-    card: 'bg-gradient-to-br from-emerald-50 via-white to-teal-50 border-emerald-100',
-    value: 'bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent',
-    dot: 'bg-gradient-to-r from-emerald-500 to-teal-500',
-  },
-};
-
+// Tarjeta KPI editorial: blanca, borde tinta, etiqueta en mono mayúsculas y
+// valor mono con cifras alineadas. Igual al preview de la landing (sin acento
+// de color). `tone` se mantiene por compatibilidad con las llamadas, sin uso.
 function KpiCard({
   label,
   value,
   hint,
-  tone = 'violet',
 }: {
   label: string;
   value: string;
   hint?: string;
   tone?: KpiTone;
 }) {
-  const t = KPI_TONES[tone];
   return (
-    <div className={`relative overflow-hidden border rounded-2xl p-5 shadow-card ${t.card}`}>
-      <div className="flex items-center gap-2">
-        <span className={`inline-block w-1.5 h-1.5 rounded-full ${t.dot}`} />
-        <div className="text-xs uppercase tracking-wide text-ink-500">{label}</div>
-      </div>
-      <div className={`text-2xl font-bold mt-1 font-mono ${t.value}`}>{value}</div>
+    <div className="border border-ink-200 rounded-2xl p-5 shadow-card bg-paper">
+      <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500 font-mono-tight">{label}</div>
+      <div className="text-2xl font-semibold mt-1.5 font-mono-tight num-dot text-ink-900">{value}</div>
       {hint && <div className="text-xs text-ink-500 mt-1">{hint}</div>}
     </div>
   );

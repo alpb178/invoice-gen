@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import { DM_Sans, Fraunces, JetBrains_Mono } from 'next/font/google';
 import AuthGuard from '@/components/AuthGuard';
-import SiteFooter from '@/components/SiteFooter';
+import AppShell from '@/components/AppShell';
 import { SITE_URL } from '@/lib/seo';
 import './globals.css';
 
@@ -163,8 +163,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* End Google Tag Manager (noscript) */}
 
         <AuthGuard>
-          <div className="flex-1 flex flex-col">{children}</div>
-          <SiteFooter />
+          <AppShell>{children}</AppShell>
         </AuthGuard>
       </body>
     </html>

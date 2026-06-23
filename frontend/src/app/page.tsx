@@ -136,6 +136,16 @@ export default function LandingPage() {
             <a href="#faq" className="hover:text-ink-950 transition-colors">
               Preguntas
             </a>
+            <a
+              href="https://www.corpsc.com/es"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 font-medium hover:text-ink-950 transition-colors"
+              style={{ color: 'var(--stamp)' }}
+            >
+              CorpSC
+              <span aria-hidden>↗</span>
+            </a>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -696,15 +706,15 @@ function DashboardPreview() {
             <MiniChart />
           </div>
           <div
-            className="rounded-xl border p-5 flex items-center gap-4"
+            className="rounded-xl border p-5 flex items-center gap-5"
             style={{ borderColor: 'rgba(28,28,31,0.12)' }}
           >
             <MiniDonut />
-            <ul className="text-[11px] space-y-1.5 flex-1">
-              <li className="flex items-center gap-2"><i className="w-2 h-2 rounded-sm" style={{ background: '#10b981' }} /><span className="flex-1 text-ink-700">Pagadas</span><span className="font-semibold">12</span></li>
-              <li className="flex items-center gap-2"><i className="w-2 h-2 rounded-sm" style={{ background: '#3b82f6' }} /><span className="flex-1 text-ink-700">Enviadas</span><span className="font-semibold">4</span></li>
-              <li className="flex items-center gap-2"><i className="w-2 h-2 rounded-sm" style={{ background: '#a1a1aa' }} /><span className="flex-1 text-ink-700">Borradores</span><span className="font-semibold">2</span></li>
-              <li className="flex items-center gap-2"><i className="w-2 h-2 rounded-sm" style={{ background: '#ef4444' }} /><span className="flex-1 text-ink-700">Canceladas</span><span className="font-semibold">0</span></li>
+            <ul className="text-xs space-y-2.5 flex-1">
+              <li className="flex items-center gap-2"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: '#10b981' }} /><span className="flex-1 text-ink-700">Pagadas</span><span className="font-semibold">12</span></li>
+              <li className="flex items-center gap-2"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: '#3b82f6' }} /><span className="flex-1 text-ink-700">Enviadas</span><span className="font-semibold">4</span></li>
+              <li className="flex items-center gap-2"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: '#a1a1aa' }} /><span className="flex-1 text-ink-700">Borradores</span><span className="font-semibold">2</span></li>
+              <li className="flex items-center gap-2"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: '#ef4444' }} /><span className="flex-1 text-ink-700">Canceladas</span><span className="font-semibold">0</span></li>
             </ul>
           </div>
         </div>
@@ -774,9 +784,9 @@ function MiniDonut() {
     { v: 2, c: '#a1a1aa' },
   ];
   const total = segs.reduce((a, s) => a + s.v, 0);
-  const size = 100;
-  const r = 40;
-  const stroke = 14;
+  const size = 124;
+  const r = 50;
+  const stroke = 16;
   const C = 2 * Math.PI * r;
   let off = 0;
   return (
@@ -801,10 +811,10 @@ function MiniDonut() {
         off += len;
         return el;
       })}
-      <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontSize="14" fontWeight="700">
+      <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontSize="20" fontWeight="700">
         {total}
       </text>
-      <text x={size / 2} y={size / 2 + 12} textAnchor="middle" fontSize="8" fill="#71717a">
+      <text x={size / 2} y={size / 2 + 14} textAnchor="middle" fontSize="9" fill="#71717a">
         facturas
       </text>
     </svg>

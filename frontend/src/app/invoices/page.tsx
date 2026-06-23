@@ -94,10 +94,7 @@ export default function InvoicesIndexPage() {
     <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
-          <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
-            ← Dashboard
-          </Link>
-          <h1 className="text-2xl font-bold text-ink-900">Todas las facturas</h1>
+          <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900">Todas las facturas</h1>
         </div>
         {isOwner && (
           <Link
