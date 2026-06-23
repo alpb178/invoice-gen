@@ -166,7 +166,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
 
-        <div className="flex-1" />
+        <div className="flex-1 flex justify-center">
+          <a
+            href="https://www.corpsc.com/es"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium text-ink-700 border border-ink-200 hover:border-ink-300 hover:text-ink-900 transition-colors"
+          >
+            Conoce CorpSC
+            <span aria-hidden>↗</span>
+          </a>
+        </div>
 
         {teams.length > 0 && (
           <select

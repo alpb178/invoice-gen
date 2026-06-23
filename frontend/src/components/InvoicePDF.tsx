@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { Document, Font, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Font, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
 import { Invoice, Section } from '@/types';
 
 if (typeof window !== 'undefined') {
@@ -169,6 +169,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Times-Italic',
     color: '#222',
     textAlign: 'right',
+    textDecoration: 'none',
+  },
+  signaturePromo: {
+    fontSize: 8,
+    fontFamily: 'Times-Italic',
+    color: '#888',
+    textAlign: 'right',
+    textDecoration: 'none',
+    marginTop: 3,
   },
 
   // Total block kept together
@@ -406,7 +415,12 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
               <>
                 <View style={styles.signatureLine} />
                 <Text style={styles.signatureLabel}>Emitido por</Text>
-                <Text style={styles.signatureUrl}>https://invoices.corpsc.com/</Text>
+                <Link src="https://invoices.corpsc.com/" style={styles.signatureUrl}>
+                  https://invoices.corpsc.com/
+                </Link>
+                <Link src="https://www.corpsc.com/es" style={styles.signaturePromo}>
+                  Soluciones CorpSC · www.corpsc.com/es
+                </Link>
               </>
             ) : null;
           }}
