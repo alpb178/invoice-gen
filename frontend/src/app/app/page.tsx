@@ -10,7 +10,7 @@ import {
   getMyTeams,
   getMyInvitations,
 } from '@/lib/api';
-import { getUser, logout, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
+import { getUser, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
 import { Skeleton, SkeletonCard, SkeletonKpiGrid, SkeletonList } from '@/components/Skeleton';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -249,11 +249,6 @@ export default function DashboardPage() {
     }
   };
 
-  const changeTeam = (id: number) => {
-    setActiveTeamId(id);
-    window.location.reload();
-  };
-
   // Dueño: muestra todas las facturas con el total de la factura.
   // Miembro: muestra todas las facturas del equipo también (para poder entrar
   // y añadir su sección), pero el importe visible es su aporte (suma de los
@@ -371,45 +366,14 @@ export default function DashboardPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {user?.email && <span className="text-xs text-ink-500 hidden sm:inline">{user.email}</span>}
-          {teams.length > 0 && (
-            <select
-              value={activeTeamId || ''}
-              onChange={(e) => changeTeam(Number(e.target.value))}
-              className="px-3.5 py-2 text-sm font-medium bg-paper border border-ink-200 rounded-xl text-ink-900 shadow-card hover:border-ink-300 focus:outline-none focus:border-ink-900 transition-colors cursor-pointer"
-            >
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          )}
-          <Link href="/invoices" className="nav-btn">
-            Facturas
+        {isOwnerOfActive && (
+          <Link
+            href="/invoices/new"
+            className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 active:from-violet-800 active:to-fuchsia-700 text-paper font-semibold rounded-xl text-sm shadow-md shadow-violet-500/30 hover:shadow-lg hover:shadow-violet-500/40 transition-all"
+          >
+            + Nueva Factura
           </Link>
-          <Link href="/reports" className="nav-btn">
-            Reportes
-          </Link>
-          <Link href="/teams" className="nav-btn">
-            Equipos
-          </Link>
-          <Link href="/settings" className="nav-btn">
-            Ajustes
-          </Link>
-          {isOwnerOfActive && (
-            <Link
-              href="/invoices/new"
-              className="px-5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 active:from-violet-800 active:to-fuchsia-700 text-paper font-semibold rounded-xl text-sm shadow-md shadow-violet-500/30 hover:shadow-lg hover:shadow-violet-500/40 transition-all"
-            >
-              + Nueva Factura
-            </Link>
-          )}
-          <button onClick={logout} className="nav-btn nav-btn-danger">
-            Salir
-          </button>
-        </div>
+        )}
       </div>
 
       {pendingInvitations.length > 0 && (

@@ -15,7 +15,7 @@ import {
   acceptInvitation,
   rejectInvitation,
 } from '@/lib/api';
-import { getUser, setActiveTeamId, logout } from '@/lib/auth';
+import { setActiveTeamId } from '@/lib/auth';
 import { Invitation } from '@/types';
 import { SkeletonList } from '@/components/Skeleton';
 
@@ -23,7 +23,6 @@ type Tab = 'mine' | 'member' | 'requests';
 
 export default function TeamsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
   const [owned, setOwned] = useState<any[]>([]);
   const [memberOf, setMemberOf] = useState<any[]>([]);
   const [incoming, setIncoming] = useState<Invitation[]>([]);
@@ -34,10 +33,6 @@ export default function TeamsPage() {
   const [flash, setFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [tab, setTab] = useState<Tab>('mine');
   const [processingInvite, setProcessingInvite] = useState<number | null>(null);
-
-  useEffect(() => {
-    setUser(getUser());
-  }, []);
 
   const load = async () => {
     try {
@@ -221,19 +216,7 @@ export default function TeamsPage() {
     <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <Link href="/app" className="text-ink-500 hover:text-ink-900 text-sm mb-1 inline-block">
-            ← Facturas
-          </Link>
           <h1 className="text-2xl font-bold text-ink-900">Equipos</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-ink-500 hidden sm:inline">{user?.email}</span>
-          <Link href="/settings" className="nav-btn">
-            Configuración
-          </Link>
-          <button onClick={logout} className="nav-btn nav-btn-danger">
-            Salir
-          </button>
         </div>
       </div>
 
