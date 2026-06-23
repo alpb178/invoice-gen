@@ -92,17 +92,6 @@ function LineChart({ points, currency = 'USD' }: LineChartProps) {
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
-      <defs>
-        <linearGradient id="lineStroke" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#8b5cf6" />
-          <stop offset="50%" stopColor="#d946ef" />
-          <stop offset="100%" stopColor="#f97316" />
-        </linearGradient>
-        <linearGradient id="lineArea" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#d946ef" stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
       {gridY.map((g, i) => (
         <g key={i}>
           <line
@@ -110,7 +99,7 @@ function LineChart({ points, currency = 'USD' }: LineChartProps) {
             x2={width - pad.right}
             y1={g.y}
             y2={g.y}
-            stroke="#ece9f3"
+            stroke="#e5e5e7"
             strokeDasharray="3 3"
           />
           <text x={pad.left - 6} y={g.y + 3} textAnchor="end" fontSize="9" fill="#71717a">
@@ -118,11 +107,11 @@ function LineChart({ points, currency = 'USD' }: LineChartProps) {
           </text>
         </g>
       ))}
-      {area && <path d={area} fill="url(#lineArea)" />}
-      {path && <path d={path} fill="none" stroke="url(#lineStroke)" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />}
+      {area && <path d={area} fill="#18181b" fillOpacity="0.06" />}
+      {path && <path d={path} fill="none" stroke="#18181b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />}
       {coords.map((c, i) => (
         <g key={i}>
-          <circle cx={c.x} cy={c.y} r={4} fill="#ffffff" stroke="#8b5cf6" strokeWidth={2} />
+          <circle cx={c.x} cy={c.y} r={3.5} fill="#18181b" />
           <text x={c.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#52525b">
             {c.label}
           </text>
@@ -138,14 +127,14 @@ interface DonutProps {
 
 function Donut({ segments }: DonutProps) {
   const total = segments.reduce((a, s) => a + s.value, 0);
-  const size = 140;
-  const r = 56;
-  const stroke = 18;
+  const size = 180;
+  const r = 72;
+  const stroke = 22;
   const C = 2 * Math.PI * r;
   let offset = 0;
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col items-center gap-5">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f4f4f5" strokeWidth={stroke} />
         {total > 0 &&
@@ -170,14 +159,14 @@ function Donut({ segments }: DonutProps) {
             offset += len;
             return el;
           })}
-        <text x={size / 2} y={size / 2 - 4} textAnchor="middle" fontSize="18" fontWeight="700" fill="#18181b">
+        <text x={size / 2} y={size / 2 - 4} textAnchor="middle" fontSize="26" fontWeight="700" fill="#18181b">
           {total}
         </text>
-        <text x={size / 2} y={size / 2 + 14} textAnchor="middle" fontSize="10" fill="#71717a">
+        <text x={size / 2} y={size / 2 + 18} textAnchor="middle" fontSize="11" fill="#71717a">
           facturas
         </text>
       </svg>
-      <ul className="space-y-1.5 text-xs flex-1">
+      <ul className="w-full space-y-2 text-xs">
         {segments.map((s) => (
           <li key={s.key} className="flex items-center gap-2">
             <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
@@ -447,7 +436,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             <div className="lg:col-span-2 bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-ink-900">Facturación · últimos 6 meses</h2>
+                <h2 className="text-sm font-semibold text-ink-900">Últimos 6 meses</h2>
                 <span className="text-xs text-ink-500">{cur}</span>
               </div>
               <LineChart points={monthlySeries} currency={cur} />
@@ -609,20 +598,13 @@ export default function DashboardPage() {
 
 type KpiTone = 'violet' | 'sky' | 'amber' | 'emerald';
 
-// Tono editorial: tarjeta crema/tinta uniforme; el color solo vive en el punto
-// de acento, tomado de la paleta de estado de la landing.
-const KPI_DOTS: Record<KpiTone, string> = {
-  violet: 'var(--stamp)',
-  sky: '#3b82f6',
-  amber: '#b0543f',
-  emerald: '#10b981',
-};
-
+// Tarjeta KPI editorial: blanca, borde tinta, etiqueta en mono mayúsculas y
+// valor mono con cifras alineadas. Igual al preview de la landing (sin acento
+// de color). `tone` se mantiene por compatibilidad con las llamadas, sin uso.
 function KpiCard({
   label,
   value,
   hint,
-  tone = 'violet',
 }: {
   label: string;
   value: string;
@@ -630,11 +612,8 @@ function KpiCard({
   tone?: KpiTone;
 }) {
   return (
-    <div className="relative overflow-hidden border border-ink-200 rounded-2xl p-5 shadow-card bg-paper">
-      <div className="flex items-center gap-2">
-        <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: KPI_DOTS[tone] }} />
-        <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500 font-mono-tight">{label}</div>
-      </div>
+    <div className="border border-ink-200 rounded-2xl p-5 shadow-card bg-paper">
+      <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500 font-mono-tight">{label}</div>
       <div className="text-2xl font-semibold mt-1.5 font-mono-tight num-dot text-ink-900">{value}</div>
       {hint && <div className="text-xs text-ink-500 mt-1">{hint}</div>}
     </div>
