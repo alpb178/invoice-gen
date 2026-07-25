@@ -12,6 +12,7 @@ import {
 } from '@/lib/api';
 import { getUser, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
 import { Skeleton, SkeletonCard, SkeletonKpiGrid, SkeletonList } from '@/components/Skeleton';
+import { BarChart, LineChart } from '@/components/Charts';
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Borrador',
@@ -57,126 +58,6 @@ function lastMonths(n: number): Date[] {
     out.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
   }
   return out;
-}
-
-interface LineChartProps {
-  points: { label: string; value: number }[];
-  currency?: string;
-}
-
-function LineChart({ points, currency = 'USD' }: LineChartProps) {
-  const width = 560;
-  const height = 180;
-  const pad = { top: 16, right: 16, bottom: 28, left: 44 };
-  const innerW = width - pad.left - pad.right;
-  const innerH = height - pad.top - pad.bottom;
-  const max = Math.max(1, ...points.map((p) => p.value));
-  const step = points.length > 1 ? innerW / (points.length - 1) : innerW;
-
-  const coords = points.map((p, i) => {
-    const x = pad.left + step * i;
-    const y = pad.top + innerH - (p.value / max) * innerH;
-    return { x, y, ...p };
-  });
-
-  const path = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(' ');
-  const area =
-    coords.length > 0
-      ? `${path} L ${coords[coords.length - 1].x} ${pad.top + innerH} L ${coords[0].x} ${pad.top + innerH} Z`
-      : '';
-
-  const gridY = [0, 0.5, 1].map((t) => ({
-    y: pad.top + innerH - t * innerH,
-    value: Math.round(max * t),
-  }));
-
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
-      {gridY.map((g, i) => (
-        <g key={i}>
-          <line
-            x1={pad.left}
-            x2={width - pad.right}
-            y1={g.y}
-            y2={g.y}
-            stroke="#e5e5e7"
-            strokeDasharray="3 3"
-          />
-          <text x={pad.left - 6} y={g.y + 3} textAnchor="end" fontSize="9" fill="#71717a">
-            {fmtMoney(g.value, currency)}
-          </text>
-        </g>
-      ))}
-      {area && <path d={area} fill="#18181b" fillOpacity="0.06" />}
-      {path && <path d={path} fill="none" stroke="#18181b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />}
-      {coords.map((c, i) => (
-        <g key={i}>
-          <circle cx={c.x} cy={c.y} r={3.5} fill="#18181b" />
-          <text x={c.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#52525b">
-            {c.label}
-          </text>
-        </g>
-      ))}
-    </svg>
-  );
-}
-
-interface DonutProps {
-  segments: { key: string; label: string; value: number; color: string }[];
-}
-
-function Donut({ segments }: DonutProps) {
-  const total = segments.reduce((a, s) => a + s.value, 0);
-  const size = 400;
-  const r = 150;
-  const stroke = 30;
-  const C = 2 * Math.PI * r;
-  let offset = 0;
-
-  return (
-    <div className="flex items-center gap-4 sm:gap-5">
-      <svg viewBox={`0 0 ${size} ${size}`} className="shrink-0 w-28 sm:w-44 lg:w-[400px] h-auto">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f4f4f5" strokeWidth={stroke} />
-        {total > 0 &&
-          segments.map((s, i) => {
-            const frac = s.value / total;
-            const len = C * frac;
-            const el = (
-              <circle
-                key={i}
-                cx={size / 2}
-                cy={size / 2}
-                r={r}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={stroke}
-                strokeDasharray={`${len} ${C - len}`}
-                strokeDashoffset={-offset}
-                transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                strokeLinecap="butt"
-              />
-            );
-            offset += len;
-            return el;
-          })}
-        <text x={size / 2} y={size / 2 - 2} textAnchor="middle" fontSize="48" fontWeight="700" fill="#18181b">
-          {total}
-        </text>
-        <text x={size / 2} y={size / 2 + 14} textAnchor="middle" fontSize="16" fill="#71717a">
-          Facturas
-        </text>
-      </svg>
-      <ul className="flex-1 min-w-0 space-y-2 text-sm sm:text-base lg:text-lg">
-        {segments.map((s) => (
-          <li key={s.key} className="flex items-center gap-2">
-            <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
-            <span className="text-ink-700 flex-1">{s.label}</span>
-            <span className="text-ink-900 font-semibold">{s.value}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 export default function DashboardPage() {
@@ -433,17 +314,22 @@ export default function DashboardPage() {
           </div>
 
           {/* Charts row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-            <div className="lg:col-span-2 bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
+          <div className="space-y-4 mb-6">
+            <div className="bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold text-ink-900">Últimos 6 meses</h2>
                 <span className="text-xs text-ink-500">{cur}</span>
               </div>
-              <LineChart points={monthlySeries} currency={cur} />
+              <LineChart points={monthlySeries} format={(n) => fmtMoney(n, cur)} />
             </div>
             <div className="bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
-              <h2 className="text-sm font-semibold text-ink-900 mb-3">Distribución por estado</h2>
-              <Donut segments={statusSegments} />
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-ink-900">Distribución por estado</h2>
+                <span className="text-xs text-ink-500">
+                  {myInvoices.length} {myInvoices.length === 1 ? 'factura' : 'facturas'}
+                </span>
+              </div>
+              <BarChart bars={statusSegments} format={(n) => String(n)} integer />
             </div>
           </div>
 

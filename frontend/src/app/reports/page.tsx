@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getInvoices, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
 import { Skeleton, SkeletonCard, SkeletonKpiGrid } from '@/components/Skeleton';
+import { BarChart } from '@/components/Charts';
 
 type Grouping = 'day' | 'month' | 'year';
 
@@ -50,11 +51,13 @@ export default function ReportsPage() {
   const [teams, setTeams] = useState<any[]>([]);
   const [activeTeam, setActiveTeam] = useState<any>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [me, setMe] = useState<any>(null);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [grouping, setGrouping] = useState<Grouping>('month');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [membersOpen, setMembersOpen] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     (async () => {
@@ -71,6 +74,7 @@ export default function ReportsPage() {
         setActiveTeamId(pick.id);
         setActiveTeam(pick);
         const u = getUser();
+        setMe(u);
         setIsOwner(pick.owner?.id === u?.id);
         const data = await getInvoices(pick.id);
         setInvoices(data || []);
@@ -91,9 +95,35 @@ export default function ReportsPage() {
     }, 0);
   };
 
+  // Secciones de una factura, con el autor normalizado.
+  const sectionsOf = (inv: any) => {
+    const a = inv.attributes || inv;
+    const list = a.sections?.data || a.sections || [];
+    return list.map((s: any) => {
+      const sa = s.attributes || s;
+      const author = sa.author?.data?.attributes || sa.author || a.author || null;
+      return { subtotal: Number(sa.subtotal) || 0, authorId: author?.id ?? null, authorEmail: author?.email || '—' };
+    });
+  };
+
+  // Lo aportado por el usuario con sesión: solo sus propias secciones. Para un
+  // miembro coincide con el total visible (la API ya le filtra las ajenas);
+  // para el dueño separa su aporte del resto del equipo.
+  const myAmount = (inv: any) =>
+    sectionsOf(inv)
+      .filter((s: any) => (s.authorId != null && me?.id != null ? s.authorId === me.id : s.authorEmail === me?.email))
+      .reduce((sum: number, s: any) => sum + s.subtotal, 0);
+
   const cur = activeTeam?.defaultCurrency || 'USD';
   const fmtMoney = (n: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: cur }).format(n || 0);
+  // En las gráficas los decimales sobran y estrechan las barras.
+  const fmtMoneyShort = (n: number) =>
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: cur,
+      maximumFractionDigits: 0,
+    }).format(n || 0);
 
   const filtered = useMemo(() => {
     return invoices.filter((inv: any) => {
@@ -129,7 +159,87 @@ export default function ReportsPage() {
 
   const grandTotal = useMemo(() => groups.reduce((a, g) => a + g.total, 0), [groups]);
 
+  // Ganancias por mes — solo lo aportado por el usuario con sesión. Rango
+  // continuo entre el primer y el último mes con datos (los meses sin
+  // facturas salen en cero, no se saltan), recortado a los 12 últimos para
+  // que las barras no se apelmacen.
+  const monthlyEarnings = useMemo(() => {
+    const buckets = new Map<string, number>();
+    for (const inv of filtered) {
+      const a = inv.attributes || inv;
+      const key = groupKey(a.date, 'month');
+      buckets.set(key, (buckets.get(key) || 0) + myAmount(inv));
+    }
+    if (buckets.size === 0) return [];
+
+    const keys = Array.from(buckets.keys()).sort();
+    const [firstY, firstM] = keys[0].split('-').map(Number);
+    const [lastY, lastM] = keys[keys.length - 1].split('-').map(Number);
+
+    const out: { key: string; label: string; value: number }[] = [];
+    let y = firstY;
+    let m = firstM;
+    while (y < lastY || (y === lastY && m <= lastM)) {
+      const key = `${y}-${String(m).padStart(2, '0')}`;
+      const d = new Date(y, m - 1, 1);
+      out.push({
+        key,
+        label: `${d.toLocaleDateString('es-ES', { month: 'short' })} ${String(y).slice(2)}`,
+        value: buckets.get(key) || 0,
+      });
+      m += 1;
+      if (m > 12) {
+        m = 1;
+        y += 1;
+      }
+    }
+    return out.slice(-12);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, me]);
+
+  const myTotal = useMemo(() => monthlyEarnings.reduce((a, m) => a + m.value, 0), [monthlyEarnings]);
+
+  // Ganancias por integrante — se atribuyen por el autor de cada sección, que
+  // es quien realmente aportó ese subtotal. El dueño ve a todo el equipo; un
+  // miembro solo recibe sus propias secciones desde la API, así que se ve a sí
+  // mismo.
+  const perMember = useMemo(() => {
+    const map = new Map<
+      string,
+      { email: string; total: number; invoices: Set<number>; sections: number; months: Map<string, number> }
+    >();
+
+    for (const inv of filtered) {
+      const a = inv.attributes || inv;
+      const monthK = groupKey(a.date, 'month');
+      for (const s of sectionsOf(inv)) {
+        const email = s.authorEmail;
+        const entry =
+          map.get(email) || { email, total: 0, invoices: new Set<number>(), sections: 0, months: new Map() };
+        entry.total += s.subtotal;
+        entry.invoices.add(inv.id);
+        entry.sections += 1;
+        entry.months.set(monthK, (entry.months.get(monthK) || 0) + s.subtotal);
+        map.set(email, entry);
+      }
+    }
+
+    const arr = Array.from(map.values()).sort((a, b) => b.total - a.total);
+    const sum = arr.reduce((acc, m) => acc + m.total, 0);
+    return arr.map((m) => ({
+      email: m.email,
+      total: m.total,
+      sections: m.sections,
+      invoiceCount: m.invoices.size,
+      share: sum > 0 ? m.total / sum : 0,
+      months: Array.from(m.months.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1)),
+    }));
+  }, [filtered]);
+
+  const membersTotal = useMemo(() => perMember.reduce((a, m) => a + m.total, 0), [perMember]);
+
   const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleMember = (email: string) => setMembersOpen((prev) => ({ ...prev, [email]: !prev[email] }));
 
   return (
     <div className="w-full px-4 md:px-10 lg:px-16 py-8">
@@ -191,6 +301,106 @@ export default function ReportsPage() {
               {filtered.length} factura{filtered.length === 1 ? '' : 's'} · {groups.length} grupo
               {groups.length === 1 ? '' : 's'}
             </div>
+          </div>
+
+          {/* Ganancias por mes */}
+          <div className="bg-paper border border-ink-200 rounded-2xl p-5 mb-4 shadow-card">
+            <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+              <div>
+                <h2 className="text-sm font-semibold text-ink-900">Mis ganancias por mes</h2>
+                <p className="text-xs text-ink-500 mt-0.5">
+                  Solo tus secciones{isOwner ? ', no el total del equipo' : ''}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="font-mono font-bold text-ink-900">{fmtMoney(myTotal)}</div>
+                <div className="text-xs text-ink-500">
+                  {monthlyEarnings.length} mes{monthlyEarnings.length === 1 ? '' : 'es'} · {cur}
+                </div>
+              </div>
+            </div>
+            {monthlyEarnings.length === 0 ? (
+              <p className="text-sm text-ink-500 py-8 text-center">Sin datos para los filtros actuales.</p>
+            ) : (
+              <BarChart
+                bars={monthlyEarnings}
+                format={fmtMoneyShort}
+                showValues={monthlyEarnings.length <= 8}
+              />
+            )}
+          </div>
+
+          {/* Ganancias por integrante */}
+          <div className="bg-paper border border-ink-200 rounded-2xl p-5 mb-6 shadow-card">
+            <div className="flex items-center justify-between mb-4 gap-3">
+              <h2 className="text-sm font-semibold text-ink-900">Ganancias por integrante</h2>
+              <span className="text-xs text-ink-500">
+                {perMember.length} integrante{perMember.length === 1 ? '' : 's'}
+              </span>
+            </div>
+
+            {perMember.length === 0 ? (
+              <p className="text-sm text-ink-500 py-8 text-center">
+                Todavía no hay secciones asignadas en este periodo.
+              </p>
+            ) : (
+              <>
+                <ul className="space-y-3">
+                  {perMember.map((m) => {
+                    const open = !!membersOpen[m.email];
+                    return (
+                      <li key={m.email} className="border border-ink-200 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => toggleMember(m.email)}
+                          aria-expanded={open}
+                          className="w-full px-4 py-3 text-left hover:bg-ink-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-900 text-[11px] font-bold text-paper uppercase">
+                              {m.email.slice(0, 2)}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium text-ink-900 truncate">{m.email}</div>
+                              <div className="text-xs text-ink-500">
+                                {m.invoiceCount} factura{m.invoiceCount === 1 ? '' : 's'} · {m.sections} secci
+                                {m.sections === 1 ? 'ón' : 'ones'}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="font-mono font-bold text-ink-900">{fmtMoney(m.total)}</div>
+                              <div className="text-xs text-ink-500">{Math.round(m.share * 100)}% del total</div>
+                            </div>
+                            <span className={`text-ink-500 transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden mt-3">
+                            <div
+                              className="h-full rounded-full bg-ink-900 transition-all duration-500"
+                              style={{ width: `${Math.max(m.share * 100, 1)}%` }}
+                            />
+                          </div>
+                        </button>
+
+                        {open && (
+                          <ul className="border-t border-ink-200 divide-y divide-ink-200 bg-ink-50/60">
+                            {m.months.map(([key, value]) => (
+                              <li key={key} className="flex items-center justify-between px-4 py-2 text-sm">
+                                <span className="text-ink-700 capitalize">{groupLabel(key, 'month')}</span>
+                                <span className="font-mono text-ink-900">{fmtMoney(value)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <div className="flex items-center justify-between border-t border-ink-200 mt-4 pt-3 text-sm">
+                  <span className="text-ink-500">Suma de secciones</span>
+                  <span className="font-mono font-semibold text-ink-900">{fmtMoney(membersTotal)}</span>
+                </div>
+              </>
+            )}
           </div>
 
           {groups.length === 0 ? (
