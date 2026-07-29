@@ -8,6 +8,7 @@ import { saveFullInvoice, markInvoiceExported, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
 import InvoicePDFButton from './InvoicePDFButton';
 import TaskImportModal from './TaskImportModal';
+import { useToast } from './Toast';
 
 const emptyTask = (): Task => ({ description: '', amount: 0, code: '', hours: undefined });
 const emptySection = (): Section => ({ title: '', subtitle: '', tasks: [emptyTask()] });
@@ -42,7 +43,11 @@ export default function InvoiceEditor({ initial }: Props) {
   const [isTeamOwner, setIsTeamOwner] = useState(false);
   const [importSectionIdx, setImportSectionIdx] = useState<number | null>(null);
   const [partiesOpen, setPartiesOpen] = useState(true);
+  // Secciones plegadas (acordeón). Guardamos los índices plegados, así una
+  // sección nueva nace desplegada sin tener que tocar este estado.
+  const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
   const user = typeof window !== 'undefined' ? getUser() : null;
+  const toast = useToast();
 
   useEffect(() => {
     (async () => {
@@ -61,9 +66,10 @@ export default function InvoiceEditor({ initial }: Props) {
           }
         }
       } catch (e) {
-        console.error(e);
+        toast.error(e);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial]);
 
   useEffect(() => {
@@ -143,6 +149,25 @@ export default function InvoiceEditor({ initial }: Props) {
 
   const removeSection = (sIdx: number) => {
     setInvoice((prev) => ({ ...prev, sections: prev.sections.filter((_, i) => i !== sIdx) }));
+    // Los índices por encima del eliminado se desplazan una posición: hay que
+    // recolocarlos o el acordeón acabaría plegando la sección equivocada.
+    setCollapsedSections((prev) => {
+      const next = new Set<number>();
+      prev.forEach((i) => {
+        if (i < sIdx) next.add(i);
+        else if (i > sIdx) next.add(i - 1);
+      });
+      return next;
+    });
+  };
+
+  const toggleSection = (sIdx: number) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sIdx)) next.delete(sIdx);
+      else next.add(sIdx);
+      return next;
+    });
   };
 
   const addTask = (sIdx: number) => {
@@ -182,6 +207,9 @@ export default function InvoiceEditor({ initial }: Props) {
 
   const calcSectionTotal = (sec: Section) => sec.tasks.reduce((a, t) => a + (t.amount || 0), 0);
   const calcTotal = () => invoice.sections.reduce((a, s) => a + calcSectionTotal(s), 0);
+  // Se calcula una sola vez por render: es el denominador del reparto por
+  // sección, y así no puede desincronizarse del total que se muestra.
+  const grandTotal = calcTotal();
 
   // Objeto que se pasa al botón de PDF. Lo memoizamos para que su referencia solo
   // cambie cuando cambian los datos reales (no en cada render), evitando que
@@ -208,7 +236,7 @@ export default function InvoiceEditor({ initial }: Props) {
 
   const handleSave = async () => {
     if (!teamId) {
-      alert('Selecciona un equipo antes de guardar');
+      toast.error('Selecciona un equipo antes de guardar.');
       return;
     }
     setSaving(true);
@@ -217,9 +245,10 @@ export default function InvoiceEditor({ initial }: Props) {
         canEditHeader,
         canEditSection: (sec) => canEditSection(sec),
       });
+      toast.success('Factura guardada.');
       router.push('/invoices');
-    } catch (e: any) {
-      alert('Error: ' + e.message);
+    } catch (e) {
+      toast.error(e);
     }
     setSaving(false);
   };
@@ -228,8 +257,9 @@ export default function InvoiceEditor({ initial }: Props) {
     if (!invoice.id) return;
     try {
       await markInvoiceExported(invoice.id);
-    } catch (e: any) {
-      console.error(e);
+    } catch (e) {
+      // No es crítico: el PDF ya se descargó, solo falló el registro.
+      toast.error(e);
     }
   };
 
@@ -405,10 +435,60 @@ export default function InvoiceEditor({ initial }: Props) {
         </div>
       )}
 
+      {invoice.sections.length > 1 && (
+        <div className="flex justify-end mb-3">
+          <button
+            type="button"
+            onClick={() =>
+              setCollapsedSections((prev) =>
+                prev.size === invoice.sections.length
+                  ? new Set()
+                  : new Set(invoice.sections.map((_, i) => i)),
+              )
+            }
+            className="text-xs text-ink-600 hover:text-ink-900 border border-ink-200 rounded-lg px-3 py-1.5 bg-paper transition-colors"
+          >
+            {collapsedSections.size === invoice.sections.length ? 'Mostrar todas' : 'Ocultar todas'}
+          </button>
+        </div>
+      )}
+
       {invoice.sections.map((sec, sIdx) => {
         const secEditable = canEditSection(sec);
+        const isCollapsed = collapsedSections.has(sIdx);
         return (
-        <div key={sIdx} className="bg-paper border border-ink-200 rounded-2xl p-6 mb-4 shadow-card">
+        <div key={sIdx} className="bg-paper border border-ink-200 rounded-2xl mb-4 shadow-card overflow-hidden">
+          {/* Cabecera del acordeón: visible siempre. Plegada, resume la sección
+              con responsable, título y subtotal. */}
+          <button
+            type="button"
+            onClick={() => toggleSection(sIdx)}
+            aria-expanded={!isCollapsed}
+            aria-controls={`seccion-${sIdx}`}
+            className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left hover:bg-ink-50 transition-colors"
+          >
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-ink-900 truncate">
+                {sec.title?.trim() || `Sección ${sIdx + 1}`}
+              </h2>
+              <p className="text-xs text-ink-500 mt-0.5 truncate">
+                {sec.subtitle?.trim()
+                  ? `Responsable: ${sec.subtitle}`
+                  : 'Sin responsable'}
+                <span className="text-ink-400"> · {sec.tasks.length} {sec.tasks.length === 1 ? 'tarea' : 'tareas'}</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500 font-mono-tight">Subtotal</div>
+                <div className="font-mono-tight num-dot font-semibold text-ink-900">{fmtMoney(calcSectionTotal(sec))}</div>
+              </div>
+              <span className={`text-ink-500 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} aria-hidden>▾</span>
+            </div>
+          </button>
+
+          {!isCollapsed && (
+          <div id={`seccion-${sIdx}`} className="px-6 pb-6 border-t border-ink-200 pt-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
@@ -537,6 +617,8 @@ export default function InvoiceEditor({ initial }: Props) {
               <span className="font-mono-tight num-dot font-semibold text-ink-900">{fmtMoney(calcSectionTotal(sec))}</span>
             </div>
           </div>
+          </div>
+          )}
         </div>
         );
       })}
@@ -551,20 +633,58 @@ export default function InvoiceEditor({ initial }: Props) {
       )}
 
       <div className="bg-paper border border-ink-300 rounded-2xl p-6 shadow-card">
-        <div className="flex items-center justify-between">
-          <div>
+        {/* Con desglose el bloque de la izquierda es alto y los dos casan por
+            abajo; sin desglose solo queda el título y se centra. */}
+        <div
+          className={`flex flex-col md:flex-row md:justify-between gap-6 ${
+            invoice.sections.length > 1 ? 'md:items-end' : 'md:items-center'
+          }`}
+        >
+          <div className="min-w-0 md:flex-1 md:max-w-lg">
             <h3 className="font-serif-display text-xl font-medium text-ink-900">Total General</h3>
-            <div className="text-ink-500 text-sm mt-1.5 space-y-0.5">
-              {invoice.sections.map((sec, i) => (
-                <div key={i}>
-                  Subtotal Sección {i + 1} ({sec.title || '...'}): <span className="font-mono-tight num-dot text-ink-800">{fmtMoney(calcSectionTotal(sec))}</span>
-                </div>
-              ))}
-            </div>
+
+            {/* Desglose por sección. La regla entre el nombre y el importe hace
+                de barra de proporción: el tramo en tinta es lo que aporta esa
+                sección al total, así se ve el reparto de un vistazo. */}
+            {invoice.sections.length > 1 && (
+              <ul className="mt-4 space-y-2.5">
+                {invoice.sections.map((sec, i) => {
+                  const amount = calcSectionTotal(sec);
+                  const share = grandTotal > 0 ? (amount / grandTotal) * 100 : 0;
+                  return (
+                    <li key={i} className="flex items-center gap-3 text-sm">
+                      {/* Ancho fijo: todas las reglas arrancan en el mismo punto,
+                          si no las barras no serían comparables entre filas. */}
+                      <span
+                        className="shrink-0 w-28 sm:w-40 truncate text-ink-900"
+                        title={[sec.title?.trim(), sec.subtitle?.trim()].filter(Boolean).join(' · ')}
+                      >
+                        {sec.title?.trim() || `Sección ${i + 1}`}
+                        {sec.subtitle?.trim() ? (
+                          <span className="text-ink-500"> · {sec.subtitle}</span>
+                        ) : null}
+                      </span>
+                      <span className="relative flex-1 min-w-6 h-px bg-ink-200" aria-hidden>
+                        <span
+                          className="absolute inset-y-0 left-0 bg-ink-900"
+                          style={{ width: `${share}%` }}
+                        />
+                      </span>
+                      <span className="shrink-0 w-9 text-right text-[11px] font-mono-tight num-dot text-ink-500">
+                        {Math.round(share)}%
+                      </span>
+                      <span className="shrink-0 font-mono-tight num-dot text-ink-900">
+                        {fmtMoney(amount)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
-          <div className="text-right">
+          <div className="shrink-0 md:text-right">
             <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500 font-mono-tight mb-1">Total</div>
-            <div className="font-serif-display text-4xl font-medium num-dot text-ink-900">{fmtMoney(calcTotal())}</div>
+            <div className="font-serif-display text-4xl font-medium num-dot text-ink-900">{fmtMoney(grandTotal)}</div>
             <div className="text-ink-500 text-[11px] font-mono-tight uppercase tracking-wider mt-0.5">{invoice.currency}</div>
           </div>
         </div>
