@@ -5,26 +5,26 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { loginWithPassword } from '@/lib/auth';
+import { useToast } from '@/components/Toast';
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
   const next = searchParams.get('next') || '/app';
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
     try {
       await loginWithPassword(identifier, password);
       router.replace(next);
-    } catch (err: any) {
-      setError(err.message || 'No se pudo iniciar sesión');
+    } catch (err) {
+      toast.error(err);
     } finally {
       setLoading(false);
     }
@@ -77,12 +77,6 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
-
-        {error && (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            {error}
-          </div>
-        )}
 
         <button
           type="submit"

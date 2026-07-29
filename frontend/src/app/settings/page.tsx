@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getMyTeams, updateTeam } from '@/lib/api';
 import { getUser, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
 import { Skeleton, SkeletonCard } from '@/components/Skeleton';
+import { useToast } from '@/components/Toast';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'BOB'];
 
@@ -14,7 +15,7 @@ export default function SettingsPage() {
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [flash, setFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const toast = useToast();
   const [form, setForm] = useState<any>({});
 
   useEffect(() => {
@@ -43,8 +44,8 @@ export default function SettingsPage() {
             defaultNotes: pick.defaultNotes || '',
           });
         }
-      } catch (e: any) {
-        setFlash({ type: 'err', text: e.message });
+      } catch (e) {
+        toast.error(e);
       }
       setLoading(false);
     })();
@@ -75,12 +76,11 @@ export default function SettingsPage() {
   const handleSave = async () => {
     if (!teamId) return;
     setSaving(true);
-    setFlash(null);
     try {
       await updateTeam(teamId, form);
-      setFlash({ type: 'ok', text: 'Configuración guardada' });
-    } catch (e: any) {
-      setFlash({ type: 'err', text: e.message });
+      toast.success('Configuración guardada.');
+    } catch (e) {
+      toast.error(e);
     }
     setSaving(false);
   };
@@ -145,18 +145,6 @@ export default function SettingsPage() {
       {!isOwner && (
         <div className="mb-5 text-xs text-ink-700 bg-ink-50 border border-ink-200 rounded-xl px-3 py-2">
           Solo el dueño del equipo puede cambiar esta configuración.
-        </div>
-      )}
-
-      {flash && (
-        <div
-          className={`mb-4 text-sm rounded-lg px-3 py-2 border ${
-            flash.type === 'ok'
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              : 'bg-red-50 text-red-700 border-red-200'
-          }`}
-        >
-          {flash.text}
         </div>
       )}
 

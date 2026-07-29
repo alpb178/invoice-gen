@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
+import { useToast } from './Toast';
 
 interface Props {
   onChange?: (teamId: number | null, isOwner: boolean) => void;
@@ -11,6 +12,7 @@ interface Props {
 export default function TeamSwitcher({ onChange }: Props) {
   const [teams, setTeams] = useState<any[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     (async () => {
@@ -29,7 +31,7 @@ export default function TeamSwitcher({ onChange }: Props) {
           onChange?.(null, false);
         }
       } catch (e) {
-        console.error(e);
+        toast.error(e);
       }
     })();
   }, []);
