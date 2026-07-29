@@ -157,9 +157,43 @@ const styles = StyleSheet.create({
 
 const calcSubtotal = (sec: Section) => sec.tasks.reduce((a, t) => a + (t.amount || 0), 0);
 
+// — ¿Puede partirse una fila entre páginas? —
+//
+// Lo normal es que no: una fila cortada por la mitad queda fea. Pero con
+// `wrap={false}` react-pdf no puede paginar una fila más alta que la página y
+// la RECORTA (avisa por consola "can't wrap between pages and it's bigger than
+// available page height"), perdiendo texto de la descripción sin que se note.
+// Así que estimamos la altura de la fila y, si se acerca al alto útil de la
+// página, dejamos que se parta: es más feo, pero no se pierde información.
+//
+// A4 = 595.28 × 841.89pt. Ancho útil de la descripción:
+//   595.28 − 96 (padding horizontal) − 92 (importe) − 48 (horas) − 12 (gutter) ≈ 347
+// Alto útil de la página: 841.89 − 48 (arriba) − 96 (abajo) ≈ 698
+const DESC_WIDTH = 347;
+const DESC_FONT_SIZE = 10.5;
+const DESC_LINE_HEIGHT = DESC_FONT_SIZE * 1.35;
+// Sobreestimamos el ancho medio de carácter (0.6em, Helvetica ronda 0.5em) para
+// que la cuenta de líneas salga por exceso y nunca nos quedemos cortos.
+const CHARS_PER_LINE = Math.max(1, Math.floor(DESC_WIDTH / (DESC_FONT_SIZE * 0.6)));
+const PAGE_CONTENT_HEIGHT = 698;
+// Umbral holgado (60% de la página): la estimación es aproximada y preferimos
+// permitir el corte antes de arriesgarnos a que react-pdf recorte la fila.
+const MAX_UNBREAKABLE_HEIGHT = PAGE_CONTENT_HEIGHT * 0.6;
+
+export const estimateRowHeight = (description?: string) => {
+  const len = (description || '').length;
+  const lines = Math.max(1, Math.ceil(len / CHARS_PER_LINE));
+  return lines * DESC_LINE_HEIGHT;
+};
+
+/** ¿Se permite que esta fila se parta entre páginas? (ver tests/invoice-pdf.test.ts) */
+export const isRowBreakable = (description?: string) =>
+  estimateRowHeight(description) > MAX_UNBREAKABLE_HEIGHT;
+
 function ItemRow({ task, showHours }: { task: any; showHours: boolean }) {
+  const breakable = isRowBreakable(task.description);
   return (
-    <View style={styles.itemRow} wrap={false}>
+    <View style={styles.itemRow} wrap={breakable}>
       <View style={{ flex: 1, paddingRight: 12 }}>
         <Text style={styles.itemDesc}>{task.description || '—'}</Text>
         {task.code ? <Text style={styles.itemCode}>{task.code}</Text> : null}
@@ -262,10 +296,15 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
         </View>
         <View style={styles.ruleHair} />
 
+        {/* OJO: `minPresenceAhead` NUNCA en el View que envuelve la sección completa.
+            Ese wrapper puede ser más alto que una página; react-pdf entra en un bucle
+            infinito de paginación (`paginate()` no tiene tope de iteraciones) y, al ser
+            síncrono, congela la pestaña y el navegador aborta por timeout. La pista
+            anti-huérfanos va en la cabecera de sección, que sí cabe en una página. */}
         {invoice.sections.map((sec, sIdx) => (
-          <View key={sIdx} minPresenceAhead={90}>
+          <View key={sIdx}>
             {sec.title || sec.subtitle ? (
-              <View style={styles.sectionHead} wrap={false}>
+              <View style={styles.sectionHead} wrap={false} minPresenceAhead={72}>
                 {sec.title ? <Text style={styles.sectionTitle}>{sec.title}</Text> : null}
                 {sec.subtitle ? <Text style={styles.sectionSub}>{sec.subtitle}</Text> : null}
               </View>
