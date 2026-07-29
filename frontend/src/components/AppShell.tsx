@@ -18,6 +18,7 @@ import {
 import { getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, logout, setActiveTeamId } from '@/lib/auth';
 import SiteFooter from './SiteFooter';
+import { useToast } from './Toast';
 
 // Rutas que viven dentro del panel autenticado y por tanto llevan el app-shell
 // (header fijo + drawer). El resto (landing, login, legales, invitaciones) se
@@ -66,6 +67,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const toast = useToast();
   // El menú vive colapsado como riel de iconos: se expande con hover/focus en
   // escritorio (solo CSS) y con el botón ☰ en táctil ("pinned").
   const [pinned, setPinned] = useState(false);
@@ -90,7 +92,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           setIsOwner(pick.owner?.id === getUser()?.id);
         }
       } catch (e) {
-        console.error(e);
+        toast.error(e);
       }
     })();
   }, [showShell]);

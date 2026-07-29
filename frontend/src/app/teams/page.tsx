@@ -18,6 +18,7 @@ import {
 import { setActiveTeamId } from '@/lib/auth';
 import { Invitation } from '@/types';
 import { SkeletonList } from '@/components/Skeleton';
+import { useToast } from '@/components/Toast';
 
 type Tab = 'mine' | 'member' | 'requests';
 
@@ -30,7 +31,7 @@ export default function TeamsPage() {
   const [creatingName, setCreatingName] = useState('');
   const [emailInputs, setEmailInputs] = useState<Record<number, string>>({});
   const [invitations, setInvitations] = useState<Record<number, Invitation[]>>({});
-  const [flash, setFlash] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>('mine');
   const [processingInvite, setProcessingInvite] = useState<number | null>(null);
 
@@ -57,7 +58,7 @@ export default function TeamsPage() {
         setIncoming([]);
       }
     } catch (e: any) {
-      setFlash({ type: 'err', text: e.message });
+      toast.error(e);
     }
     setLoading(false);
   };
@@ -74,14 +75,14 @@ export default function TeamsPage() {
       setCreatingName('');
       await load();
     } catch (e: any) {
-      setFlash({ type: 'err', text: e.message });
+      toast.error(e);
     }
   };
 
   const handleInvite = async (teamId: number) => {
     const raw = (emailInputs[teamId] || '').trim();
     if (!raw || !raw.includes('@')) {
-      setFlash({ type: 'err', text: 'Ingresa un email válido' });
+      toast.error('Ingresa un email válido.');
       return;
     }
     try {
@@ -94,10 +95,10 @@ export default function TeamsPage() {
           text = 'Invitación creada. Enlace copiado al portapapeles.';
         } catch {}
       }
-      setFlash({ type: 'ok', text });
+      toast.success(text);
       await load();
     } catch (e: any) {
-      setFlash({ type: 'err', text: e.message });
+      toast.error(e);
     }
   };
 
@@ -105,9 +106,9 @@ export default function TeamsPage() {
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
-      setFlash({ type: 'ok', text: 'Enlace copiado al portapapeles' });
+      toast.success('Enlace copiado al portapapeles.');
     } catch {
-      setFlash({ type: 'err', text: 'No se pudo copiar' });
+      toast.error('No se pudo copiar el enlace.');
     }
   };
 
@@ -117,7 +118,7 @@ export default function TeamsPage() {
       await cancelInvitation(id);
       await load();
     } catch (e: any) {
-      setFlash({ type: 'err', text: e.message });
+      toast.error(e);
     }
   };
 
@@ -127,7 +128,7 @@ export default function TeamsPage() {
       await removeTeamMember(teamId, userId);
       await load();
     } catch (e: any) {
-      setFlash({ type: 'err', text: e.message });
+      toast.error(e);
     }
   };
 
@@ -137,7 +138,7 @@ export default function TeamsPage() {
       await deleteTeam(teamId);
       await load();
     } catch (e: any) {
-      setFlash({ type: 'err', text: e.message });
+      toast.error(e);
     }
   };
 
@@ -147,11 +148,11 @@ export default function TeamsPage() {
     try {
       const data = await acceptInvitation(inv.token);
       if (data?.team?.id) setActiveTeamId(data.team.id);
-      setFlash({ type: 'ok', text: `Te uniste al equipo ${data?.team?.name || ''}.` });
+      toast.success(`Te uniste al equipo ${data?.team?.name || ''}.`);
       await load();
       setTab('member');
     } catch (e: any) {
-      setFlash({ type: 'err', text: e.message });
+      toast.error(e);
     }
     setProcessingInvite(null);
   };
@@ -162,10 +163,10 @@ export default function TeamsPage() {
     setProcessingInvite(inv.id);
     try {
       await rejectInvitation(inv.token);
-      setFlash({ type: 'ok', text: 'Invitación rechazada.' });
+      toast.success('Invitación rechazada.');
       await load();
     } catch (e: any) {
-      setFlash({ type: 'err', text: e.message });
+      toast.error(e);
     }
     setProcessingInvite(null);
   };
@@ -219,18 +220,6 @@ export default function TeamsPage() {
           <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900">Equipos</h1>
         </div>
       </div>
-
-      {flash && (
-        <div
-          className={`mb-4 text-sm rounded-lg px-3 py-2 border ${
-            flash.type === 'ok'
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              : 'bg-red-50 text-red-700 border-red-200'
-          }`}
-        >
-          {flash.text}
-        </div>
-      )}
 
       <div className="border-b border-ink-200 mb-6 flex gap-2 flex-wrap">
         {tabs.map(tabBtn)}

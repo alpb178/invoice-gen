@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { getInvoice } from '@/lib/api';
 import InvoiceEditor from '@/components/InvoiceEditor';
 import { SkeletonInvoiceEditor } from '@/components/Skeleton';
+import { useToast } from '@/components/Toast';
 import { Invoice, Section, Task } from '@/types';
 
 function normalize(raw: any): Invoice {
@@ -68,6 +69,7 @@ export default function EditInvoicePage() {
   const params = useParams();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   useEffect(() => {
     (async () => {
@@ -75,7 +77,7 @@ export default function EditInvoicePage() {
         const data = await getInvoice(Number(params.id));
         setInvoice(normalize(data));
       } catch (e) {
-        console.error(e);
+        toast.error(e);
       }
       setLoading(false);
     })();

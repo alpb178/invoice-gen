@@ -9,6 +9,7 @@ import {
   rejectInvitation,
 } from '@/lib/api';
 import { getToken, getUser, setActiveTeamId } from '@/lib/auth';
+import { useToast } from '@/components/Toast';
 
 export default function AcceptInvitationPage() {
   const params = useParams();
@@ -20,14 +21,15 @@ export default function AcceptInvitationPage() {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const autoRef = useRef(false);
+  const toast = useToast();
 
   useEffect(() => {
     (async () => {
       try {
         const data = await getInvitationByToken(token);
         setInfo(data);
-      } catch (e: any) {
-        setResult({ type: 'err', text: e.message });
+      } catch (e) {
+        toast.error(e);
       }
       setLoading(false);
     })();
@@ -46,8 +48,8 @@ export default function AcceptInvitationPage() {
       if (data?.team?.id) setActiveTeamId(data.team.id);
       setResult({ type: 'ok', text: `¡Te uniste al equipo ${data?.team?.name || ''}! Redirigiendo…` });
       setTimeout(() => router.replace('/app'), 900);
-    } catch (e: any) {
-      setResult({ type: 'err', text: e.message });
+    } catch (e) {
+      toast.error(e);
       setProcessing(false);
     }
   };
@@ -80,8 +82,8 @@ export default function AcceptInvitationPage() {
     try {
       await rejectInvitation(token);
       setResult({ type: 'ok', text: 'Invitación rechazada.' });
-    } catch (e: any) {
-      setResult({ type: 'err', text: e.message });
+    } catch (e) {
+      toast.error(e);
     }
     setProcessing(false);
   };
