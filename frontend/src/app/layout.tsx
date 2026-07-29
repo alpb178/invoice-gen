@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { DM_Sans, Fraunces, JetBrains_Mono } from 'next/font/google';
 import AuthGuard from '@/components/AuthGuard';
 import AppShell from '@/components/AppShell';
+import { ToastProvider } from '@/components/Toast';
 import { SITE_URL } from '@/lib/seo';
 import './globals.css';
 
@@ -162,9 +163,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </noscript>
         {/* End Google Tag Manager (noscript) */}
 
-        <AuthGuard>
-          <AppShell>{children}</AppShell>
-        </AuthGuard>
+        {/* Envuelve toda la app: los toasts deben poder salir desde cualquier
+            pantalla, incluidas login y registro (que van fuera del app-shell). */}
+        <ToastProvider>
+          <AuthGuard>
+            <AppShell>{children}</AppShell>
+          </AuthGuard>
+        </ToastProvider>
       </body>
     </html>
   );

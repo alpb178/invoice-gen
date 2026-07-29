@@ -131,6 +131,20 @@ input[type="number"] { -moz-appearance: textfield; }
   animation: rise 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+/* Entrada de los toasts (ver components/Toast.tsx) */
+@keyframes toast-in {
+  0%   { opacity: 0; transform: translateY(10px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-toast-in {
+  animation: toast-in 180ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-toast-in {
+    animation: none;
+  }
+}
+
 .stamp-rotate {
   transform: rotate(-6deg);
 }

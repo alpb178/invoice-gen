@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { parseTasksFromText, parseTasksFromPdf } from '@/lib/api';
 import { Task } from '@/types';
+import { useToast } from './Toast';
 
 interface Props {
   open: boolean;
@@ -24,6 +25,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
   const [preview, setPreview] = useState<Task[] | null>(null);
   const [pdfName, setPdfName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   if (!open) return null;
 
@@ -46,8 +48,8 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
       } else {
         setPreview(data.tasks as Task[]);
       }
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      toast.error(e);
     }
     setLoading(false);
   };
@@ -65,8 +67,8 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
       } else {
         setPreview(data.tasks as Task[]);
       }
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      toast.error(e);
     }
     setLoading(false);
   };

@@ -1,3 +1,5 @@
+import { ApiError, NETWORK_MESSAGE, translateMessage } from './errors';
+
 const TOKEN_KEY = 'invoice_jwt';
 const USER_KEY = 'invoice_user';
 const TEAM_KEY = 'invoice_active_team';
@@ -53,30 +55,40 @@ export function setActiveTeamId(id: number | null) {
 }
 
 export async function loginWithPassword(identifier: string, password: string) {
-  const res = await fetch(`${STRAPI_URL}/api/auth/local`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ identifier, password }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${STRAPI_URL}/api/auth/local`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier, password }),
+    });
+  } catch {
+    throw new ApiError(NETWORK_MESSAGE, 0);
+  }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg = body?.error?.message || 'Credenciales inválidas';
-    throw new Error(msg);
+    // Strapi contesta en inglés ("Invalid identifier or password"): se traduce
+    // aquí para que la pantalla de login solo tenga que mostrar el mensaje.
+    throw new ApiError(translateMessage(body?.error?.message, res.status), res.status);
   }
   setSession(body.jwt, body.user);
   return body.user as StrapiUser;
 }
 
 export async function registerUser(email: string, password: string) {
-  const res = await fetch(`${STRAPI_URL}/api/auth/local/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: email, email, password }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${STRAPI_URL}/api/auth/local/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: email, email, password }),
+    });
+  } catch {
+    throw new ApiError(NETWORK_MESSAGE, 0);
+  }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg = body?.error?.message || 'No se pudo registrar';
-    throw new Error(msg);
+    throw new ApiError(translateMessage(body?.error?.message, res.status), res.status);
   }
   setSession(body.jwt, body.user);
   return body.user as StrapiUser;

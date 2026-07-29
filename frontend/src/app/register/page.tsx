@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { registerUser, setActiveTeamId } from '@/lib/auth';
 import { createTeam } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,8 +21,8 @@ export default function RegisterPage() {
   const [companyName, setCompanyName] = useState('');
   const [companyCIF, setCompanyCIF] = useState('');
   const [companyAddress, setCompanyAddress] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (presetEmail) setEmail(presetEmail);
@@ -29,7 +30,6 @@ export default function RegisterPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
     try {
       await registerUser(email, password);
@@ -43,8 +43,8 @@ export default function RegisterPage() {
         setActiveTeamId(team.id);
       }
       router.replace(next || '/app');
-    } catch (err: any) {
-      setError(err.message || 'No se pudo completar el registro');
+    } catch (err) {
+      toast.error(err);
     } finally {
       setLoading(false);
     }
@@ -136,12 +136,6 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            {error}
           </div>
         )}
 
