@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getInvoices, deleteInvoice, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
 import { SkeletonList } from '@/components/Skeleton';
+import { useToast } from '@/components/Toast';
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Borrador',
@@ -32,6 +33,7 @@ export default function InvoicesIndexPage() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   const load = async () => {
     try {
@@ -49,7 +51,7 @@ export default function InvoicesIndexPage() {
       const data = await getInvoices(pick.id);
       setInvoices(data || []);
     } catch (e) {
-      console.error(e);
+      toast.error(e);
     }
     setLoading(false);
   };
@@ -62,9 +64,10 @@ export default function InvoicesIndexPage() {
     if (!confirm('¿Eliminar esta factura?')) return;
     try {
       await deleteInvoice(id);
+      toast.success('Factura eliminada.');
       await load();
-    } catch (e: any) {
-      alert(e.message);
+    } catch (e) {
+      toast.error(e);
     }
   };
 

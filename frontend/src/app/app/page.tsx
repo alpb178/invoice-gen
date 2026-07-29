@@ -13,6 +13,7 @@ import {
 import { getUser, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
 import { Skeleton, SkeletonCard, SkeletonKpiGrid, SkeletonList } from '@/components/Skeleton';
 import { BarChart, LineChart } from '@/components/Charts';
+import { useToast } from '@/components/Toast';
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Borrador',
@@ -68,6 +69,7 @@ export default function DashboardPage() {
   const [activeTeamId, setActiveTeamIdState] = useState<number | null>(null);
   const [isOwnerOfActive, setIsOwnerOfActive] = useState(false);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [pendingInvitations, setPendingInvitations] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
 
@@ -100,7 +102,7 @@ export default function DashboardPage() {
         setPendingInvitations(inv || []);
       } catch {}
     } catch (e) {
-      console.error(e);
+      toast.error(e);
     }
     setLoading(false);
   };
@@ -113,9 +115,10 @@ export default function DashboardPage() {
     if (!confirm('¿Eliminar esta factura?')) return;
     try {
       await deleteInvoice(id);
+      toast.success('Factura eliminada.');
       router.push('/invoices');
-    } catch (e: any) {
-      alert(e.message);
+    } catch (e) {
+      toast.error(e);
     }
   };
 

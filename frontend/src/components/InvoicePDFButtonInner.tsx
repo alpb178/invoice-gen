@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { pdf } from '@react-pdf/renderer';
 import InvoicePDF from './InvoicePDF';
 import { Invoice } from '@/types';
+import { useToast } from './Toast';
 
 interface Props {
   invoice: Invoice;
@@ -21,6 +22,7 @@ interface Props {
 // PDF en segundo plano mientras se edita.
 export default function InvoicePDFButtonInner({ invoice, showHours, onExported }: Props) {
   const [generating, setGenerating] = useState(false);
+  const toast = useToast();
 
   const handleDownload = async () => {
     if (generating) return;
@@ -40,7 +42,7 @@ export default function InvoicePDFButtonInner({ invoice, showHours, onExported }
       onExported?.();
     } catch (e) {
       console.error(e);
-      alert('No se pudo generar el PDF. Inténtalo de nuevo.');
+      toast.error('No se pudo generar el PDF. Inténtalo de nuevo.');
     } finally {
       setGenerating(false);
     }

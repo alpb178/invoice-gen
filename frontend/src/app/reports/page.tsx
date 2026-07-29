@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getInvoices, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
+import { useToast } from '@/components/Toast';
 import { Skeleton, SkeletonCard, SkeletonKpiGrid } from '@/components/Skeleton';
 import { BarChart } from '@/components/Charts';
 
@@ -54,6 +55,7 @@ export default function ReportsPage() {
   const [me, setMe] = useState<any>(null);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [grouping, setGrouping] = useState<Grouping>('month');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -79,7 +81,7 @@ export default function ReportsPage() {
         const data = await getInvoices(pick.id);
         setInvoices(data || []);
       } catch (e) {
-        console.error(e);
+        toast.error(e);
       }
       setLoading(false);
     })();

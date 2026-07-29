@@ -1,28 +1,41 @@
 // src/lib/api.ts
 
 import { clearSession, getToken } from './auth';
+import { ApiError, NETWORK_MESSAGE, SESSION_EXPIRED_MESSAGE, translateMessage } from './errors';
+import { queueNotice } from './notify';
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 
+// Todos los errores salen de aquí ya traducidos al español, así ninguna pantalla
+// tiene que preocuparse de los textos en inglés que devuelve Strapi.
 async function fetchAPI(path: string, options: RequestInit = {}) {
   const url = `${STRAPI_URL}/api${path}`;
   const token = getToken();
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch {
+    // Servidor caído, CORS o sin internet: fetch lanza TypeError.
+    throw new ApiError(NETWORK_MESSAGE, 0);
+  }
   if (res.status === 401) {
     clearSession();
+    // La redirección recarga la página, así que el aviso se deja en cola para
+    // que el ToastProvider lo muestre ya en /login.
+    queueNotice('error', SESSION_EXPIRED_MESSAGE);
     if (typeof window !== 'undefined') window.location.href = '/login';
-    throw new Error('Sesión expirada');
+    throw new ApiError(SESSION_EXPIRED_MESSAGE, 401);
   }
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error?.error?.message || `API error: ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(translateMessage(body?.error?.message, res.status), res.status);
   }
   return res.json();
 }
@@ -154,14 +167,19 @@ export async function parseTasksFromPdf(file: File) {
   const token = getToken();
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch(`${STRAPI_URL}/api/invoices/parse-tasks`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    body: form,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${STRAPI_URL}/api/invoices/parse-tasks`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: form,
+    });
+  } catch {
+    throw new ApiError(NETWORK_MESSAGE, 0);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `Error ${res.status}`);
+    throw new ApiError(translateMessage(err?.error?.message, res.status), res.status);
   }
   const json = await res.json();
   return json.data as { source: 'text' | 'pdf'; tasks: Array<{ code?: string; description: string; amount: number; hours?: number }>; raw?: string };
