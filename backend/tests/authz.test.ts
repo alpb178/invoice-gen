@@ -6,7 +6,9 @@ import {
   canCreateInvoice,
   canDeleteInvoice,
   canEditInvoiceHeader,
+  canEditInvoiceParties,
   canExportInvoice,
+  isInvoiceFrozen,
   canViewInvoice,
   canCreateSection,
   canEditSection,
@@ -195,5 +197,31 @@ describe('canEditSection', () => {
     assert.equal(canEditSection(null, OWNER), false);
     assert.equal(canEditSection(undefined, OWNER), false);
     assert.equal(canEditSection({ id: 1, author: null, invoice: invoiceByOwner }, MEMBER), false);
+  });
+});
+
+describe('emisor y cliente en una factura pagada', () => {
+  const paidInvoice: AuthzInvoice = { id: 200, team, author: { id: OWNER }, status: 'paid' };
+  const draftInvoice: AuthzInvoice = { id: 201, team, author: { id: OWNER }, status: 'draft' };
+
+  it('una factura pagada está congelada; una en borrador no', () => {
+    assert.equal(isInvoiceFrozen(paidInvoice), true);
+    assert.equal(isInvoiceFrozen(draftInvoice), false);
+    assert.equal(isInvoiceFrozen(undefined), false);
+  });
+
+  it('el dueño edita emisor y cliente en cualquier estado, incluida pagada', () => {
+    assert.equal(canEditInvoiceParties(draftInvoice, OWNER), true);
+    assert.equal(canEditInvoiceParties(paidInvoice, OWNER), true);
+  });
+
+  it('un miembro no edita emisor y cliente ni en borrador', () => {
+    assert.equal(canEditInvoiceParties(draftInvoice, MEMBER), false);
+    assert.equal(canEditInvoiceParties(paidInvoice, MEMBER), false);
+  });
+
+  it('alguien de fuera del equipo nunca', () => {
+    assert.equal(canEditInvoiceParties(paidInvoice, OUTSIDER), false);
+    assert.equal(canEditInvoiceParties(null, OWNER), false);
   });
 });

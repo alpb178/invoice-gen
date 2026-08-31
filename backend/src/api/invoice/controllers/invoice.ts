@@ -6,7 +6,9 @@ import {
   canCreateSection,
   canDeleteInvoice,
   canEditInvoiceHeader,
+  canEditInvoiceParties,
   canEditSection,
+  isInvoiceFrozen,
   isTeamMember,
   isTeamOwner,
 } from '../../../utils/authz';
@@ -16,6 +18,13 @@ const INVOICE = 'api::invoice.invoice' as const;
 const SECTION = 'api::section.section' as const;
 const TASK = 'api::task.task' as const;
 const TEAM = 'api::team.team' as any;
+
+// Datos de emisor y cliente. Son identidad, no importes: el dueño los puede
+// corregir en cualquier estado de la factura, incluso pagada.
+const PARTY_FIELDS = [
+  'companyName', 'companyCIF', 'companyAddress',
+  'clientName', 'clientIBAN', 'clientSwift', 'clientBank',
+] as const;
 
 const INVOICE_POPULATE = {
   sections: { populate: { tasks: true, author: true } },
@@ -203,24 +212,53 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
 
     const isOwner = isTeamOwner(team, user.id);
 
-    // Una factura pagada queda congelada. Solo se admite cambiar el estado
-    // (para des-marcarla como pagada) si lo hace el dueño del equipo.
-    if (existing && existing.status === 'paid') {
-      const onlyStatusChange =
-        isOwner &&
-        body.status &&
-        body.status !== 'paid' &&
-        Array.isArray(body.sections) &&
-        body.sections.length === 0;
-      if (!onlyStatusChange) {
+    // Una factura pagada queda congelada: ni secciones, ni tareas, ni importes.
+    // El dueño solo puede cambiar el estado (para des-marcarla como pagada) o
+    // corregir los datos de emisor y cliente (partiesOnly). Ninguna de las dos
+    // cosas admite secciones en el payload.
+    if (existing && isInvoiceFrozen(existing)) {
+      const canEditParties = canEditInvoiceParties(existing, user.id);
+      const sendsSections = incomingSections.length > 0;
+      const wantsUnlock = isOwner && !sendsSections && body.status && body.status !== 'paid';
+      const wantsParties = canEditParties && !sendsSections && body.partiesOnly === true;
+
+      if (!wantsUnlock && !wantsParties) {
         return ctx.forbidden(
           'La factura está pagada y no puede modificarse. Cambia el estado primero.',
         );
       }
-      await strapi.db.query(INVOICE).update({
-        where: { id: existing.id },
-        data: { status: body.status },
-      });
+
+      const frozenData: Record<string, any> = {};
+      if (wantsParties) {
+        for (const k of PARTY_FIELDS) if (k in body) frozenData[k] = body[k];
+      }
+      if (wantsUnlock) frozenData.status = body.status;
+
+      if (Object.keys(frozenData).length > 0) {
+        await strapi.db.query(INVOICE).update({
+          where: { id: existing.id },
+          data: frozenData,
+        });
+      }
+      ctx.body = { data: { id: existing.id } };
+      return;
+    }
+
+    // Guardado parcial de emisor y cliente: no toca secciones ni el resto de la
+    // cabecera. Llega desde el editor cuando la factura está congelada, pero se
+    // acepta en cualquier estado.
+    if (existing && body.partiesOnly === true) {
+      if (!canEditInvoiceParties(existing, user.id)) {
+        return ctx.forbidden('Solo el dueño del equipo puede modificar emisor y cliente');
+      }
+      const partyData: Record<string, any> = {};
+      for (const k of PARTY_FIELDS) if (k in body) partyData[k] = body[k];
+      if (Object.keys(partyData).length > 0) {
+        await strapi.db.query(INVOICE).update({
+          where: { id: existing.id },
+          data: partyData,
+        });
+      }
       ctx.body = { data: { id: existing.id } };
       return;
     }
@@ -228,8 +266,7 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
     // Campos de cabecera que acepta la factura. Cualquier otro se ignora.
     const headerFields = [
       'number', 'date', 'status', 'currency',
-      'companyName', 'companyCIF', 'companyAddress',
-      'clientName', 'clientIBAN', 'clientSwift', 'clientBank',
+      ...PARTY_FIELDS,
       'notes',
     ] as const;
     const headerData: Record<string, any> = {};

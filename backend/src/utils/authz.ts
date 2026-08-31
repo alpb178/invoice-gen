@@ -16,6 +16,7 @@ export interface AuthzInvoice {
   id?: number;
   team?: AuthzTeam | null;
   author?: { id: number } | null;
+  status?: string | null;
 }
 
 export interface AuthzSection {
@@ -53,6 +54,27 @@ export function canDeleteInvoice(invoice: AuthzInvoice | null | undefined, userI
  * SOLO el dueño del equipo.
  */
 export function canEditInvoiceHeader(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
+  return isTeamOwner(invoice?.team, userId);
+}
+
+/**
+ * Una factura pagada queda congelada: no se tocan secciones, tareas, importes
+ * ni el resto de la cabecera.
+ */
+export function isInvoiceFrozen(invoice: AuthzInvoice | null | undefined): boolean {
+  return invoice?.status === 'paid';
+}
+
+/**
+ * Editar emisor y cliente: SOLO el dueño del equipo, pero en CUALQUIER estado
+ * de la factura, incluida una pagada. Son datos de identidad (nombre, CIF,
+ * dirección, IBAN, banco), no importes: corregir un IBAN mal escrito no cambia
+ * lo facturado, y hay que poder hacerlo también después de cobrar.
+ */
+export function canEditInvoiceParties(
+  invoice: AuthzInvoice | null | undefined,
+  userId: number,
+): boolean {
   return isTeamOwner(invoice?.team, userId);
 }
 
