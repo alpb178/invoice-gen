@@ -2,8 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { pdf } from '@react-pdf/renderer';
-import InvoicePDF from './InvoicePDF';
+import { downloadInvoicePDF } from './invoicePdfDownload';
 import { Invoice } from '@/types';
 import { useToast } from './Toast';
 
@@ -28,17 +27,7 @@ export default function InvoicePDFButtonInner({ invoice, showHours, onExported }
     if (generating) return;
     setGenerating(true);
     try {
-      const blob = await pdf(
-        <InvoicePDF invoice={invoice} showHours={showHours} />,
-      ).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Factura_${invoice.number || 'borrador'}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      await downloadInvoicePDF(invoice, showHours);
       onExported?.();
     } catch (e) {
       console.error(e);

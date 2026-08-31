@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { registerUser, setActiveTeamId } from '@/lib/auth';
 import { createTeam } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import ClearableField from '@/components/ClearableField';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -71,16 +72,15 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <div>
-          <label className="block text-xs text-ink-600 mb-1">Email</label>
-          <input
-            required
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputClass}
-          />
-        </div>
+        <ClearableField
+          label="Email"
+          value={email}
+          onChange={setEmail}
+          type="email"
+          required
+          inputClassName={inputClass}
+          labelClassName="block text-xs text-ink-600 mb-1"
+        />
 
         <div>
           <label className="block text-xs text-ink-600 mb-1">Contraseña</label>
@@ -108,33 +108,38 @@ export default function RegisterPage() {
           <div className="pt-3 border-t border-ink-200">
             <h2 className="text-sm font-semibold text-ink-900 mb-3">Datos del equipo / empresa</h2>
             <div className="space-y-3">
-              <div>
-                <label className="block text-xs text-ink-600 mb-1">Nombre del equipo</label>
-                <input
-                  required
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
+              <ClearableField
+                label="Nombre del equipo"
+                value={teamName}
+                onChange={setTeamName}
+                required
+                inputClassName={inputClass}
+                labelClassName="block text-xs text-ink-600 mb-1"
+              />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-ink-600 mb-1">Razón social (opcional)</label>
-                  <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs text-ink-600 mb-1">CIF (opcional)</label>
-                  <input value={companyCIF} onChange={(e) => setCompanyCIF(e.target.value)} className={inputClass} />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-ink-600 mb-1">Dirección (opcional)</label>
-                <textarea
-                  value={companyAddress}
-                  onChange={(e) => setCompanyAddress(e.target.value)}
-                  className={inputClass + ' resize-none h-16'}
+                <ClearableField
+                  label="Razón social (opcional)"
+                  value={companyName}
+                  onChange={setCompanyName}
+                  inputClassName={inputClass}
+                  labelClassName="block text-xs text-ink-600 mb-1"
+                />
+                <ClearableField
+                  label="CIF (opcional)"
+                  value={companyCIF}
+                  onChange={setCompanyCIF}
+                  inputClassName={inputClass}
+                  labelClassName="block text-xs text-ink-600 mb-1"
                 />
               </div>
+              <ClearableField
+                label="Dirección (opcional)"
+                value={companyAddress}
+                onChange={setCompanyAddress}
+                multiline
+                inputClassName={inputClass}
+                labelClassName="block text-xs text-ink-600 mb-1"
+              />
             </div>
           </div>
         )}
