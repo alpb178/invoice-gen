@@ -7,7 +7,7 @@ import { getInvoices, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
 import { useToast } from '@/components/Toast';
 import { Skeleton, SkeletonCard, SkeletonKpiGrid } from '@/components/Skeleton';
-import { BarChart } from '@/components/Charts';
+import { LineChart } from '@/components/Charts';
 
 type Grouping = 'day' | 'month' | 'year';
 
@@ -119,14 +119,6 @@ export default function ReportsPage() {
   const cur = activeTeam?.defaultCurrency || 'USD';
   const fmtMoney = (n: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: cur }).format(n || 0);
-  // En las gráficas los decimales sobran y estrechan las barras.
-  const fmtMoneyShort = (n: number) =>
-    new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: cur,
-      maximumFractionDigits: 0,
-    }).format(n || 0);
-
   const filtered = useMemo(() => {
     return invoices.filter((inv: any) => {
       const a = inv.attributes || inv;
@@ -324,11 +316,7 @@ export default function ReportsPage() {
             {monthlyEarnings.length === 0 ? (
               <p className="text-sm text-ink-500 py-8 text-center">Sin datos para los filtros actuales.</p>
             ) : (
-              <BarChart
-                bars={monthlyEarnings}
-                format={fmtMoneyShort}
-                showValues={monthlyEarnings.length <= 8}
-              />
+              <LineChart points={monthlyEarnings} format={fmtMoney} />
             )}
           </div>
 

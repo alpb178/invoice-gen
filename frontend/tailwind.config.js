@@ -30,6 +30,10 @@ module.exports = {
       },
       boxShadow: {
         card: '0 1px 2px 0 rgba(15,15,20,0.04), 0 1px 3px 0 rgba(15,15,20,0.06)',
+        // Elementos que flotan sobre el contenido (tooltip de las gráficas):
+        // 'card' es demasiado plano para despegarse del fondo. Medido sobre la
+        // referencia de diseño.
+        pop: '0 4px 12px 0 rgba(15,15,20,0.10), 0 1px 2px 0 rgba(15,15,20,0.06)',
       },
     },
   },
