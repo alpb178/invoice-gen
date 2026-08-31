@@ -239,10 +239,18 @@ export function LineChart({ points, format }: LineChartProps) {
               transform: anchor,
             }}
           >
-            <div className="mb-2 whitespace-nowrap rounded-lg border border-ink-200 bg-paper px-2.5 py-1.5 shadow-card">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500">{active.label}</div>
-              <div className="font-mono-tight num-dot text-sm font-semibold text-ink-900">
-                {format(active.value)}
+            <div className="mb-2 whitespace-nowrap rounded-lg bg-paper px-2.5 py-2 shadow-pop">
+              <div className="text-xs text-ink-900">{active.label}</div>
+              <div className="mt-1 flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                  style={{ backgroundColor: LINE_STROKE }}
+                />
+                <span className="text-xs text-ink-500">Total</span>
+                <span className="ml-3 font-mono-tight num-dot text-xs font-semibold text-ink-900">
+                  {format(active.value)}
+                </span>
               </div>
             </div>
           </div>
