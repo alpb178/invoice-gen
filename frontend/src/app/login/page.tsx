@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { loginWithPassword } from '@/lib/auth';
 import { useToast } from '@/components/Toast';
+import ClearableField from '@/components/ClearableField';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,17 +45,16 @@ export default function LoginPage() {
           <p className="text-ink-500 text-sm mt-1">Generador de facturas</p>
         </div>
 
-        <div className="space-y-2">
-          <label className="block text-xs text-ink-600">Email</label>
-          <input
-            type="email"
-            autoComplete="email"
-            required
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            className="w-full px-3 py-2.5 bg-paper border border-ink-200 rounded-lg text-sm text-ink-900 focus:outline-none focus:border-ink-900"
-          />
-        </div>
+        <ClearableField
+          label="Email"
+          value={identifier}
+          onChange={setIdentifier}
+          type="email"
+          autoComplete="email"
+          required
+          inputClassName="w-full px-3 py-2.5 bg-paper border border-ink-200 rounded-lg text-sm text-ink-900 focus:outline-none focus:border-ink-900"
+          labelClassName="block text-xs text-ink-600 mb-2"
+        />
 
         <div className="space-y-2">
           <label className="block text-xs text-ink-600">Contraseña</label>

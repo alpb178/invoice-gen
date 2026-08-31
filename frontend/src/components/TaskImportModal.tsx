@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { parseTasksFromText, parseTasksFromPdf } from '@/lib/api';
 import { Task } from '@/types';
+import ClearableField from './ClearableField';
 import { useToast } from './Toast';
 
 interface Props {
@@ -154,12 +155,15 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
         <div className="px-6 py-4 overflow-y-auto flex-1 space-y-4">
           {mode === 'text' && (
             <div>
-              <label className="text-xs text-ink-600 mb-1.5 block">Pega aquí las tareas</label>
-              <textarea
+              <ClearableField
+                label="Pega aquí las tareas"
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={setText}
                 placeholder={EXAMPLE}
-                className="w-full h-40 px-3 py-2 bg-paper border border-ink-200 rounded-xl text-ink-900 text-sm font-mono focus:outline-none focus:border-ink-900"
+                multiline
+                heightClass="h-40"
+                inputClassName="w-full px-3 py-2 bg-paper border border-ink-200 rounded-xl text-ink-900 text-sm font-mono focus:outline-none focus:border-ink-900"
+                labelClassName="text-xs text-ink-600 mb-1.5 block"
               />
               <button
                 onClick={handleParseText}
@@ -222,7 +226,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                 <table className="w-full text-xs">
                   <thead className="bg-ink-50">
                     <tr className="text-ink-700 uppercase tracking-wide">
-                      <th className="text-left py-2 px-2 w-20">Código</th>
+                      <th className="text-left py-2 px-2 w-24">Código</th>
                       <th className="text-left py-2 px-2">Descripción</th>
                       <th className="text-right py-2 px-2 w-20">Horas</th>
                       <th className="text-right py-2 px-2 w-24">Monto ({currency})</th>
@@ -233,18 +237,22 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                     {preview.map((t, i) => (
                       <tr key={i} className="border-t border-ink-200">
                         <td className="py-1 px-2">
-                          <input
+                          <ClearableField
                             value={t.code || ''}
-                            onChange={(e) => updatePreview(i, 'code', e.target.value)}
-                            className={inputClass + ' font-mono'}
+                            onChange={(v) => updatePreview(i, 'code', v)}
+                            ariaLabel="Código de la tarea"
+                            dense
                             placeholder="TF-123"
+                            inputClassName={inputClass + ' font-mono'}
                           />
                         </td>
                         <td className="py-1 px-2">
-                          <input
-                            value={t.description}
-                            onChange={(e) => updatePreview(i, 'description', e.target.value)}
-                            className={inputClass}
+                          <ClearableField
+                            value={t.description || ''}
+                            onChange={(v) => updatePreview(i, 'description', v)}
+                            ariaLabel="Descripción de la tarea"
+                            dense
+                            inputClassName={inputClass}
                           />
                         </td>
                         <td className="py-1 px-2">

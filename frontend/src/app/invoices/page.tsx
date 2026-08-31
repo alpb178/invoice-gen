@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getInvoices, deleteInvoice, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
+import ClearableField from '@/components/ClearableField';
 import InvoiceRowExportButton from '@/components/InvoiceRowExportButton';
 import { SkeletonList } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
@@ -111,12 +112,15 @@ export default function InvoicesIndexPage() {
       </div>
 
       <div className="flex gap-2 mb-5 flex-wrap">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por número, cliente, autor..."
-          className="flex-1 min-w-[220px] px-3 py-2.5 bg-paper border border-ink-200 rounded-xl text-sm text-ink-900 focus:outline-none focus:border-ink-900"
-        />
+        <div className="flex-1 min-w-[220px]">
+          <ClearableField
+            value={query}
+            onChange={setQuery}
+            ariaLabel="Búsqueda"
+            placeholder="Buscar por número, cliente, autor..."
+            inputClassName="w-full px-3 py-2.5 bg-paper border border-ink-200 rounded-xl text-sm text-ink-900 focus:outline-none focus:border-ink-900"
+          />
+        </div>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}

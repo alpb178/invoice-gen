@@ -571,14 +571,24 @@ export default function InvoiceEditor({ initial }: Props) {
           <div id={`seccion-${sIdx}`} className="px-6 pb-6 border-t border-ink-200 pt-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Título de sección</label>
-                <input disabled={!secEditable} className={inputClass} placeholder="XXXX" value={sec.title} onChange={(e) => updateSection(sIdx, 'title', e.target.value)} />
-              </div>
-              <div>
-                <label className={labelClass}>Responsable</label>
-                <input disabled={!secEditable} className={inputClass} placeholder="XXXX" value={sec.subtitle || ''} onChange={(e) => updateSection(sIdx, 'subtitle', e.target.value)} />
-              </div>
+              <ClearableField
+                label="Título de sección"
+                value={sec.title || ''}
+                onChange={(v) => updateSection(sIdx, 'title', v)}
+                disabled={!secEditable}
+                placeholder="XXXX"
+                inputClassName={inputClass}
+                labelClassName={labelClass}
+              />
+              <ClearableField
+                label="Responsable"
+                value={sec.subtitle || ''}
+                onChange={(v) => updateSection(sIdx, 'subtitle', v)}
+                disabled={!secEditable}
+                placeholder="XXXX"
+                inputClassName={inputClass}
+                labelClassName={labelClass}
+              />
             </div>
             {secEditable && (
               <button onClick={() => removeSection(sIdx)} className="ml-3 mt-5 text-red-600 hover:text-red-700 text-lg" title="Eliminar sección">✕</button>
@@ -616,21 +626,25 @@ export default function InvoiceEditor({ initial }: Props) {
                       />
                     </td>
                     <td className="py-2.5 pr-3">
-                      <input
-                        disabled={!secEditable}
-                        className="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-800 text-sm font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
-                        placeholder="XXXX"
+                      <ClearableField
                         value={task.code || ''}
-                        onChange={(e) => updateTask(sIdx, tIdx, 'code', e.target.value)}
+                        onChange={(v) => updateTask(sIdx, tIdx, 'code', v)}
+                        disabled={!secEditable}
+                        ariaLabel="Código de la tarea"
+                        dense
+                        placeholder="XXXX"
+                        inputClassName="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-800 text-sm font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                       />
                     </td>
                     <td className="py-2.5 pr-3">
-                      <input
+                      <ClearableField
+                        value={task.description || ''}
+                        onChange={(v) => updateTask(sIdx, tIdx, 'description', v)}
                         disabled={!secEditable}
-                        className="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-800 text-sm focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
+                        ariaLabel="Descripción de la tarea"
+                        dense
                         placeholder="Descripción de la tarea..."
-                        value={task.description}
-                        onChange={(e) => updateTask(sIdx, tIdx, 'description', e.target.value)}
+                        inputClassName="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-800 text-sm focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                       />
                     </td>
                     {showHours && (
