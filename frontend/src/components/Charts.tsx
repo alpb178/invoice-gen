@@ -50,6 +50,12 @@ function useEntrance(signature: string, reduced: boolean) {
 }
 
 const AXIS = '#e5e5e7';
+// Rejilla y trazo de la gráfica de tendencia: medidos sobre la referencia de
+// diseño (#e8e8e9 y #8db636), declarados como tokens en globals.css. Van por
+// `style` y no por atributo: `stroke="var(--x)"` como atributo SVG no resuelve
+// en todos los navegadores, en una declaración CSS sí.
+const LINE_GRID = 'var(--chart-grid)';
+const LINE_STROKE = 'var(--chart-line)';
 const AXIS_TEXT = '#71717a';
 const LABEL_TEXT = '#52525b';
 const INK = '#18181b';
@@ -191,8 +197,8 @@ export function LineChart({ points, format }: LineChartProps) {
             x2={width - pad.right}
             y1={y}
             y2={y}
-            stroke={AXIS}
-            strokeDasharray="3 5"
+            strokeDasharray="3 3"
+            style={{ stroke: LINE_GRID }}
           />
         );
       })}
@@ -202,13 +208,13 @@ export function LineChart({ points, format }: LineChartProps) {
           ref={pathRef}
           d={path}
           fill="none"
-          stroke={INK}
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeDasharray={drawing ? draw.length : undefined}
           strokeDashoffset={drawing && !draw.on ? draw.length : 0}
           style={{
+            stroke: LINE_STROKE,
             visibility: reduced || draw.length > 0 ? 'visible' : 'hidden',
             transition: drawing ? 'stroke-dashoffset 1100ms cubic-bezier(0.2, 0, 0, 1)' : undefined,
           }}
@@ -222,7 +228,7 @@ export function LineChart({ points, format }: LineChartProps) {
           <circle cx={c.x} cy={c.y} r={16} fill="transparent">
             <title>{`${c.label} · ${format(c.value)}`}</title>
           </circle>
-          <text x={c.x} y={height - 12} textAnchor="middle" fontSize="12" fill={LABEL_TEXT}>
+          <text x={c.x} y={height - 12} textAnchor="middle" fontSize="12" fill={AXIS_TEXT}>
             {c.label}
           </text>
         </g>
