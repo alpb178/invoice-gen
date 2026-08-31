@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getInvoices, deleteInvoice, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
+import InvoiceRowExportButton from '@/components/InvoiceRowExportButton';
 import { SkeletonList } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 
@@ -174,6 +175,7 @@ export default function InvoicesIndexPage() {
                   >
                     {st === 'paid' ? 'Ver' : 'Editar'}
                   </Link>
+                  {isOwner && <InvoiceRowExportButton invoiceId={inv.id} onExported={load} />}
                   {isOwner && st !== 'paid' && (
                     <button
                       onClick={() => handleDelete(inv.id)}
