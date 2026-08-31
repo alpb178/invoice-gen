@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-// Gráficas del panel: SVG plano, sin dependencias. Todas comparten la misma
-// geometría para que al apilarse en tarjetas se lean como un conjunto.
+// Gráficas del panel y de reportes, sin dependencias. La de tendencia
+// (`LineChart`) es SVG plano y comparte el marco `ChartFrame`; el reparto por
+// estado (`HBarChart`) va en HTML, que para barras horizontales resuelve solo
+// el flujo y el truncado de las etiquetas.
 
 export const CHART = {
   width: 900,
   height: 230,
-  pad: { top: 22, right: 24, bottom: 40, left: 62 },
 };
 
 /** Respeta la preferencia del sistema de reducir el movimiento. */
@@ -49,7 +50,6 @@ function useEntrance(signature: string, reduced: boolean) {
   return entered;
 }
 
-const AXIS = '#e5e5e7';
 // Rejilla y trazo de la gráfica de tendencia: medidos sobre la referencia de
 // diseño (#e8e8e9 y #8db636), declarados como tokens en globals.css. Van por
 // `style` y no por atributo: `stroke="var(--x)"` como atributo SVG no resuelve
@@ -57,7 +57,6 @@ const AXIS = '#e5e5e7';
 const LINE_GRID = 'var(--chart-grid)';
 const LINE_STROKE = 'var(--chart-line)';
 const AXIS_TEXT = '#71717a';
-const LABEL_TEXT = '#52525b';
 const INK = '#18181b';
 
 /**
@@ -82,36 +81,6 @@ export function ChartFrame({
       </div>
     </div>
   );
-}
-
-function Grid({ ticks, format }: { ticks: number[]; format: (n: number) => string }) {
-  const { width, height, pad } = CHART;
-  const innerH = height - pad.top - pad.bottom;
-  const baseline = pad.top + innerH;
-  const max = Math.max(1, ...ticks);
-
-  return (
-    <>
-      {ticks.map((value, i) => {
-        const y = baseline - (value / max) * innerH;
-        return (
-          <g key={i}>
-            <line x1={pad.left} x2={width - pad.right} y1={y} y2={y} stroke={AXIS} strokeDasharray="3 3" />
-            <text x={pad.left - 8} y={y + 4} textAnchor="end" fontSize="11" fill={AXIS_TEXT}>
-              {format(value)}
-            </text>
-          </g>
-        );
-      })}
-    </>
-  );
-}
-
-/** Escala de tres marcas; en modo entero evita ejes tipo 0 / 0,5 / 1. */
-function ticksFor(max: number, integer: boolean) {
-  const raw = [0, max / 2, max];
-  const vals = integer ? raw.map((v) => Math.round(v)) : raw;
-  return Array.from(new Set(vals));
 }
 
 interface LineChartProps {
@@ -359,82 +328,6 @@ export function LineChart({ points, format }: LineChartProps) {
         onTouchMove={(e) => pickNearest(e.touches[0].clientX, e.currentTarget)}
         onTouchEnd={() => setHover(null)}
       />
-    </ChartFrame>
-  );
-}
-
-interface BarChartProps {
-  bars: { key: string; label: string; value: number; color?: string }[];
-  format: (n: number) => string;
-  /** Marcas del eje redondeadas a entero (conteos). */
-  integer?: boolean;
-  /** Oculta la cifra sobre cada barra cuando estorba (muchas barras). */
-  showValues?: boolean;
-}
-
-export function BarChart({ bars, format, integer = false, showValues = true }: BarChartProps) {
-  const { width, height, pad } = CHART;
-  const innerW = width - pad.left - pad.right;
-  const innerH = height - pad.top - pad.bottom;
-  const baseline = pad.top + innerH;
-  const max = Math.max(1, ...bars.map((b) => b.value));
-  const step = bars.length > 0 ? innerW / bars.length : innerW;
-  const barW = Math.min(72, step * 0.45);
-
-  const reduced = usePrefersReducedMotion();
-  const entered = useEntrance(bars.map((b) => `${b.key}:${b.value}`).join('|'), reduced);
-
-  return (
-    <ChartFrame>
-      <Grid ticks={ticksFor(max, integer)} format={format} />
-      {bars.map((b, i) => {
-        const cx = pad.left + step * (i + 0.5);
-        // Altura mínima para que un valor en cero siga siendo visible.
-        const h = Math.max(3, (b.value / max) * innerH);
-        return (
-          <g key={b.key}>
-            {/* Crece desde su borde inferior: la barra "sube" hasta su importe
-                al abrir la página. */}
-            <rect
-              x={cx - barW / 2}
-              y={baseline - h}
-              width={barW}
-              height={h}
-              rx={2}
-              fill={b.color || INK}
-              style={{
-                transform: entered ? 'scaleY(1)' : 'scaleY(0)',
-                // fill-box + bottom: el origen es el borde inferior de la propia
-                // barra, sin depender de las coordenadas del viewBox.
-                transformBox: 'fill-box',
-                transformOrigin: 'bottom',
-                transition: 'transform 700ms cubic-bezier(0.2, 0, 0, 1)',
-                transitionDelay: `${i * 60}ms`,
-              }}
-            />
-            {showValues && (
-              <text
-                x={cx}
-                y={baseline - h - 8}
-                textAnchor="middle"
-                fontSize="12"
-                fontWeight="600"
-                fill={INK}
-                style={{
-                  opacity: entered ? 1 : 0,
-                  transition: 'opacity 400ms ease-out',
-                  transitionDelay: `${i * 60 + 260}ms`,
-                }}
-              >
-                {format(b.value)}
-              </text>
-            )}
-            <text x={cx} y={height - 12} textAnchor="middle" fontSize="12" fill={LABEL_TEXT}>
-              {b.label}
-            </text>
-          </g>
-        );
-      })}
     </ChartFrame>
   );
 }
