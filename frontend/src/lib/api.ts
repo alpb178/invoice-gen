@@ -281,3 +281,27 @@ export async function saveFullInvoice(invoice: any, teamId: number, _opts: SaveO
   });
   return res.data?.id as number;
 }
+
+// Guarda solo los datos de emisor y cliente. Se usa cuando la factura está
+// congelada (pagada): esos campos se pueden corregir en cualquier estado, pero
+// el backend rechaza el guardado completo, así que el payload no lleva
+// secciones ni el resto de la cabecera.
+export async function saveInvoiceParties(invoice: any) {
+  const payload = {
+    id: invoice.id,
+    partiesOnly: true,
+    companyName: invoice.companyName,
+    companyCIF: invoice.companyCIF,
+    companyAddress: invoice.companyAddress,
+    clientName: invoice.clientName,
+    clientIBAN: invoice.clientIBAN,
+    clientSwift: invoice.clientSwift,
+    clientBank: invoice.clientBank,
+  };
+
+  const res = await fetchAPI('/invoices/save-full', {
+    method: 'POST',
+    body: JSON.stringify({ data: payload }),
+  });
+  return res.data?.id as number;
+}

@@ -1,10 +1,10 @@
 // src/components/InvoiceEditor.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Invoice, Section, Task } from '@/types';
-import { saveFullInvoice, markInvoiceExported, getMyTeams } from '@/lib/api';
+import { saveFullInvoice, saveInvoiceParties, markInvoiceExported, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
 import InvoicePDFButton from './InvoicePDFButton';
 import TaskImportModal from './TaskImportModal';
@@ -46,6 +46,8 @@ export default function InvoiceEditor({ initial }: Props) {
   // Secciones plegadas (acordeón). Guardamos los índices plegados, así una
   // sección nueva nace desplegada sin tener que tocar este estado.
   const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
+  // Equipo cuyos valores por defecto ya se han pre-rellenado en esta factura nueva.
+  const prefilledTeamRef = useRef<number | null>(null);
   const user = typeof window !== 'undefined' ? getUser() : null;
   const toast = useToast();
 
@@ -77,21 +79,29 @@ export default function InvoiceEditor({ initial }: Props) {
     const team = teams.find((t: any) => t.id === teamId);
     const ownerId = team?.owner?.id;
     setIsTeamOwner(ownerId != null && ownerId === user?.id);
+    if (!team) return;
 
-    if (team) {
-      setInvoice((prev) => ({
-        ...prev,
-        companyName: prev.companyName || team.companyName || '',
-        companyCIF: prev.companyCIF || team.companyCIF || '',
-        companyAddress: prev.companyAddress || team.companyAddress || '',
-        clientName: prev.clientName || team.defaultClientName || '',
-        clientIBAN: prev.clientIBAN || team.defaultClientIBAN || '',
-        clientSwift: prev.clientSwift || team.defaultClientSwift || '',
-        clientBank: prev.clientBank || team.defaultClientBank || '',
-        currency: prev.currency || team.defaultCurrency || 'USD',
-        notes: prev.notes || team.defaultNotes || '',
-      }));
-    }
+    // Los datos del equipo son un pre-relleno al CREAR la factura, no un
+    // respaldo permanente: se aplican una sola vez por equipo elegido. Una
+    // factura ya guardada muestra exactamente lo que hay en base de datos, así
+    // que un campo que el dueño ha borrado (el banco, por ejemplo) se queda
+    // vacío en vez de repoblarse con el valor del equipo.
+    if (initial) return;
+    if (prefilledTeamRef.current === teamId) return;
+    prefilledTeamRef.current = teamId;
+
+    setInvoice((prev) => ({
+      ...prev,
+      companyName: prev.companyName || team.companyName || '',
+      companyCIF: prev.companyCIF || team.companyCIF || '',
+      companyAddress: prev.companyAddress || team.companyAddress || '',
+      clientName: prev.clientName || team.defaultClientName || '',
+      clientIBAN: prev.clientIBAN || team.defaultClientIBAN || '',
+      clientSwift: prev.clientSwift || team.defaultClientSwift || '',
+      clientBank: prev.clientBank || team.defaultClientBank || '',
+      currency: prev.currency || team.defaultCurrency || 'USD',
+      notes: prev.notes || team.defaultNotes || '',
+    }));
   }, [teamId, teams, user?.id, initial]);
 
   // Nueva factura solo la puede crear el dueño del equipo.
@@ -101,8 +111,13 @@ export default function InvoiceEditor({ initial }: Props) {
   // solo cuando llega ya pagada desde la base de datos (initial), no cuando el
   // usuario cambia el estado a "pagada" en el editor (debe poder guardarlo).
   const isLocked = initial?.status === 'paid';
-  // La cabecera (datos de factura, emisor/cliente, notas) solo la edita el dueño.
+  // La cabecera (nº, fecha, estado, moneda, notas) solo la edita el dueño, y no
+  // si la factura está pagada.
   const canEditHeader = isTeamOwner && !isLocked;
+  // Emisor y cliente son datos de identidad, no importes: el dueño los puede
+  // corregir en cualquier estado de la factura, incluso pagada (un IBAN o una
+  // dirección mal escritos no cambian lo facturado).
+  const canEditParties = isTeamOwner;
   // Una sección es editable si: la estás creando (sin id), eres el autor,
   // o eres dueño del equipo. Y nunca si la factura está pagada.
   const canEditSection = (sec: Section) => {
@@ -119,7 +134,8 @@ export default function InvoiceEditor({ initial }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [invoice.sections, isTeamOwner, user?.id, isLocked],
   );
-  const canSave = canCreateInvoice && (canEditHeader || hasEditableSection || canAddSection);
+  const canSave =
+    canCreateInvoice && (canEditHeader || canEditParties || hasEditableSection || canAddSection);
 
   const update = (field: keyof Invoice, value: any) => {
     setInvoice((prev) => ({ ...prev, [field]: value }));
@@ -214,22 +230,13 @@ export default function InvoiceEditor({ initial }: Props) {
   // Objeto que se pasa al botón de PDF. Lo memoizamos para que su referencia solo
   // cambie cuando cambian los datos reales (no en cada render), evitando que
   // PDFDownloadLink regenere el PDF de forma continua y bloquee la página.
-  const pdfInvoice = useMemo(() => {
-    const team = teams.find((t: any) => t.id === teamId);
-    return {
-      ...invoice,
-      totalAmount: calcTotal(),
-      companyName: invoice.companyName || team?.companyName || '',
-      companyCIF: invoice.companyCIF || team?.companyCIF || '',
-      companyAddress: invoice.companyAddress || team?.companyAddress || '',
-      clientName: invoice.clientName || team?.defaultClientName || '',
-      clientIBAN: invoice.clientIBAN || team?.defaultClientIBAN || '',
-      clientSwift: invoice.clientSwift || team?.defaultClientSwift || '',
-      clientBank: invoice.clientBank || team?.defaultClientBank || '',
-      notes: invoice.notes || team?.defaultNotes || '',
-    };
+  // El PDF imprime lo que hay en el formulario, sin volver a mezclar los valores
+  // del equipo: si un campo está vacío es porque se ha vaciado a propósito.
+  const pdfInvoice = useMemo(
+    () => ({ ...invoice, totalAmount: calcTotal() }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoice, teams, teamId]);
+    [invoice],
+  );
 
   const fmtMoney = (n: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD' }).format(n || 0);
@@ -241,11 +248,18 @@ export default function InvoiceEditor({ initial }: Props) {
     }
     setSaving(true);
     try {
-      await saveFullInvoice(invoice, teamId, {
-        canEditHeader,
-        canEditSection: (sec) => canEditSection(sec),
-      });
-      toast.success('Factura guardada.');
+      if (isLocked) {
+        // Factura congelada: solo viajan emisor y cliente. Secciones e importes
+        // no se envían, y el backend rechazaría el payload si lo hicieran.
+        await saveInvoiceParties(invoice);
+        toast.success('Datos de emisor y cliente guardados.');
+      } else {
+        await saveFullInvoice(invoice, teamId, {
+          canEditHeader,
+          canEditSection: (sec) => canEditSection(sec),
+        });
+        toast.success('Factura guardada.');
+      }
       router.push('/invoices');
     } catch (e) {
       toast.error(e);
@@ -349,10 +363,11 @@ export default function InvoiceEditor({ initial }: Props) {
             ✓
           </span>
           <div className="text-emerald-900">
-            <div className="font-semibold">Factura pagada — solo lectura</div>
+            <div className="font-semibold">Factura pagada — congelada</div>
             <div className="text-emerald-700 text-xs mt-0.5">
-              Esta factura está marcada como pagada y no puede modificarse. Cambia el estado a otro
-              valor si necesitas editarla.
+              {canEditParties
+                ? 'Secciones, tareas e importes no se pueden modificar. Sí puedes corregir los datos de emisor y cliente.'
+                : 'Esta factura está marcada como pagada y no puede modificarse.'}
             </div>
           </div>
         </div>
@@ -406,7 +421,9 @@ export default function InvoiceEditor({ initial }: Props) {
           >
             <div>
               <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight">Emisor y Cliente</h2>
-              <p className="text-xs text-ink-500 mt-0.5">Datos opcionales — por defecto se usan los del equipo</p>
+              <p className="text-xs text-ink-500 mt-0.5">
+                Se pre-rellenan con los del equipo al crear la factura. Editables en cualquier estado.
+              </p>
             </div>
             <span className={`text-ink-500 transition-transform ${partiesOpen ? 'rotate-180' : ''}`}>▾</span>
           </button>
@@ -415,19 +432,19 @@ export default function InvoiceEditor({ initial }: Props) {
               <div>
                 <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-3">Emisor</h3>
                 <div className="space-y-3">
-                  <div><label className={labelClass}>Empresa</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.companyName || ''} onChange={(e) => update('companyName', e.target.value)} /></div>
-                  <div><label className={labelClass}>CIF</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.companyCIF || ''} onChange={(e) => update('companyCIF', e.target.value)} /></div>
-                  <div><label className={labelClass}>Dirección</label><textarea disabled={!canEditHeader} className={inputClass + ' resize-none h-16'} placeholder="Calle..." value={invoice.companyAddress || ''} onChange={(e) => update('companyAddress', e.target.value)} /></div>
+                  <div><label className={labelClass}>Empresa</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.companyName || ''} onChange={(e) => update('companyName', e.target.value)} /></div>
+                  <div><label className={labelClass}>CIF</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.companyCIF || ''} onChange={(e) => update('companyCIF', e.target.value)} /></div>
+                  <div><label className={labelClass}>Dirección</label><textarea disabled={!canEditParties} className={inputClass + ' resize-none h-16'} placeholder="Calle..." value={invoice.companyAddress || ''} onChange={(e) => update('companyAddress', e.target.value)} /></div>
                 </div>
               </div>
 
               <div>
                 <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-3">Cliente</h3>
                 <div className="space-y-3">
-                  <div><label className={labelClass}>Nombre</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.clientName || ''} onChange={(e) => update('clientName', e.target.value)} /></div>
-                  <div><label className={labelClass}>IBAN</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.clientIBAN || ''} onChange={(e) => update('clientIBAN', e.target.value)} /></div>
-                  <div><label className={labelClass}>Swift/BIC</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.clientSwift || ''} onChange={(e) => update('clientSwift', e.target.value)} /></div>
-                  <div><label className={labelClass}>Banco</label><input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.clientBank || ''} onChange={(e) => update('clientBank', e.target.value)} /></div>
+                  <div><label className={labelClass}>Nombre</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.clientName || ''} onChange={(e) => update('clientName', e.target.value)} /></div>
+                  <div><label className={labelClass}>IBAN</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.clientIBAN || ''} onChange={(e) => update('clientIBAN', e.target.value)} /></div>
+                  <div><label className={labelClass}>Swift/BIC</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.clientSwift || ''} onChange={(e) => update('clientSwift', e.target.value)} /></div>
+                  <div><label className={labelClass}>Banco</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.clientBank || ''} onChange={(e) => update('clientBank', e.target.value)} /></div>
                 </div>
               </div>
             </div>
