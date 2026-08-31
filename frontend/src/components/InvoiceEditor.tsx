@@ -602,7 +602,9 @@ export default function InvoiceEditor({ initial }: Props) {
           )}
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            {/* min-w: por debajo de ~640px la tabla se desplaza en vez de
+                comprimir Descripción hasta dejarla ilegible. */}
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="text-ink-500 text-xs uppercase tracking-wider font-mono-tight border-b border-ink-200">
                   <th className="text-left py-3 pr-3 w-14">Nº</th>
@@ -687,7 +689,7 @@ export default function InvoiceEditor({ initial }: Props) {
             </table>
           </div>
 
-          <div className="flex items-center justify-between mt-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap mt-3">
             {secEditable ? (
               <div className="flex gap-2">
                 <button

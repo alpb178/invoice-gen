@@ -146,9 +146,9 @@ export default function InvoicesIndexPage() {
             return (
               <div
                 key={inv.id}
-                className="bg-paper border border-ink-200 rounded-2xl p-5 flex items-center justify-between hover:border-ink-400 transition-colors shadow-card"
+                className="bg-paper border border-ink-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-ink-400 transition-colors shadow-card"
               >
-                <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <div className="w-12 h-12 rounded-xl bg-ink-100 flex items-center justify-center text-xl border border-ink-200 shrink-0">
                     🧾
                   </div>
@@ -169,8 +169,10 @@ export default function InvoicesIndexPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-mono font-semibold text-ink-900 text-lg">
+                {/* En móvil las acciones bajan a su propia línea: con importe,
+                    Editar, PDF y borrar no caben junto al nombre. */}
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap justify-end">
+                  <span className="font-mono font-semibold text-ink-900 text-base sm:text-lg">
                     {fmtMoney(inv.displayAmount || 0, a.currency || 'USD')}
                   </span>
                   <Link

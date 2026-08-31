@@ -390,11 +390,11 @@ export default function TeamsPage() {
             {memberOf.map((team) => (
               <div
                 key={team.id}
-                className="bg-paper border border-ink-200 rounded-2xl p-4 flex items-center justify-between shadow-card"
+                className="bg-paper border border-ink-200 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-card"
               >
-                <div>
-                  <h3 className="font-semibold text-ink-900">{team.name}</h3>
-                  <p className="text-xs text-ink-500 mt-0.5">Dueño: {team.owner?.email || '—'}</p>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-ink-900 truncate">{team.name}</h3>
+                  <p className="text-xs text-ink-500 mt-0.5 truncate">Dueño: {team.owner?.email || '—'}</p>
                 </div>
                 <button
                   onClick={() => selectActive(team.id)}

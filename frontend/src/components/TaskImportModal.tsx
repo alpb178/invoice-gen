@@ -222,8 +222,8 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                   + Añadir fila
                 </button>
               </div>
-              <div className="border border-ink-200 rounded-xl overflow-hidden">
-                <table className="w-full text-xs">
+              <div className="border border-ink-200 rounded-xl overflow-x-auto">
+                <table className="w-full min-w-[520px] text-xs">
                   <thead className="bg-ink-50">
                     <tr className="text-ink-700 uppercase tracking-wide">
                       <th className="text-left py-2 px-2 w-24">Código</th>
