@@ -79,7 +79,8 @@ Todos los mensajes al usuario pasan por el sistema de toasts: `useToast()` de `f
 
 - Diseño editorial: papel crema, tinta, Fraunces para display, JetBrains Mono para datos. Usar los tokens existentes (`bg-paper`, `border-ink-200`, `shadow-card`, `font-serif-display`, `font-mono-tight`, `num-dot`), no colores sueltos.
 - Importes siempre en mono y alineados a la derecha.
-- Permisos: el dueño del equipo edita la cabecera; cada miembro solo sus secciones; una factura `paid` queda congelada. La autorización real está en el backend (`backend/src/api/*/controllers`), el frontend solo la refleja.
+- Permisos: el dueño del equipo edita la cabecera; cada miembro solo sus secciones; una factura `paid` queda congelada (secciones, tareas e importes), salvo los datos de emisor y cliente, que el dueño puede corregir en cualquier estado (`canEditInvoiceParties`, y `partiesOnly` en `POST /invoices/save-full`). La autorización real está en el backend (`backend/src/api/*/controllers`), el frontend solo la refleja.
+- Los valores por defecto del equipo son un **pre-relleno al crear** la factura, no un respaldo permanente: una factura guardada muestra lo que hay en base de datos, así que un campo vaciado a propósito (el banco, por ejemplo) se queda vacío.
 
 ### Comprobaciones antes de dar algo por hecho
 
