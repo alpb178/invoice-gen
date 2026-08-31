@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+
 // Gráficas del panel: SVG plano, sin dependencias. Todas comparten la misma
 // geometría para que al apilarse en tarjetas se lean como un conjunto.
 
@@ -8,6 +10,44 @@ export const CHART = {
   height: 230,
   pad: { top: 22, right: 24, bottom: 40, left: 62 },
 };
+
+/** Respeta la preferencia del sistema de reducir el movimiento. */
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setReduced(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+  return reduced;
+}
+
+/**
+ * Pasa de false a true en el primer frame tras montar (o tras cambiar los
+ * datos): así la transición CSS tiene un estado inicial que animar. Con dos
+ * rAF, el navegador pinta el estado "en cero" antes de arrancar.
+ */
+function useEntrance(signature: string, reduced: boolean) {
+  const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    if (reduced) {
+      setEntered(true);
+      return;
+    }
+    setEntered(false);
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setEntered(true));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [signature, reduced]);
+  return entered;
+}
 
 const AXIS = '#e5e5e7';
 const AXIS_TEXT = '#71717a';
@@ -63,10 +103,42 @@ interface LineChartProps {
   format: (n: number) => string;
 }
 
+// Padding propio: sin etiquetas de eje Y la gráfica respira a lo ancho.
+const LINE_PAD = { top: 24, right: 18, bottom: 34, left: 18 };
+const LINE_GRID_LINES = 5;
+
+/**
+ * Catmull-Rom convertido a Bézier: la curva pasa por todos los puntos y suaviza
+ * los tramos intermedios. Los puntos de control se recortan al área de dibujo
+ * porque en series con picos la curva se sale por arriba o por abajo.
+ */
+function smoothPath(pts: { x: number; y: number }[], minY: number, maxY: number) {
+  if (pts.length === 0) return '';
+  if (pts.length < 3) {
+    return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  }
+  const clamp = (v: number) => Math.min(maxY, Math.max(minY, v));
+  let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = clamp(p1.y + (p2.y - p0.y) / 6);
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = clamp(p2.y - (p3.y - p1.y) / 6);
+    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
 export function LineChart({ points, format }: LineChartProps) {
-  const { width, height, pad } = CHART;
+  const { width, height } = CHART;
+  const pad = LINE_PAD;
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
+  const baseline = pad.top + innerH;
   const max = Math.max(1, ...points.map((p) => p.value));
   const step = points.length > 1 ? innerW / (points.length - 1) : innerW;
 
@@ -75,21 +147,81 @@ export function LineChart({ points, format }: LineChartProps) {
     y: pad.top + innerH - (p.value / max) * innerH,
     ...p,
   }));
+  const path = smoothPath(coords, pad.top, baseline);
 
-  const path = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(' ');
-  const area =
-    coords.length > 0
-      ? `${path} L ${coords[coords.length - 1].x} ${pad.top + innerH} L ${coords[0].x} ${pad.top + innerH} Z`
-      : '';
+  // El trazo se dibuja de izquierda a derecha con dashoffset, así que hace falta
+  // su longitud real, que solo sabe el navegador. Medir y arrancar van en el
+  // mismo efecto a propósito: si fueran dos, el trazo podría llegar a `on`
+  // antes de tener longitud y el dibujado se saltaría.
+  const pathRef = useRef<SVGPathElement | null>(null);
+  const reduced = usePrefersReducedMotion();
+  const [draw, setDraw] = useState({ length: 0, on: false });
+
+  useEffect(() => {
+    const el = pathRef.current;
+    if (!el) return;
+    const length = el.getTotalLength();
+    if (reduced) {
+      setDraw({ length, on: true });
+      return;
+    }
+    setDraw({ length, on: false });
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setDraw({ length, on: true }));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [path, reduced]);
+
+  // Mientras no está medido el trazo se oculta: si no, se vería la línea
+  // completa un fotograma y después empezaría a dibujarse.
+  const drawing = draw.length > 0 && !reduced;
 
   return (
     <ChartFrame>
-      <Grid ticks={ticksFor(max, false)} format={format} />
-      {area && <path d={area} fill={INK} fillOpacity="0.06" />}
-      {path && <path d={path} fill="none" stroke={INK} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />}
+      {Array.from({ length: LINE_GRID_LINES }, (_, i) => {
+        const y = pad.top + (innerH / (LINE_GRID_LINES - 1)) * i;
+        return (
+          <line
+            key={i}
+            x1={pad.left}
+            x2={width - pad.right}
+            y1={y}
+            y2={y}
+            stroke={AXIS}
+            strokeDasharray="3 5"
+          />
+        );
+      })}
+
+      {path && (
+        <path
+          ref={pathRef}
+          d={path}
+          fill="none"
+          stroke={INK}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={drawing ? draw.length : undefined}
+          strokeDashoffset={drawing && !draw.on ? draw.length : 0}
+          style={{
+            visibility: reduced || draw.length > 0 ? 'visible' : 'hidden',
+            transition: drawing ? 'stroke-dashoffset 1100ms cubic-bezier(0.2, 0, 0, 1)' : undefined,
+          }}
+        />
+      )}
+
       {coords.map((c, i) => (
         <g key={i}>
-          <circle cx={c.x} cy={c.y} r={4.5} fill={INK} />
+          {/* Zona sensible invisible: el <title> da el importe del mes al pasar
+              el cursor, que si no se perdería al no haber eje Y ni cifras. */}
+          <circle cx={c.x} cy={c.y} r={16} fill="transparent">
+            <title>{`${c.label} · ${format(c.value)}`}</title>
+          </circle>
           <text x={c.x} y={height - 12} textAnchor="middle" fontSize="12" fill={LABEL_TEXT}>
             {c.label}
           </text>
@@ -117,6 +249,9 @@ export function BarChart({ bars, format, integer = false, showValues = true }: B
   const step = bars.length > 0 ? innerW / bars.length : innerW;
   const barW = Math.min(72, step * 0.45);
 
+  const reduced = usePrefersReducedMotion();
+  const entered = useEntrance(bars.map((b) => `${b.key}:${b.value}`).join('|'), reduced);
+
   return (
     <ChartFrame>
       <Grid ticks={ticksFor(max, integer)} format={format} />
@@ -126,9 +261,39 @@ export function BarChart({ bars, format, integer = false, showValues = true }: B
         const h = Math.max(3, (b.value / max) * innerH);
         return (
           <g key={b.key}>
-            <rect x={cx - barW / 2} y={baseline - h} width={barW} height={h} rx={2} fill={b.color || INK} />
+            {/* Crece desde su borde inferior: la barra "sube" hasta su importe
+                al abrir la página. */}
+            <rect
+              x={cx - barW / 2}
+              y={baseline - h}
+              width={barW}
+              height={h}
+              rx={2}
+              fill={b.color || INK}
+              style={{
+                transform: entered ? 'scaleY(1)' : 'scaleY(0)',
+                // fill-box + bottom: el origen es el borde inferior de la propia
+                // barra, sin depender de las coordenadas del viewBox.
+                transformBox: 'fill-box',
+                transformOrigin: 'bottom',
+                transition: 'transform 700ms cubic-bezier(0.2, 0, 0, 1)',
+                transitionDelay: `${i * 60}ms`,
+              }}
+            />
             {showValues && (
-              <text x={cx} y={baseline - h - 8} textAnchor="middle" fontSize="12" fontWeight="600" fill={INK}>
+              <text
+                x={cx}
+                y={baseline - h - 8}
+                textAnchor="middle"
+                fontSize="12"
+                fontWeight="600"
+                fill={INK}
+                style={{
+                  opacity: entered ? 1 : 0,
+                  transition: 'opacity 400ms ease-out',
+                  transitionDelay: `${i * 60 + 260}ms`,
+                }}
+              >
                 {format(b.value)}
               </text>
             )}
@@ -139,5 +304,60 @@ export function BarChart({ bars, format, integer = false, showValues = true }: B
         );
       })}
     </ChartFrame>
+  );
+}
+
+interface HBarChartProps {
+  bars: { key: string; label: string; value: number; color?: string }[];
+  format: (n: number) => string;
+  /** Añade el porcentaje sobre el total junto al valor. */
+  showShare?: boolean;
+}
+
+/**
+ * Barras horizontales para repartos con pocas categorías (los cuatro estados de
+ * la factura). En HTML y no en SVG: las etiquetas fluyen y truncan solas, y la
+ * barra se anima con una transición de ancho.
+ *
+ * La longitud es relativa al valor MÁS ALTO, no al total: así la categoría
+ * mayor llena la barra y se comparan magnitudes de un vistazo. El peso sobre el
+ * total va aparte, en el porcentaje.
+ */
+export function HBarChart({ bars, format, showShare = false }: HBarChartProps) {
+  const max = Math.max(1, ...bars.map((b) => b.value));
+  const total = bars.reduce((a, b) => a + b.value, 0);
+  const reduced = usePrefersReducedMotion();
+  const entered = useEntrance(bars.map((b) => `${b.key}:${b.value}`).join('|'), reduced);
+
+  return (
+    <div className="space-y-3">
+      {bars.map((b, i) => {
+        // Un valor > 0 nunca se queda en un hilo invisible.
+        const width = b.value > 0 ? Math.max(2, (b.value / max) * 100) : 0;
+        const share = total > 0 ? Math.round((b.value / total) * 100) : 0;
+        return (
+          <div key={b.key} className="flex items-center gap-3">
+            <span className="w-20 sm:w-24 shrink-0 text-xs text-ink-600 truncate">{b.label}</span>
+            <div className="relative flex-1 h-2.5 rounded-full bg-ink-100 overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full"
+                style={{
+                  width: entered ? `${width}%` : '0%',
+                  backgroundColor: b.color || INK,
+                  transition: 'width 700ms cubic-bezier(0.2, 0, 0, 1)',
+                  transitionDelay: `${i * 80}ms`,
+                }}
+              />
+            </div>
+            <span className="w-12 shrink-0 text-right font-mono-tight num-dot text-sm text-ink-900">
+              {format(b.value)}
+            </span>
+            {showShare && (
+              <span className="w-9 shrink-0 text-right text-xs text-ink-500">{share}%</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

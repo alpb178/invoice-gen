@@ -12,7 +12,7 @@ import {
 } from '@/lib/api';
 import { getUser, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
 import { Skeleton, SkeletonCard, SkeletonKpiGrid, SkeletonList } from '@/components/Skeleton';
-import { BarChart, LineChart } from '@/components/Charts';
+import { HBarChart, LineChart } from '@/components/Charts';
 import { useToast } from '@/components/Toast';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -320,7 +320,7 @@ export default function DashboardPage() {
           <div className="space-y-4 mb-6">
             <div className="bg-paper border border-ink-200 rounded-2xl p-5 shadow-card">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-ink-900">Últimos 6 meses</h2>
+                <h2 className="text-sm font-semibold text-ink-900">Ganancias · últimos 6 meses</h2>
                 <span className="text-xs text-ink-500">{cur}</span>
               </div>
               <LineChart points={monthlySeries} format={(n) => fmtMoney(n, cur)} />
@@ -332,7 +332,7 @@ export default function DashboardPage() {
                   {myInvoices.length} {myInvoices.length === 1 ? 'factura' : 'facturas'}
                 </span>
               </div>
-              <BarChart bars={statusSegments} format={(n) => String(n)} integer />
+              <HBarChart bars={statusSegments} format={(n) => String(n)} showShare />
             </div>
           </div>
 
