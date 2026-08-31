@@ -149,6 +149,27 @@ function smoothPath(pts: { x: number; y: number }[], minY: number, maxY: number)
   return d;
 }
 
+/**
+ * Props del trazo según el estado del dibujado. Se saca del componente para
+ * poder fijarlo en un test: el orden importa y ya se rompió una vez.
+ *
+ *  - Sin medir (length 0): nada que animar y el trazo oculto.
+ *  - Medido y sin arrancar: el trazo entero desplazado fuera y SIN transición.
+ *    Si aquí hubiera transición, el propio salto a la longitud se animaría en
+ *    sentido contrario y el dibujado real arrancaría casi en su destino.
+ *  - Arrancado: destino 0 y transición puesta, que es lo que dibuja la línea.
+ *  - Con movimiento reducido: estado final, sin transición.
+ */
+export function strokeDrawProps(length: number, on: boolean, reduced: boolean) {
+  const drawing = length > 0 && !reduced;
+  return {
+    dashArray: drawing ? length : undefined,
+    dashOffset: drawing && !on ? length : 0,
+    visible: reduced || length > 0,
+    animated: drawing && on,
+  };
+}
+
 export function LineChart({ points, format }: LineChartProps) {
   const { width, height } = CHART;
   const pad = LINE_PAD;
@@ -192,9 +213,7 @@ export function LineChart({ points, format }: LineChartProps) {
     };
   }, [path, reduced]);
 
-  // Mientras no está medido el trazo se oculta: si no, se vería la línea
-  // completa un fotograma y después empezaría a dibujarse.
-  const drawing = draw.length > 0 && !reduced;
+  const stroke = strokeDrawProps(draw.length, draw.on, reduced);
 
   // Punto bajo el cursor. Se calcula con el ancho real de la zona sensible, no
   // con las coordenadas del viewBox, así da igual a qué escala se esté pintando
@@ -281,12 +300,12 @@ export function LineChart({ points, format }: LineChartProps) {
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeDasharray={drawing ? draw.length : undefined}
-          strokeDashoffset={drawing && !draw.on ? draw.length : 0}
+          strokeDasharray={stroke.dashArray}
+          strokeDashoffset={stroke.dashOffset}
           style={{
             stroke: LINE_STROKE,
-            visibility: reduced || draw.length > 0 ? 'visible' : 'hidden',
-            transition: drawing ? 'stroke-dashoffset 1100ms cubic-bezier(0.2, 0, 0, 1)' : undefined,
+            visibility: stroke.visible ? 'visible' : 'hidden',
+            transition: stroke.animated ? 'stroke-dashoffset 1100ms cubic-bezier(0.2, 0, 0, 1)' : undefined,
           }}
         />
       )}
