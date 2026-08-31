@@ -64,12 +64,22 @@ const INK = '#18181b';
  * En pantallas estrechas la gráfica no se comprime: se desplaza en horizontal
  * para que las etiquetas del SVG sigan siendo legibles.
  */
-export function ChartFrame({ children }: { children: React.ReactNode }) {
+export function ChartFrame({
+  children,
+  overlay,
+}: {
+  children: React.ReactNode;
+  /** Capa HTML sobre el SVG (tooltips). Se posiciona en % del área del SVG. */
+  overlay?: React.ReactNode;
+}) {
   return (
     <div className="overflow-x-auto">
-      <svg viewBox={`0 0 ${CHART.width} ${CHART.height}`} className="w-full h-auto min-w-[520px]">
-        {children}
-      </svg>
+      <div className="relative min-w-[520px]">
+        <svg viewBox={`0 0 ${CHART.width} ${CHART.height}`} className="w-full h-auto">
+          {children}
+        </svg>
+        {overlay}
+      </div>
     </div>
   );
 }
@@ -186,8 +196,60 @@ export function LineChart({ points, format }: LineChartProps) {
   // completa un fotograma y después empezaría a dibujarse.
   const drawing = draw.length > 0 && !reduced;
 
+  // Punto bajo el cursor. Se calcula con el ancho real de la zona sensible, no
+  // con las coordenadas del viewBox, así da igual a qué escala se esté pintando
+  // el SVG.
+  const [hover, setHover] = useState<number | null>(null);
+  const pickNearest = (clientX: number, target: SVGRectElement) => {
+    const box = target.getBoundingClientRect();
+    if (box.width === 0 || points.length === 0) return;
+    const ratio = Math.min(1, Math.max(0, (clientX - box.left) / box.width));
+    setHover(Math.round(ratio * (points.length - 1)));
+  };
+
+  const active = hover !== null ? coords[hover] : null;
+  // El tooltip se centra sobre el punto, salvo en los extremos, donde se
+  // alinearía fuera de la tarjeta.
+  const anchor =
+    hover === null
+      ? ''
+      : hover === 0
+        ? 'translate(0, -100%)'
+        : hover === points.length - 1
+          ? 'translate(-100%, -100%)'
+          : 'translate(-50%, -100%)';
+
   return (
-    <ChartFrame>
+    <ChartFrame
+      overlay={
+        <>
+          {/* El importe de cada mes solo aparece al pasar el cursor, así que
+              para lectores de pantalla va también como lista. */}
+          <ul className="sr-only">
+            {points.map((p, i) => (
+              <li key={i}>{`${p.label}: ${format(p.value)}`}</li>
+            ))}
+          </ul>
+          {active ? (
+          <div
+            className="pointer-events-none absolute z-10"
+            style={{
+              left: `${(active.x / width) * 100}%`,
+              top: `${(active.y / height) * 100}%`,
+              transform: anchor,
+            }}
+          >
+            <div className="mb-2 whitespace-nowrap rounded-lg border border-ink-200 bg-paper px-2.5 py-1.5 shadow-card">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500">{active.label}</div>
+              <div className="font-mono-tight num-dot text-sm font-semibold text-ink-900">
+                {format(active.value)}
+              </div>
+            </div>
+          </div>
+          ) : null}
+        </>
+      }
+    >
       {Array.from({ length: LINE_GRID_LINES }, (_, i) => {
         const y = pad.top + (innerH / (LINE_GRID_LINES - 1)) * i;
         return (
@@ -222,17 +284,54 @@ export function LineChart({ points, format }: LineChartProps) {
       )}
 
       {coords.map((c, i) => (
-        <g key={i}>
-          {/* Zona sensible invisible: el <title> da el importe del mes al pasar
-              el cursor, que si no se perdería al no haber eje Y ni cifras. */}
-          <circle cx={c.x} cy={c.y} r={16} fill="transparent">
-            <title>{`${c.label} · ${format(c.value)}`}</title>
-          </circle>
-          <text x={c.x} y={height - 12} textAnchor="middle" fontSize="12" fill={AXIS_TEXT}>
-            {c.label}
-          </text>
-        </g>
+        <text
+          key={i}
+          x={c.x}
+          y={height - 12}
+          textAnchor="middle"
+          fontSize="12"
+          fill={i === hover ? INK : AXIS_TEXT}
+        >
+          {c.label}
+        </text>
       ))}
+
+      {active && (
+        <>
+          <line
+            x1={active.x}
+            x2={active.x}
+            y1={pad.top}
+            y2={baseline}
+            strokeDasharray="3 3"
+            style={{ stroke: LINE_GRID }}
+          />
+          {/* Aro del color del papel para que el punto se lea sobre el trazo. */}
+          <circle
+            cx={active.x}
+            cy={active.y}
+            r={5}
+            strokeWidth={2.5}
+            style={{ fill: LINE_STROKE, stroke: 'var(--surface)' }}
+          />
+        </>
+      )}
+
+      {/* Zona sensible: cubre el área de dibujo y va al final para quedar
+          por encima del resto y recibir los eventos. */}
+      <rect
+        x={pad.left}
+        y={pad.top}
+        width={innerW}
+        height={innerH}
+        fill="transparent"
+        style={{ pointerEvents: 'all' }}
+        onMouseMove={(e) => pickNearest(e.clientX, e.currentTarget)}
+        onMouseLeave={() => setHover(null)}
+        onTouchStart={(e) => pickNearest(e.touches[0].clientX, e.currentTarget)}
+        onTouchMove={(e) => pickNearest(e.touches[0].clientX, e.currentTarget)}
+        onTouchEnd={() => setHover(null)}
+      />
     </ChartFrame>
   );
 }
