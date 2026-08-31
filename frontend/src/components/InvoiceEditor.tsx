@@ -8,6 +8,7 @@ import { saveFullInvoice, saveInvoiceParties, markInvoiceExported, getMyTeams } 
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
 import InvoicePDFButton from './InvoicePDFButton';
 import TaskImportModal from './TaskImportModal';
+import ClearableField from './ClearableField';
 import { useToast } from './Toast';
 
 const emptyTask = (): Task => ({ description: '', amount: 0, code: '', hours: undefined });
@@ -382,10 +383,15 @@ export default function InvoiceEditor({ initial }: Props) {
       <div className="bg-paper border border-ink-200 rounded-2xl p-6 mb-6 shadow-card">
         <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-4">Datos de la Factura</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className={labelClass}>Nº Factura</label>
-            <input disabled={!canEditHeader} className={inputClass} placeholder="XXXX" value={invoice.number} onChange={(e) => update('number', e.target.value)} />
-          </div>
+          <ClearableField
+            label="Nº Factura"
+            value={invoice.number || ''}
+            onChange={(v) => update('number', v)}
+            disabled={!canEditHeader}
+            placeholder="XXXX"
+            inputClassName={inputClass}
+            labelClassName={labelClass}
+          />
           <div>
             <label className={labelClass}>Fecha</label>
             <input disabled={!canEditHeader} className={inputClass} type="date" value={invoice.date} onChange={(e) => update('date', e.target.value)} />
@@ -432,19 +438,76 @@ export default function InvoiceEditor({ initial }: Props) {
               <div>
                 <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-3">Emisor</h3>
                 <div className="space-y-3">
-                  <div><label className={labelClass}>Empresa</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.companyName || ''} onChange={(e) => update('companyName', e.target.value)} /></div>
-                  <div><label className={labelClass}>CIF</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.companyCIF || ''} onChange={(e) => update('companyCIF', e.target.value)} /></div>
-                  <div><label className={labelClass}>Dirección</label><textarea disabled={!canEditParties} className={inputClass + ' resize-none h-16'} placeholder="Calle..." value={invoice.companyAddress || ''} onChange={(e) => update('companyAddress', e.target.value)} /></div>
+                  <ClearableField
+                    label="Empresa"
+                    value={invoice.companyName || ''}
+                    onChange={(v) => update('companyName', v)}
+                    disabled={!canEditParties}
+                    placeholder="XXXX"
+                    inputClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
+                  <ClearableField
+                    label="CIF"
+                    value={invoice.companyCIF || ''}
+                    onChange={(v) => update('companyCIF', v)}
+                    disabled={!canEditParties}
+                    placeholder="XXXX"
+                    inputClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
+                  <ClearableField
+                    label="Dirección"
+                    value={invoice.companyAddress || ''}
+                    onChange={(v) => update('companyAddress', v)}
+                    disabled={!canEditParties}
+                    placeholder="Calle..."
+                    multiline
+                    inputClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
                 </div>
               </div>
 
               <div>
                 <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-3">Cliente</h3>
                 <div className="space-y-3">
-                  <div><label className={labelClass}>Nombre</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.clientName || ''} onChange={(e) => update('clientName', e.target.value)} /></div>
-                  <div><label className={labelClass}>IBAN</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.clientIBAN || ''} onChange={(e) => update('clientIBAN', e.target.value)} /></div>
-                  <div><label className={labelClass}>Swift/BIC</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.clientSwift || ''} onChange={(e) => update('clientSwift', e.target.value)} /></div>
-                  <div><label className={labelClass}>Banco</label><input disabled={!canEditParties} className={inputClass} placeholder="XXXX" value={invoice.clientBank || ''} onChange={(e) => update('clientBank', e.target.value)} /></div>
+                  <ClearableField
+                    label="Nombre"
+                    value={invoice.clientName || ''}
+                    onChange={(v) => update('clientName', v)}
+                    disabled={!canEditParties}
+                    placeholder="XXXX"
+                    inputClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
+                  <ClearableField
+                    label="IBAN"
+                    value={invoice.clientIBAN || ''}
+                    onChange={(v) => update('clientIBAN', v)}
+                    disabled={!canEditParties}
+                    placeholder="XXXX"
+                    inputClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
+                  <ClearableField
+                    label="Swift/BIC"
+                    value={invoice.clientSwift || ''}
+                    onChange={(v) => update('clientSwift', v)}
+                    disabled={!canEditParties}
+                    placeholder="XXXX"
+                    inputClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
+                  <ClearableField
+                    label="Banco"
+                    value={invoice.clientBank || ''}
+                    onChange={(v) => update('clientBank', v)}
+                    disabled={!canEditParties}
+                    placeholder="XXXX"
+                    inputClassName={inputClass}
+                    labelClassName={labelClass}
+                  />
                 </div>
               </div>
             </div>
@@ -708,13 +771,16 @@ export default function InvoiceEditor({ initial }: Props) {
       </div>
 
       <div className="mt-6">
-        <label className={labelClass}>Notas (opcional)</label>
-        <textarea
-          disabled={!canEditHeader}
-          className={inputClass + ' resize-none h-20'}
-          placeholder="Notas adicionales..."
+        <ClearableField
+          label="Notas (opcional)"
           value={invoice.notes || ''}
-          onChange={(e) => update('notes', e.target.value)}
+          onChange={(v) => update('notes', v)}
+          disabled={!canEditHeader}
+          placeholder="Notas adicionales..."
+          multiline
+          heightClass="h-20"
+          inputClassName={inputClass}
+          labelClassName={labelClass}
         />
       </div>
 
