@@ -1,7 +1,7 @@
 // src/components/InvoiceEditor.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Invoice, Section, Task } from '@/types';
 import { saveFullInvoice, markInvoiceExported, getMyTeams } from '@/lib/api';
@@ -46,6 +46,8 @@ export default function InvoiceEditor({ initial }: Props) {
   // Secciones plegadas (acordeón). Guardamos los índices plegados, así una
   // sección nueva nace desplegada sin tener que tocar este estado.
   const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
+  // Equipo cuyos valores por defecto ya se han pre-rellenado en esta factura nueva.
+  const prefilledTeamRef = useRef<number | null>(null);
   const user = typeof window !== 'undefined' ? getUser() : null;
   const toast = useToast();
 
@@ -77,21 +79,29 @@ export default function InvoiceEditor({ initial }: Props) {
     const team = teams.find((t: any) => t.id === teamId);
     const ownerId = team?.owner?.id;
     setIsTeamOwner(ownerId != null && ownerId === user?.id);
+    if (!team) return;
 
-    if (team) {
-      setInvoice((prev) => ({
-        ...prev,
-        companyName: prev.companyName || team.companyName || '',
-        companyCIF: prev.companyCIF || team.companyCIF || '',
-        companyAddress: prev.companyAddress || team.companyAddress || '',
-        clientName: prev.clientName || team.defaultClientName || '',
-        clientIBAN: prev.clientIBAN || team.defaultClientIBAN || '',
-        clientSwift: prev.clientSwift || team.defaultClientSwift || '',
-        clientBank: prev.clientBank || team.defaultClientBank || '',
-        currency: prev.currency || team.defaultCurrency || 'USD',
-        notes: prev.notes || team.defaultNotes || '',
-      }));
-    }
+    // Los datos del equipo son un pre-relleno al CREAR la factura, no un
+    // respaldo permanente: se aplican una sola vez por equipo elegido. Una
+    // factura ya guardada muestra exactamente lo que hay en base de datos, así
+    // que un campo que el dueño ha borrado (el banco, por ejemplo) se queda
+    // vacío en vez de repoblarse con el valor del equipo.
+    if (initial) return;
+    if (prefilledTeamRef.current === teamId) return;
+    prefilledTeamRef.current = teamId;
+
+    setInvoice((prev) => ({
+      ...prev,
+      companyName: prev.companyName || team.companyName || '',
+      companyCIF: prev.companyCIF || team.companyCIF || '',
+      companyAddress: prev.companyAddress || team.companyAddress || '',
+      clientName: prev.clientName || team.defaultClientName || '',
+      clientIBAN: prev.clientIBAN || team.defaultClientIBAN || '',
+      clientSwift: prev.clientSwift || team.defaultClientSwift || '',
+      clientBank: prev.clientBank || team.defaultClientBank || '',
+      currency: prev.currency || team.defaultCurrency || 'USD',
+      notes: prev.notes || team.defaultNotes || '',
+    }));
   }, [teamId, teams, user?.id, initial]);
 
   // Nueva factura solo la puede crear el dueño del equipo.
@@ -214,22 +224,13 @@ export default function InvoiceEditor({ initial }: Props) {
   // Objeto que se pasa al botón de PDF. Lo memoizamos para que su referencia solo
   // cambie cuando cambian los datos reales (no en cada render), evitando que
   // PDFDownloadLink regenere el PDF de forma continua y bloquee la página.
-  const pdfInvoice = useMemo(() => {
-    const team = teams.find((t: any) => t.id === teamId);
-    return {
-      ...invoice,
-      totalAmount: calcTotal(),
-      companyName: invoice.companyName || team?.companyName || '',
-      companyCIF: invoice.companyCIF || team?.companyCIF || '',
-      companyAddress: invoice.companyAddress || team?.companyAddress || '',
-      clientName: invoice.clientName || team?.defaultClientName || '',
-      clientIBAN: invoice.clientIBAN || team?.defaultClientIBAN || '',
-      clientSwift: invoice.clientSwift || team?.defaultClientSwift || '',
-      clientBank: invoice.clientBank || team?.defaultClientBank || '',
-      notes: invoice.notes || team?.defaultNotes || '',
-    };
+  // El PDF imprime lo que hay en el formulario, sin volver a mezclar los valores
+  // del equipo: si un campo está vacío es porque se ha vaciado a propósito.
+  const pdfInvoice = useMemo(
+    () => ({ ...invoice, totalAmount: calcTotal() }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoice, teams, teamId]);
+    [invoice],
+  );
 
   const fmtMoney = (n: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD' }).format(n || 0);
@@ -406,7 +407,9 @@ export default function InvoiceEditor({ initial }: Props) {
           >
             <div>
               <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight">Emisor y Cliente</h2>
-              <p className="text-xs text-ink-500 mt-0.5">Datos opcionales — por defecto se usan los del equipo</p>
+              <p className="text-xs text-ink-500 mt-0.5">
+                Se pre-rellenan con los del equipo al crear la factura.
+              </p>
             </div>
             <span className={`text-ink-500 transition-transform ${partiesOpen ? 'rotate-180' : ''}`}>▾</span>
           </button>
