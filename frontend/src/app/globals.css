@@ -15,6 +15,11 @@
   --stamp: #b0543f;
   --stamp-dark: #8a3f2e;
   --rule: #1c1c1f;
+
+  /* Serie de la gráfica de tendencia del panel. Verde tomado de la referencia
+     de diseño; vive aquí como token para no repartir el literal por el SVG. */
+  --chart-line: #8db636;
+  --chart-grid: #e8e8e9;
 }
 
 body {

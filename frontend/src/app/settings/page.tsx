@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getMyTeams, updateTeam } from '@/lib/api';
 import { getUser, getActiveTeamId, setActiveTeamId } from '@/lib/auth';
 import { Skeleton, SkeletonCard } from '@/components/Skeleton';
+import ClearableField from '@/components/ClearableField';
 import { useToast } from '@/components/Toast';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'BOB'];
@@ -150,97 +151,91 @@ export default function SettingsPage() {
 
       <div className="bg-paper border border-ink-200 rounded-2xl p-6 mb-6 shadow-card">
         <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-4">Equipo</h2>
-        <div>
-          <label className={labelClass}>Nombre del equipo</label>
-          <input
-            disabled={!isOwner}
-            value={form.name}
-            onChange={(e) => setField('name', e.target.value)}
-            className={inputClass}
-          />
-        </div>
+        <ClearableField
+          label="Nombre del equipo"
+          value={form.name}
+          onChange={(v) => setField('name', v)}
+          disabled={!isOwner}
+          inputClassName={inputClass}
+          labelClassName={labelClass}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-paper border border-ink-200 rounded-2xl p-6 shadow-card">
           <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-4">Datos del emisor</h2>
           <div className="space-y-3">
-            <div>
-              <label className={labelClass}>Empresa</label>
-              <input
-                disabled={!isOwner}
-                value={form.companyName}
-                onChange={(e) => setField('companyName', e.target.value)}
-                placeholder="XXXX"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>CIF</label>
-              <input
-                disabled={!isOwner}
-                value={form.companyCIF}
-                onChange={(e) => setField('companyCIF', e.target.value)}
-                placeholder="XXXX"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Dirección</label>
-              <textarea
-                disabled={!isOwner}
-                value={form.companyAddress}
-                onChange={(e) => setField('companyAddress', e.target.value)}
-                className={inputClass + ' resize-none h-20'}
-                placeholder="Calle..."
-              />
-            </div>
+            <ClearableField
+              label="Empresa"
+              value={form.companyName}
+              onChange={(v) => setField('companyName', v)}
+              disabled={!isOwner}
+              placeholder="XXXX"
+              inputClassName={inputClass}
+              labelClassName={labelClass}
+            />
+            <ClearableField
+              label="CIF"
+              value={form.companyCIF}
+              onChange={(v) => setField('companyCIF', v)}
+              disabled={!isOwner}
+              placeholder="XXXX"
+              inputClassName={inputClass}
+              labelClassName={labelClass}
+            />
+            <ClearableField
+              label="Dirección"
+              value={form.companyAddress}
+              onChange={(v) => setField('companyAddress', v)}
+              disabled={!isOwner}
+              placeholder="Calle..."
+              multiline
+              heightClass="h-20"
+              inputClassName={inputClass}
+              labelClassName={labelClass}
+            />
           </div>
         </div>
 
         <div className="bg-paper border border-ink-200 rounded-2xl p-6 shadow-card">
           <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-4">Receptor por defecto</h2>
           <div className="space-y-3">
-            <div>
-              <label className={labelClass}>Nombre</label>
-              <input
-                disabled={!isOwner}
-                value={form.defaultClientName}
-                onChange={(e) => setField('defaultClientName', e.target.value)}
-                placeholder="XXXX"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>IBAN</label>
-              <input
-                disabled={!isOwner}
-                value={form.defaultClientIBAN}
-                onChange={(e) => setField('defaultClientIBAN', e.target.value)}
-                placeholder="XXXX"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Swift/BIC</label>
-              <input
-                disabled={!isOwner}
-                value={form.defaultClientSwift}
-                onChange={(e) => setField('defaultClientSwift', e.target.value)}
-                placeholder="XXXX"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Banco</label>
-              <input
-                disabled={!isOwner}
-                value={form.defaultClientBank}
-                onChange={(e) => setField('defaultClientBank', e.target.value)}
-                placeholder="XXXX"
-                className={inputClass}
-              />
-            </div>
+            <ClearableField
+              label="Nombre"
+              value={form.defaultClientName}
+              onChange={(v) => setField('defaultClientName', v)}
+              disabled={!isOwner}
+              placeholder="XXXX"
+              inputClassName={inputClass}
+              labelClassName={labelClass}
+            />
+            <ClearableField
+              label="IBAN"
+              value={form.defaultClientIBAN}
+              onChange={(v) => setField('defaultClientIBAN', v)}
+              disabled={!isOwner}
+              placeholder="XXXX"
+              inputClassName={inputClass}
+              labelClassName={labelClass}
+            />
+            <ClearableField
+              label="Swift/BIC"
+              value={form.defaultClientSwift}
+              onChange={(v) => setField('defaultClientSwift', v)}
+              disabled={!isOwner}
+              placeholder="XXXX"
+              inputClassName={inputClass}
+              labelClassName={labelClass}
+            />
+            <ClearableField
+              label="Banco"
+              value={form.defaultClientBank}
+              onChange={(v) => setField('defaultClientBank', v)}
+              disabled={!isOwner}
+              placeholder="XXXX"
+              inputClassName={inputClass}
+              labelClassName={labelClass}
+            />
           </div>
         </div>
       </div>
@@ -264,12 +259,13 @@ export default function SettingsPage() {
             </select>
           </div>
           <div className="md:col-span-2">
-            <label className={labelClass}>Nota por defecto (opcional)</label>
-            <input
-              disabled={!isOwner}
+            <ClearableField
+              label="Nota por defecto (opcional)"
               value={form.defaultNotes}
-              onChange={(e) => setField('defaultNotes', e.target.value)}
-              className={inputClass}
+              onChange={(v) => setField('defaultNotes', v)}
+              disabled={!isOwner}
+              inputClassName={inputClass}
+              labelClassName={labelClass}
             />
           </div>
         </div>

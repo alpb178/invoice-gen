@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getInvoices, deleteInvoice, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
+import ClearableField from '@/components/ClearableField';
+import InvoiceRowExportButton from '@/components/InvoiceRowExportButton';
 import { SkeletonList } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 
@@ -110,12 +112,15 @@ export default function InvoicesIndexPage() {
       </div>
 
       <div className="flex gap-2 mb-5 flex-wrap">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por número, cliente, autor..."
-          className="flex-1 min-w-[220px] px-3 py-2.5 bg-paper border border-ink-200 rounded-xl text-sm text-ink-900 focus:outline-none focus:border-ink-900"
-        />
+        <div className="flex-1 min-w-[220px]">
+          <ClearableField
+            value={query}
+            onChange={setQuery}
+            ariaLabel="Búsqueda"
+            placeholder="Buscar por número, cliente, autor..."
+            inputClassName="w-full px-3 py-2.5 bg-paper border border-ink-200 rounded-xl text-sm text-ink-900 focus:outline-none focus:border-ink-900"
+          />
+        </div>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -141,9 +146,9 @@ export default function InvoicesIndexPage() {
             return (
               <div
                 key={inv.id}
-                className="bg-paper border border-ink-200 rounded-2xl p-5 flex items-center justify-between hover:border-ink-400 transition-colors shadow-card"
+                className="bg-paper border border-ink-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-ink-400 transition-colors shadow-card"
               >
-                <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <div className="w-12 h-12 rounded-xl bg-ink-100 flex items-center justify-center text-xl border border-ink-200 shrink-0">
                     🧾
                   </div>
@@ -164,8 +169,10 @@ export default function InvoicesIndexPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-mono font-semibold text-ink-900 text-lg">
+                {/* En móvil las acciones bajan a su propia línea: con importe,
+                    Editar, PDF y borrar no caben junto al nombre. */}
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap justify-end">
+                  <span className="font-mono font-semibold text-ink-900 text-base sm:text-lg">
                     {fmtMoney(inv.displayAmount || 0, a.currency || 'USD')}
                   </span>
                   <Link
@@ -174,6 +181,7 @@ export default function InvoicesIndexPage() {
                   >
                     {st === 'paid' ? 'Ver' : 'Editar'}
                   </Link>
+                  {isOwner && <InvoiceRowExportButton invoiceId={inv.id} onExported={load} />}
                   {isOwner && st !== 'paid' && (
                     <button
                       onClick={() => handleDelete(inv.id)}

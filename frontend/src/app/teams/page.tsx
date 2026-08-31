@@ -17,6 +17,7 @@ import {
 } from '@/lib/api';
 import { setActiveTeamId } from '@/lib/auth';
 import { Invitation } from '@/types';
+import ClearableField from '@/components/ClearableField';
 import { SkeletonList } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 
@@ -232,12 +233,15 @@ export default function TeamsPage() {
           <div className="bg-paper border border-ink-200 rounded-2xl p-5 mb-6 shadow-card">
             <h2 className="text-sm font-semibold text-ink-900 mb-3">Crear un nuevo equipo</h2>
             <div className="flex gap-2">
-              <input
-                value={creatingName}
-                onChange={(e) => setCreatingName(e.target.value)}
-                placeholder="Nombre del equipo"
-                className="flex-1 px-3 py-2.5 bg-paper border border-ink-200 rounded-xl text-sm text-ink-900 focus:outline-none focus:border-ink-900"
-              />
+              <div className="flex-1">
+                <ClearableField
+                  value={creatingName}
+                  onChange={setCreatingName}
+                  ariaLabel="Nombre del equipo"
+                  placeholder="Nombre del equipo"
+                  inputClassName="w-full px-3 py-2.5 bg-paper border border-ink-200 rounded-xl text-sm text-ink-900 focus:outline-none focus:border-ink-900"
+                />
+              </div>
               <button
                 onClick={handleCreate}
                 className="px-5 py-2.5 bg-ink-900 hover:bg-ink-800 text-paper font-semibold rounded-xl text-sm transition-colors"
@@ -314,15 +318,18 @@ export default function TeamsPage() {
                         Invitar a un miembro por email
                       </h4>
                       <div className="flex gap-2">
-                        <input
-                          value={emailInputs[team.id] || ''}
-                          onChange={(e) =>
-                            setEmailInputs((prev) => ({ ...prev, [team.id]: e.target.value }))
-                          }
-                          placeholder="usuario@ejemplo.com"
-                          className={inputClass}
-                          type="email"
-                        />
+                        <div className="flex-1">
+                          <ClearableField
+                            value={emailInputs[team.id] || ''}
+                            onChange={(v) =>
+                              setEmailInputs((prev) => ({ ...prev, [team.id]: v }))
+                            }
+                            ariaLabel="Email del miembro"
+                            placeholder="usuario@ejemplo.com"
+                            type="email"
+                            inputClassName={inputClass}
+                          />
+                        </div>
                         <button
                           onClick={() => handleInvite(team.id)}
                           className="px-4 py-2 bg-ink-900 hover:bg-ink-800 text-paper text-sm font-medium rounded-lg transition-colors"
@@ -383,11 +390,11 @@ export default function TeamsPage() {
             {memberOf.map((team) => (
               <div
                 key={team.id}
-                className="bg-paper border border-ink-200 rounded-2xl p-4 flex items-center justify-between shadow-card"
+                className="bg-paper border border-ink-200 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-card"
               >
-                <div>
-                  <h3 className="font-semibold text-ink-900">{team.name}</h3>
-                  <p className="text-xs text-ink-500 mt-0.5">Dueño: {team.owner?.email || '—'}</p>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-ink-900 truncate">{team.name}</h3>
+                  <p className="text-xs text-ink-500 mt-0.5 truncate">Dueño: {team.owner?.email || '—'}</p>
                 </div>
                 <button
                   onClick={() => selectActive(team.id)}
