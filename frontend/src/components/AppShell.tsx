@@ -18,6 +18,7 @@ import {
 import { getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, logout, setActiveTeamId } from '@/lib/auth';
 import SiteFooter from './SiteFooter';
+import GroupTicker from './GroupTicker';
 import { useToast } from './Toast';
 
 // Rutas que viven dentro del panel autenticado y por tanto llevan el app-shell
@@ -119,6 +120,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (!showShell) {
     return (
       <>
+        <GroupTicker />
         <div className="flex-1 flex flex-col">{children}</div>
         <SiteFooter />
       </>
@@ -232,6 +234,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <GroupTicker />
+
         {/* Header fijo */}
         <header className="sticky top-0 z-30 h-16 flex items-center gap-3 px-4 md:px-6 bg-paper/90 backdrop-blur border-b border-ink-200">
           <Link href="/app" className="flex items-center gap-2 shrink-0">
