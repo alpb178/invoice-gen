@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { DM_Sans, Fraunces, JetBrains_Mono } from 'next/font/google';
 import AuthGuard from '@/components/AuthGuard';
 import AppShell from '@/components/AppShell';
+import { HubAnalytics } from '@/components/HubAnalytics';
 import { ToastProvider } from '@/components/Toast';
 import { SITE_URL } from '@/lib/seo';
 import './globals.css';
@@ -170,6 +171,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AppShell>{children}</AppShell>
           </AuthGuard>
         </ToastProvider>
+        {/* No pinta nada: manda la visita y los clics al hub del grupo. */}
+        <HubAnalytics />
       </body>
     </html>
   );
