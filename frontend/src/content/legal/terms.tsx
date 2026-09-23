@@ -236,4 +236,121 @@ const en: LegalDoc = {
   ],
 };
 
-export const terms: Record<Locale, LegalDoc> = { es, en };
+const pt: LegalDoc = {
+  title: 'Termos e condições',
+  description:
+    'Termos e condições de uso do serviço Invoice Generator. Leia os direitos e obrigações aplicáveis ao uso da plataforma.',
+  updatedAt: '27 de maio de 2026',
+  summary:
+    'Estes termos regem o uso do Invoice Generator. Ao criar uma conta ou usar o serviço, você aceita estas condições.',
+  sections: [
+    {
+      heading: '1. Objeto e aceitação',
+      body: (
+        <>
+          <p>
+            Estes termos e condições (doravante, os <strong>«Termos»</strong>) regulam o
+            acesso e o uso da plataforma <strong>Invoice Generator</strong> (doravante, o{' '}
+            <strong>«Serviço»</strong>), acessível em <em>invoices.corpsc.com</em> e seus
+            subdomínios.
+          </p>
+          <p>
+            O uso do Serviço implica a aceitação plena e sem reservas destes Termos. Se você
+            não concordar com algum dos pontos, pedimos que não utilize o Serviço.
+          </p>
+        </>
+      ),
+    },
+    {
+      heading: '2. Cadastro e conta de usuário',
+      body: (
+        <>
+          <p>
+            Para utilizar as funcionalidades do Serviço, é necessário criar uma conta
+            informando um endereço de e-mail válido e uma senha. O usuário é responsável por:
+          </p>
+          <ul>
+            <li>Manter a confidencialidade das suas credenciais.</li>
+            <li>Comunicar qualquer uso não autorizado da sua conta.</li>
+            <li>A veracidade e a atualização dos dados fornecidos.</li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      heading: '3. Uso permitido',
+      body: (
+        <>
+          <p>
+            O Serviço é oferecido exclusivamente para a criação, gestão e emissão de faturas
+            comerciais. É proibido utilizá-lo para:
+          </p>
+          <ul>
+            <li>Fins fraudulentos, ilícitos ou contrários à boa-fé.</li>
+            <li>Falsificação de identidade ou emissão de documentos falsos.</li>
+            <li>Realização de atividades que possam danificar a infraestrutura do Serviço.</li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      heading: '4. Propriedade intelectual',
+      body: (
+        <p>
+          Todos os direitos de propriedade intelectual e industrial sobre o Serviço, seu
+          código, designs, logotipos e conteúdos pertencem ao Invoice Generator ou a terceiros
+          que autorizaram o seu uso. O usuário mantém a titularidade dos dados e conteúdos que
+          insere na plataforma.
+        </p>
+      ),
+    },
+    {
+      heading: '5. Limitação de responsabilidade',
+      body: (
+        <p>
+          O Serviço é prestado «no estado em que se encontra», sem garantias de
+          disponibilidade contínua. O Invoice Generator não será responsável por danos diretos
+          ou indiretos decorrentes do uso ou da impossibilidade de uso do Serviço, exceto nos
+          casos previstos pela legislação aplicável.
+        </p>
+      ),
+    },
+    {
+      heading: '6. Alterações e encerramento',
+      body: (
+        <p>
+          Reservamo-nos o direito de alterar estes Termos a qualquer momento. As alterações
+          serão publicadas nesta mesma página com a data de atualização. O usuário pode
+          cancelar a sua conta a qualquer momento no painel de configurações.
+        </p>
+      ),
+    },
+    {
+      heading: '7. Legislação aplicável',
+      body: (
+        <p>
+          Estes Termos são regidos pela legislação espanhola. Qualquer controvérsia
+          relacionada à sua interpretação ou cumprimento será submetida aos juízos e tribunais
+          do domicílio do usuário, salvo disposição legal imperativa em contrário.
+        </p>
+      ),
+    },
+    {
+      heading: '8. Contato',
+      body: (
+        <p>
+          Para qualquer dúvida sobre estes Termos, você pode nos escrever em{' '}
+          <a
+            href="mailto:alesx2soporte@gmail.com"
+            className="underline hover:text-ink-950"
+          >
+            alesx2soporte@gmail.com
+          </a>
+          .
+        </p>
+      ),
+    },
+  ],
+};
+
+export const terms: Record<Locale, LegalDoc> = { es, en, pt };

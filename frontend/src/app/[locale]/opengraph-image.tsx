@@ -33,6 +33,15 @@ const COPY: Record<Locale, {
     footerLeft: 'invoicegen · en-US',
     footerRight: 'No card · 2-min setup',
   },
+  pt: {
+    alt: 'Invoice Generator — Faturas profissionais em PDF, sem complicação',
+    line1: 'Suas faturas,',
+    italic: 'finalmente',
+    highlight: 'à altura',
+    body: 'Crie, personalize e baixe faturas profissionais em PDF. Várias equipes, várias moedas e relatórios — grátis para começar.',
+    footerLeft: 'invoicegen · pt-BR',
+    footerRight: 'Sem cartão · Pronto em 2 min',
+  },
 };
 
 const copyFor = (locale: string) => COPY[isLocale(locale) ? locale : defaultLocale];

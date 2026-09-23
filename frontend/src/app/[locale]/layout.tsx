@@ -7,7 +7,7 @@ import AuthGuard from '@/components/AuthGuard';
 import AppShell from '@/components/AppShell';
 import { HubAnalytics } from '@/components/HubAnalytics';
 import { ToastProvider } from '@/components/Toast';
-import { isLocale, locales, type Locale } from '@/i18n/config';
+import { isLocale, langTag, locales, type Locale } from '@/i18n/config';
 import { SITE_URL, localePath, openGraphLocale } from '@/lib/seo';
 import { fontVariables } from '../fonts';
 import '../globals.css';
@@ -90,7 +90,7 @@ function jsonLd(locale: Locale, description: string) {
         '@id': `${SITE_URL}/#website`,
         name: 'Invoice Generator',
         url: SITE_URL,
-        inLanguage: locale,
+        inLanguage: langTag[locale],
         publisher: { '@id': `${SITE_URL}/#organization` },
       },
       {
@@ -100,7 +100,7 @@ function jsonLd(locale: Locale, description: string) {
         operatingSystem: 'Web',
         url: SITE_URL,
         description,
-        inLanguage: locale,
+        inLanguage: langTag[locale],
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       },
     ],
@@ -115,7 +115,7 @@ export default function LocaleLayout({ children, params }: Props) {
   const t = useTranslations('meta');
 
   return (
-    <html lang={locale} className={fontVariables}>
+    <html lang={langTag[locale]} className={fontVariables}>
       <head>
         {/* Google Tag Manager */}
         <script
