@@ -1,10 +1,17 @@
+'use client';
+
 import Image from 'next/image';
-import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
+import { intlTag } from '@/i18n/config';
+import { Link } from '@/i18n/navigation';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const CONTACT_EMAIL = 'alesx2soporte@gmail.com';
 
 export default function SiteFooter() {
   const year = new Date().getFullYear();
+  const locale = useLocale();
+  const t = useTranslations('footer');
   return (
     <footer
       className="mt-auto border-t"
@@ -24,13 +31,12 @@ export default function SiteFooter() {
                   Invoice<span style={{ color: 'var(--stamp)' }}>.</span>Generator
                 </div>
                 <div className="text-[11px] uppercase tracking-[0.22em] font-mono-tight mt-0.5" style={{ color: '#a1a1aa' }}>
-                  Facturación editorial
+                  {t('tagline')}
                 </div>
               </div>
             </div>
             <p className="text-sm leading-relaxed max-w-sm" style={{ color: '#e4e4e7' }}>
-              Crea, gestiona y firma facturas profesionales en minutos. Diseñado para freelancers
-              y equipos pequeños que quieren cobrar bien y rápido.
+              {t('blurb')}
             </p>
             <div className="mt-5 flex items-center gap-2 text-xs font-mono-tight" style={{ color: '#d4d4d8' }}>
               <span
@@ -38,30 +44,30 @@ export default function SiteFooter() {
                 style={{ background: '#22c55e', boxShadow: '0 0 8px rgba(34,197,94,0.6)' }}
                 aria-hidden
               />
-              Servicio operativo
+              {t('status')}
             </div>
           </div>
 
           <div>
             <div className="font-mono-tight text-[10px] uppercase tracking-[0.22em] mb-4" style={{ color: '#a1a1aa' }}>
-              § Producto
+              § {t('product')}
             </div>
             <ul className="space-y-2.5 text-sm" style={{ color: '#f4f4f5' }}>
-              <li><Link href="/#caracteristicas" className="hover:text-white transition-colors">Características</Link></li>
-              <li><Link href="/#flujo" className="hover:text-white transition-colors">Cómo funciona</Link></li>
-              <li><Link href="/#faq" className="hover:text-white transition-colors">Preguntas frecuentes</Link></li>
-              <li><Link href="/register" className="hover:text-white transition-colors">Crear cuenta</Link></li>
+              <li><Link href="/#caracteristicas" className="hover:text-white transition-colors">{t('features')}</Link></li>
+              <li><Link href="/#flujo" className="hover:text-white transition-colors">{t('howItWorks')}</Link></li>
+              <li><Link href="/#faq" className="hover:text-white transition-colors">{t('faq')}</Link></li>
+              <li><Link href="/register" className="hover:text-white transition-colors">{t('createAccount')}</Link></li>
             </ul>
           </div>
 
           <div>
             <div className="font-mono-tight text-[10px] uppercase tracking-[0.22em] mb-4" style={{ color: '#a1a1aa' }}>
-              § Cuenta
+              § {t('account')}
             </div>
             <ul className="space-y-2.5 text-sm" style={{ color: '#f4f4f5' }}>
-              <li><Link href="/login" className="hover:text-white transition-colors">Iniciar sesión</Link></li>
-              <li><Link href="/register" className="hover:text-white transition-colors">Registrarse</Link></li>
-              <li><Link href="/app" className="hover:text-white transition-colors">Ir al panel</Link></li>
+              <li><Link href="/login" className="hover:text-white transition-colors">{t('login')}</Link></li>
+              <li><Link href="/register" className="hover:text-white transition-colors">{t('register')}</Link></li>
+              <li><Link href="/app" className="hover:text-white transition-colors">{t('goToPanel')}</Link></li>
             </ul>
           </div>
 
@@ -70,15 +76,15 @@ export default function SiteFooter() {
               § Legal
             </div>
             <ul className="space-y-2.5 text-sm" style={{ color: '#f4f4f5' }}>
-              <li><Link href="/terms" className="hover:text-white transition-colors">Términos y condiciones</Link></li>
-              <li><Link href="/privacy" className="hover:text-white transition-colors">Política de privacidad</Link></li>
-              <li><Link href="/cookies" className="hover:text-white transition-colors">Política de cookies</Link></li>
+              <li><Link href="/terms" className="hover:text-white transition-colors">{t('terms')}</Link></li>
+              <li><Link href="/privacy" className="hover:text-white transition-colors">{t('privacy')}</Link></li>
+              <li><Link href="/cookies" className="hover:text-white transition-colors">{t('cookies')}</Link></li>
               <li>
                 <a
                   href={`mailto:${CONTACT_EMAIL}`}
                   className="hover:text-white transition-colors"
                 >
-                  Contacto
+                  {t('contact')}
                 </a>
               </li>
             </ul>
@@ -90,12 +96,14 @@ export default function SiteFooter() {
           style={{ borderColor: 'rgba(255,255,255,0.10)', color: '#a1a1aa' }}
         >
           <div>
-            © {year} Invoice Generator · Todos los derechos reservados
+            © {year} Invoice Generator · {t('rights')}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <span>v.2026.04</span>
             <span aria-hidden>·</span>
-            <span>es-ES</span>
+            <LanguageSwitcher tone="dark" />
+            <span aria-hidden>·</span>
+            <span>{intlTag[locale as keyof typeof intlTag]}</span>
             <span aria-hidden>·</span>
             <a
               href={`mailto:${CONTACT_EMAIL}`}

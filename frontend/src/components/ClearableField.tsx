@@ -1,6 +1,8 @@
 // src/components/ClearableField.tsx
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 interface Props {
   value: string;
   onChange: (value: string) => void;
@@ -53,6 +55,7 @@ export default function ClearableField({
   heightClass = 'h-16',
   dense = false,
 }: Props) {
+  const t = useTranslations('clearableField');
   const showClear = !disabled && value.length > 0;
   const accessibleName = ariaLabel || label;
   const gutter = dense ? 'pr-7' : 'pr-9';
@@ -90,8 +93,8 @@ export default function ClearableField({
           <button
             type="button"
             onClick={() => onChange('')}
-            aria-label={accessibleName ? `Borrar ${accessibleName}` : 'Borrar'}
-            title="Borrar"
+            aria-label={accessibleName ? t('clearNamed', { name: accessibleName }) : t('clear')}
+            title={t('clear')}
             className={`absolute right-0 flex justify-center text-ink-400 hover:text-ink-900 ${hitArea} ${
               multiline ? 'top-0 h-10 items-center' : 'inset-y-0 items-center'
             }`}

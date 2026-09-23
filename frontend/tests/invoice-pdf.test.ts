@@ -26,9 +26,9 @@ interface RenderResult {
   warnings: string[];
 }
 
-function render(invoice: unknown, showHours = true): RenderResult {
+function render(invoice: unknown, showHours = true, locale?: 'es' | 'en'): RenderResult {
   const res = spawnSync(process.execPath, ['--import', 'tsx', HELPER], {
-    input: JSON.stringify({ invoice, showHours }),
+    input: JSON.stringify({ invoice, showHours, locale }),
     encoding: 'utf8',
     timeout: TIMEOUT_MS,
     maxBuffer: 20 * 1024 * 1024,
@@ -148,6 +148,13 @@ describe('invoice export to PDF', () => {
       'react-pdf warned that a node does not fit and clipped it: description text is being lost',
     );
     assert.ok(r.pages >= 3, `a huge row must span several pages, got ${r.pages}`);
+  });
+
+  it('renders with the English labels too', () => {
+    const r = render(invoiceOf(3, 30), true, 'en');
+    assert.ok(r.isPdf);
+    assert.ok(r.pages >= 3, `expected at least 3 pages, got ${r.pages}`);
+    assert.deepEqual(r.warnings, []);
   });
 
   it('works without the hours column', () => {

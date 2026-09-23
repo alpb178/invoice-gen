@@ -1,0 +1,209 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/i18n/navigation';
+import { registerUser, setActiveTeamId } from '@/lib/auth';
+import { safeNextPath } from '@/lib/next-path';
+import { createTeam } from '@/lib/api';
+import { useToast } from '@/components/Toast';
+import ClearableField from '@/components/ClearableField';
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawNext = searchParams.get('next');
+  const next = rawNext ? safeNextPath(rawNext) : null;
+  const presetEmail = searchParams.get('email') || '';
+  const invitationFlow = Boolean(next);
+
+  const [email, setEmail] = useState(presetEmail);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [teamName, setTeamName] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [companyCIF, setCompanyCIF] = useState('');
+  const [companyAddress, setCompanyAddress] = useState('');
+  const [loading, setLoading] = useState(false);
+  const toast = useToast();
+  const t = useTranslations('register');
+  const ta = useTranslations('auth');
+
+  useEffect(() => {
+    if (presetEmail) setEmail(presetEmail);
+  }, [presetEmail]);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await registerUser(email, password);
+      if (!invitationFlow) {
+        const team = await createTeam({
+          name: teamName,
+          companyName: companyName || teamName,
+          companyCIF,
+          companyAddress,
+        });
+        setActiveTeamId(team.id);
+      }
+      router.replace(next || '/app');
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputClass =
+    'w-full px-3 py-2.5 bg-paper border border-ink-200 rounded-lg text-sm text-ink-900 focus:outline-none focus:border-ink-900';
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 py-10">
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-lg bg-paper border border-ink-200 rounded-2xl p-8 space-y-5 shadow-card"
+      >
+        <div className="text-center">
+          <div className="text-4xl mb-2">🧾</div>
+          <h1 className="font-serif-display text-2xl md:text-3xl font-medium tracking-tight text-ink-900">
+            {invitationFlow ? t('titleInvitation') : t('title')}
+          </h1>
+          <p className="text-ink-500 text-sm mt-1">
+            {invitationFlow ? t('subtitleInvitation') : t('subtitle')}
+          </p>
+        </div>
+
+        <ClearableField
+          label="Email"
+          value={email}
+          onChange={setEmail}
+          type="email"
+          required
+          inputClassName={inputClass}
+          labelClassName="block text-xs text-ink-600 mb-1"
+        />
+
+        <div>
+          <label className="block text-xs text-ink-600 mb-1">{ta('password')}</label>
+          <div className="relative">
+            <input
+              required
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={inputClass + ' pr-10'}
+              minLength={6}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? ta('hidePassword') : ta('showPassword')}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-ink-500 hover:text-ink-900"
+            >
+              <EyeIcon open={showPassword} />
+            </button>
+          </div>
+        </div>
+
+        {!invitationFlow && (
+          <div className="pt-3 border-t border-ink-200">
+            <h2 className="text-sm font-semibold text-ink-900 mb-3">{t('teamSection')}</h2>
+            <div className="space-y-3">
+              <ClearableField
+                label={t('teamName')}
+                value={teamName}
+                onChange={setTeamName}
+                required
+                inputClassName={inputClass}
+                labelClassName="block text-xs text-ink-600 mb-1"
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <ClearableField
+                  label={t('companyName')}
+                  value={companyName}
+                  onChange={setCompanyName}
+                  inputClassName={inputClass}
+                  labelClassName="block text-xs text-ink-600 mb-1"
+                />
+                <ClearableField
+                  label={t('taxId')}
+                  value={companyCIF}
+                  onChange={setCompanyCIF}
+                  inputClassName={inputClass}
+                  labelClassName="block text-xs text-ink-600 mb-1"
+                />
+              </div>
+              <ClearableField
+                label={t('address')}
+                value={companyAddress}
+                onChange={setCompanyAddress}
+                multiline
+                inputClassName={inputClass}
+                labelClassName="block text-xs text-ink-600 mb-1"
+              />
+            </div>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full px-4 py-2.5 bg-ink-900 hover:bg-ink-800 disabled:opacity-50 text-paper font-semibold rounded-xl text-sm transition-colors"
+        >
+          {loading ? t('submitting') : invitationFlow ? t('submitInvitation') : t('submit')}
+        </button>
+
+        <p className="text-xs text-ink-500 text-center">
+          {t('haveAccount')}{' '}
+          <Link
+            href={`/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
+            className="text-ink-900 font-medium hover:underline"
+          >
+            {t('signIn')}
+          </Link>
+        </p>
+      </form>
+    </div>
+  );
+}
+
+function EyeIcon({ open }: { open: boolean }) {
+  if (open) {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-5 h-5"
+        aria-hidden="true"
+      >
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="w-5 h-5"
+      aria-hidden="true"
+    >
+      <path d="M3 3l18 18" />
+      <path d="M10.6 6.2A10.9 10.9 0 0 1 12 6c6.5 0 10 6 10 6a17.7 17.7 0 0 1-3.2 4" />
+      <path d="M6.3 7.6A17.7 17.7 0 0 0 2 12s3.5 6 10 6c1.6 0 3-.3 4.2-.8" />
+      <path d="M9.9 9.9A3 3 0 0 0 14.1 14.1" />
+    </svg>
+  );
+}

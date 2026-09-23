@@ -1,4 +1,5 @@
-import { ApiError, NETWORK_MESSAGE, translateMessage } from './errors';
+import { ApiError, networkMessage, translateMessage } from './errors';
+import { localizedPath } from '@/i18n/client-locale';
 
 const TOKEN_KEY = 'invoice_jwt';
 const USER_KEY = 'invoice_user';
@@ -63,7 +64,7 @@ export async function loginWithPassword(identifier: string, password: string) {
       body: JSON.stringify({ identifier, password }),
     });
   } catch {
-    throw new ApiError(NETWORK_MESSAGE, 0);
+    throw new ApiError(networkMessage(), 0);
   }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -84,7 +85,7 @@ export async function registerUser(email: string, password: string) {
       body: JSON.stringify({ username: email, email, password }),
     });
   } catch {
-    throw new ApiError(NETWORK_MESSAGE, 0);
+    throw new ApiError(networkMessage(), 0);
   }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -97,6 +98,6 @@ export async function registerUser(email: string, password: string) {
 export function logout() {
   clearSession();
   if (typeof window !== 'undefined') {
-    window.location.href = '/login';
+    window.location.href = localizedPath('/login');
   }
 }

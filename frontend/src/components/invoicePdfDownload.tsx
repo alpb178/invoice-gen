@@ -9,15 +9,17 @@
 // edit screen: the PDF is generated on demand.
 
 import { pdf } from '@react-pdf/renderer';
-import InvoicePDF from './InvoicePDF';
+import InvoicePDF, { pdfLabels } from './InvoicePDF';
 import { Invoice } from '@/types';
+import type { Locale } from '@/i18n/config';
 
-export async function downloadInvoicePDF(invoice: Invoice, showHours: boolean) {
-  const blob = await pdf(<InvoicePDF invoice={invoice} showHours={showHours} />).toBlob();
+export async function downloadInvoicePDF(invoice: Invoice, showHours: boolean, locale: Locale) {
+  const blob = await pdf(<InvoicePDF invoice={invoice} showHours={showHours} locale={locale} />).toBlob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Factura_${invoice.number || 'borrador'}.pdf`;
+  const labels = pdfLabels(locale);
+  a.download = `${labels.fileName}_${invoice.number || labels.draftFileName}.pdf`;
   document.body.appendChild(a);
   a.click();
   a.remove();

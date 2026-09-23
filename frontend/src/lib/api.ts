@@ -1,13 +1,14 @@
 // src/lib/api.ts
 
 import { clearSession, getToken } from './auth';
-import { ApiError, NETWORK_MESSAGE, SESSION_EXPIRED_MESSAGE, translateMessage } from './errors';
+import { ApiError, networkMessage, sessionExpiredMessage, translateMessage } from './errors';
 import { queueNotice } from './notify';
+import { localizedPath } from '@/i18n/client-locale';
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 
-// Every error leaves here already translated into Spanish, so no screen has to
-// worry about the English texts Strapi returns.
+// Every error leaves here already translated into the UI language, so no screen
+// has to worry about the English texts Strapi returns.
 async function fetchAPI(path: string, options: RequestInit = {}) {
   const url = `${STRAPI_URL}/api${path}`;
   const token = getToken();
@@ -23,15 +24,15 @@ async function fetchAPI(path: string, options: RequestInit = {}) {
     });
   } catch {
     // Server down, CORS or no internet: fetch throws TypeError.
-    throw new ApiError(NETWORK_MESSAGE, 0);
+    throw new ApiError(networkMessage(), 0);
   }
   if (res.status === 401) {
     clearSession();
     // The redirect reloads the page, so the notice is queued for the
     // ToastProvider to show once on /login.
-    queueNotice('error', SESSION_EXPIRED_MESSAGE);
-    if (typeof window !== 'undefined') window.location.href = '/login';
-    throw new ApiError(SESSION_EXPIRED_MESSAGE, 401);
+    queueNotice('error', sessionExpiredMessage());
+    if (typeof window !== 'undefined') window.location.href = localizedPath('/login');
+    throw new ApiError(sessionExpiredMessage(), 401);
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -175,7 +176,7 @@ export async function parseTasksFromPdf(file: File) {
       body: form,
     });
   } catch {
-    throw new ApiError(NETWORK_MESSAGE, 0);
+    throw new ApiError(networkMessage(), 0);
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
