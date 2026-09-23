@@ -5,7 +5,7 @@
     "singularName": "task",
     "pluralName": "tasks",
     "displayName": "Task",
-    "description": "Tarea individual dentro de una sección"
+    "description": "A single task inside a section"
   },
   "options": {
     "draftAndPublish": false

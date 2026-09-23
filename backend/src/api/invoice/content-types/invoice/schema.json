@@ -5,7 +5,7 @@
     "singularName": "invoice",
     "pluralName": "invoices",
     "displayName": "Invoice",
-    "description": "Factura principal"
+    "description": "Main invoice"
   },
   "options": {
     "draftAndPublish": false
