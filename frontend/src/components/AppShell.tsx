@@ -19,7 +19,7 @@ import { getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, logout, setActiveTeamId } from '@/lib/auth';
 import SiteFooter from './SiteFooter';
 import GroupTicker from './GroupTicker';
-import LanguageSwitcher from './LanguageSwitcher';
+import LanguageMenu from './LanguageMenu';
 import { useToast } from './Toast';
 
 // Routes that live inside the authenticated panel and therefore get the app
@@ -264,7 +264,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </a>
           </div>
 
-          <LanguageSwitcher className="hidden sm:flex" />
+          <LanguageMenu className="hidden sm:inline-block" />
 
           {teams.length > 0 && (
             <select
@@ -301,7 +301,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <div aria-hidden className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
                 <div
                   role="menu"
-                  className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-ink-200 bg-paper shadow-xl"
+                  className="absolute right-0 top-full z-50 mt-2 w-60 rounded-xl border border-ink-200 bg-paper shadow-xl"
                 >
                   <div className="border-b border-ink-200 px-4 py-3">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-ink-500">{t('session')}</p>
@@ -309,13 +309,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
                   {/* On phones the header has no room for the switcher. */}
                   <div className="border-b border-ink-200 px-4 py-3 sm:hidden">
-                    <LanguageSwitcher />
+                    <LanguageMenu align="start" onSelect={() => setUserMenuOpen(false)} />
                   </div>
                   <button
                     type="button"
                     role="menuitem"
                     onClick={logout}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-sm text-rose-700 transition-colors hover:bg-rose-50"
+                    className="flex w-full items-center gap-2 rounded-b-xl px-4 py-3 text-sm text-rose-700 transition-colors hover:bg-rose-50"
                   >
                     <LogOut size={16} />
                     {t('logout')}

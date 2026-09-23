@@ -261,4 +261,136 @@ const en: LegalDoc = {
   ],
 };
 
-export const privacy: Record<Locale, LegalDoc> = { es, en };
+const pt: LegalDoc = {
+  title: 'Política de privacidade',
+  description:
+    'Política de privacidade do Invoice Generator: quais dados coletamos, para qual finalidade, por quanto tempo e quais são os seus direitos.',
+  updatedAt: '27 de maio de 2026',
+  summary:
+    'Respeitamos a sua privacidade. Aqui explicamos quais dados tratamos, por que e como você pode exercer os seus direitos.',
+  sections: [
+    {
+      heading: '1. Controlador dos dados',
+      body: (
+        <p>
+          O controlador dos seus dados pessoais é o{' '}
+          <strong>Invoice Generator</strong>, com endereço de contato{' '}
+          <a
+            href="mailto:alesx2soporte@gmail.com"
+            className="underline hover:text-ink-950"
+          >
+            alesx2soporte@gmail.com
+          </a>
+          .
+        </p>
+      ),
+    },
+    {
+      heading: '2. Dados que tratamos',
+      body: (
+        <>
+          <p>Tratamos as seguintes categorias de dados:</p>
+          <ul>
+            <li>
+              <strong>Dados da conta</strong>: e-mail e senha criptografada.
+            </li>
+            <li>
+              <strong>Dados de faturamento</strong>: nome da empresa, CIF/NIF, endereço
+              fiscal, clientes e itens da fatura.
+            </li>
+            <li>
+              <strong>Dados técnicos</strong>: endereço IP, navegador, sistema operacional e
+              páginas visitadas, coletados para fins analíticos e de segurança.
+            </li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      heading: '3. Finalidade e base legal',
+      body: (
+        <>
+          <p>Tratamos os seus dados para:</p>
+          <ul>
+            <li>Prestar o Serviço e manter a sua conta operacional (execução de contrato).</li>
+            <li>Cumprir obrigações fiscais e contábeis (obrigação legal).</li>
+            <li>
+              Melhorar o produto por meio de análises anonimizadas e comunicações sobre o
+              serviço (interesse legítimo).
+            </li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      heading: '4. Retenção',
+      body: (
+        <p>
+          Mantemos os seus dados enquanto a sua conta estiver ativa. Após o cancelamento, os
+          dados de faturamento serão mantidos pelos prazos legais obrigatórios (normalmente 6
+          anos na Espanha) e os dados da conta serão excluídos ou anonimizados em um prazo
+          máximo de 30 dias.
+        </p>
+      ),
+    },
+    {
+      heading: '5. Destinatários',
+      body: (
+        <>
+          <p>
+            Não vendemos nem cedemos os seus dados a terceiros. Compartilhamos informações
+            apenas com fornecedores que prestam serviços técnicos essenciais:
+          </p>
+          <ul>
+            <li>Fornecedores de hospedagem e bancos de dados.</li>
+            <li>Serviços de análise web e métricas de produto.</li>
+            <li>Gateways de pagamento, quando aplicável.</li>
+          </ul>
+          <p>
+            Todos os fornecedores cumprem as garantias exigidas pelo RGPD e assinaram
+            contratos de tratamento de dados.
+          </p>
+        </>
+      ),
+    },
+    {
+      heading: '6. Os seus direitos',
+      body: (
+        <>
+          <p>Como titular dos dados, você tem direito a:</p>
+          <ul>
+            <li>Acessar, corrigir e excluir os seus dados.</li>
+            <li>Opor-se ao tratamento e solicitar a sua limitação.</li>
+            <li>Solicitar a portabilidade dos dados.</li>
+            <li>Revogar o consentimento dado a qualquer momento.</li>
+          </ul>
+          <p>
+            Você pode exercer esses direitos escrevendo para{' '}
+            <a
+              href="mailto:alesx2soporte@gmail.com"
+              className="underline hover:text-ink-950"
+            >
+              alesx2soporte@gmail.com
+            </a>
+            . Você também pode apresentar uma reclamação à Agência Espanhola de Proteção de
+            Dados (AEPD) se considerar que o tratamento não está em conformidade com a
+            legislação.
+          </p>
+        </>
+      ),
+    },
+    {
+      heading: '7. Segurança',
+      body: (
+        <p>
+          Aplicamos medidas técnicas e organizacionais adequadas para proteger os seus dados
+          contra acessos não autorizados, perda ou destruição acidental, incluindo
+          criptografia em trânsito (HTTPS), armazenamento seguro de senhas e backups
+          regulares.
+        </p>
+      ),
+    },
+  ],
+};
+
+export const privacy: Record<Locale, LegalDoc> = { es, en, pt };

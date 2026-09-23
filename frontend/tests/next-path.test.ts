@@ -24,5 +24,6 @@ describe('safeNextPath', () => {
     assert.equal(safeNextPath('/es/invitations/abc'), '/invitations/abc');
     assert.equal(safeNextPath('/en/app'), '/app');
     assert.equal(safeNextPath('/en'), '/app');
+    assert.equal(safeNextPath('/pt/invoices/7?tab=1'), '/invoices/7?tab=1');
   });
 });

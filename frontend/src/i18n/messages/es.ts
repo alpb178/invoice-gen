@@ -1,5 +1,5 @@
-// Spanish UI copy (default locale). en.ts must have exactly the same keys:
-// it is typed against this file, so a missing or extra key fails the build.
+// Spanish UI copy (default locale). en.ts and pt.ts are typed against this
+// file, so a missing or extra key in either fails the build.
 const es = {
   meta: {
     title: 'Invoice Generator - Crea y gestiona facturas profesionales online',
@@ -15,8 +15,6 @@ const es = {
   },
   languageSwitcher: {
     label: 'Idioma',
-    es: 'Español',
-    en: 'English',
   },
   status: {
     draft: 'Borrador',

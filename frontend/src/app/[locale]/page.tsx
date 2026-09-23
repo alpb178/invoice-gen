@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { isLocale } from '@/i18n/config';
 import { Link } from '@/i18n/navigation';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
+import LanguageMenu from '@/components/LanguageMenu';
 import { SITE_URL, localePath, localizedAlternates, openGraphLocale } from '@/lib/seo';
 
 type Props = { params: { locale: string } };
@@ -51,8 +51,8 @@ export default function LandingPage({ params }: Props) {
         className="relative z-20 border-b"
         style={{ borderColor: 'rgba(28,28,31,0.12)' }}
       >
-        <div className="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between gap-3">
+          <Link href="/" className="flex min-w-0 items-center gap-2.5 group">
             <Image
               src="/logo.png"
               alt="Invoice Generator"
@@ -90,8 +90,8 @@ export default function LandingPage({ params }: Props) {
             </a>
           </nav>
 
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher className="mr-1 sm:mr-2" />
+          <div className="flex shrink-0 items-center gap-2">
+            <LanguageMenu className="sm:mr-2" />
             <Link
               href="/login"
               className="hidden sm:inline-flex px-3.5 py-2 text-sm text-ink-900 hover:text-ink-950 transition-colors"
@@ -100,7 +100,7 @@ export default function LandingPage({ params }: Props) {
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-ink-950 text-[#f5f1e8] text-sm font-medium rounded-full hover:bg-ink-800 transition-colors"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 sm:px-4 py-2 bg-ink-950 text-[#f5f1e8] text-sm font-medium rounded-full hover:bg-ink-800 transition-colors"
             >
               {t('nav.start')}
               <span aria-hidden>→</span>

@@ -58,6 +58,26 @@ const LABELS = {
     fileName: 'Invoice',
     draftFileName: 'draft',
   },
+  pt: {
+    status: { draft: 'RASCUNHO', sent: 'ENVIADA', paid: 'PAGA', cancelled: 'CANCELADA' } as Record<string, string>,
+    title: 'FATURA - Nº',
+    taxId: 'CIF: ',
+    billedTo: 'Emitida para:',
+    bank: 'Nome e endereço do banco: ',
+    date: 'DATA',
+    currency: 'MOEDA',
+    transfer: 'Transferência',
+    concept: 'DESCRIÇÃO',
+    hours: 'HORAS',
+    amount: 'VALOR',
+    section: (n: number) => `Seção ${n}`,
+    notes: 'OBSERVAÇÕES',
+    issuedBy: 'EMITIDA POR',
+    generated: 'GERADA · INVOICE GENERATOR',
+    page: (n: number, total: number) => `PÁG. ${n} / ${total}`,
+    fileName: 'Fatura',
+    draftFileName: 'rascunho',
+  },
 } satisfies Record<Locale, unknown>;
 
 export const pdfLabels = (locale: Locale) => LABELS[locale] ?? LABELS.es;

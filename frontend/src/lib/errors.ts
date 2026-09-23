@@ -6,7 +6,8 @@
 // through as is.
 //
 // The backend's own messages come in Spanish and are passed through untouched
-// in every locale (a known limitation: the English UI shows them in Spanish).
+// in every locale (a known limitation: the English and Portuguese UIs show
+// them in Spanish).
 // Only the ones detected as English or technical are replaced, with the text of
 // the current UI locale.
 
@@ -86,6 +87,30 @@ const TEXT: Record<Locale, Record<MessageId, string>> = {
     invalidEmail: 'Enter a valid email.',
     timeout: 'The server took too long to respond. Please try again.',
   },
+  pt: {
+    network: 'Sem conexão com o servidor. Verifique sua internet e tente novamente.',
+    generic: 'Algo deu errado. Tente novamente.',
+    sessionExpired: 'Sua sessão expirou. Entre novamente.',
+    invalidCredentials: 'E-mail ou senha incorretos.',
+    emailTaken: 'Esse e-mail já tem uma conta. Entre com ele.',
+    usernameTaken: 'Esse nome de usuário já está em uso.',
+    emailNotConfirmed: 'Sua conta ainda não foi confirmada. Verifique seu e-mail.',
+    accountBlocked: 'Sua conta está bloqueada. Entre em contato com o suporte.',
+    invalidLink: 'O link não é mais válido. Peça um novo.',
+    noSuchEmail: 'Não existe nenhuma conta com esse e-mail.',
+    wrongCode: 'O código não está correto.',
+    forbidden: 'Você não tem permissão para fazer isso.',
+    notFound: 'Não encontramos o que você procurava.',
+    badRequest: 'A solicitação não é válida. Confira os dados e tente novamente.',
+    serverError: 'O servidor teve um problema. Tente novamente em alguns minutos.',
+    fileTooLarge: 'O arquivo é grande demais.',
+    tooManyRequests: 'Tentativas demais. Aguarde um momento e tente novamente.',
+    invalidForm: 'Há dados incorretos no formulário. Confira e tente novamente.',
+    alreadyExists: 'Esse registro já existe.',
+    valueTaken: 'Esse valor já está em uso.',
+    invalidEmail: 'Digite um e-mail válido.',
+    timeout: 'O servidor demorou demais para responder. Tente novamente.',
+  },
 };
 
 const text = (id: MessageId, locale: Locale = currentLocale()) => (TEXT[locale] ?? TEXT.es)[id];
@@ -163,37 +188,65 @@ const FIELDS: Record<Locale, Record<string, string>> = {
     team: 'the team',
     title: 'the title',
   },
+  pt: {
+    email: 'o e-mail',
+    password: 'a senha',
+    username: 'o usuário',
+    name: 'o nome',
+    identifier: 'o e-mail',
+    number: 'o número',
+    date: 'a data',
+    currency: 'a moeda',
+    amount: 'o valor',
+    description: 'a descrição',
+    team: 'a equipe',
+    title: 'o título',
+  },
 };
 
+// Sentences built around a field name, per locale.
+const PHRASES: Record<
+  Locale,
+  {
+    unknownField: (raw: string) => string;
+    minLength: (field: string, n: string) => string;
+    maxLength: (field: string, n: string) => string;
+    required: (field: string) => string;
+  }
+> = {
+  es: {
+    unknownField: (raw) => `el campo «${raw}»`,
+    minLength: (f, n) => `${capitalize(f)} debe tener al menos ${n} caracteres.`,
+    maxLength: (f, n) => `${capitalize(f)} no puede pasar de ${n} caracteres.`,
+    required: (f) => `Falta rellenar ${f}.`,
+  },
+  en: {
+    unknownField: (raw) => `the “${raw}” field`,
+    minLength: (f, n) => `${capitalize(f)} must be at least ${n} characters long.`,
+    maxLength: (f, n) => `${capitalize(f)} can't be longer than ${n} characters.`,
+    required: (f) => `Please fill in ${f}.`,
+  },
+  pt: {
+    unknownField: (raw) => `o campo “${raw}”`,
+    minLength: (f, n) => `${capitalize(f)} deve ter pelo menos ${n} caracteres.`,
+    maxLength: (f, n) => `${capitalize(f)} não pode passar de ${n} caracteres.`,
+    required: (f) => `Preencha ${f}.`,
+  },
+};
+
+const phrases = (locale: Locale) => PHRASES[locale] ?? PHRASES.es;
+
 const field = (raw: string, locale: Locale) =>
-  FIELDS[locale][raw.toLowerCase()] || (locale === 'en' ? `the “${raw}” field` : `el campo «${raw}»`);
+  (FIELDS[locale] ?? FIELDS.es)[raw.toLowerCase()] || phrases(locale).unknownField(raw);
 
 type Builder = (m: RegExpMatchArray, locale: Locale) => string;
 
 const PATTERNS: Array<[RegExp, Builder]> = [
-  [
-    /^(\w+) must be at least (\d+) characters?$/i,
-    (m, l) =>
-      l === 'en'
-        ? `${capitalize(field(m[1], l))} must be at least ${m[2]} characters long.`
-        : `${capitalize(field(m[1], l))} debe tener al menos ${m[2]} caracteres.`,
-  ],
-  [
-    /^(\w+) must be at most (\d+) characters?$/i,
-    (m, l) =>
-      l === 'en'
-        ? `${capitalize(field(m[1], l))} can't be longer than ${m[2]} characters.`
-        : `${capitalize(field(m[1], l))} no puede pasar de ${m[2]} caracteres.`,
-  ],
-  [
-    /^(\w+) is a required field$/i,
-    (m, l) => (l === 'en' ? `Please fill in ${field(m[1], l)}.` : `Falta rellenar ${field(m[1], l)}.`),
-  ],
+  [/^(\w+) must be at least (\d+) characters?$/i, (m, l) => phrases(l).minLength(field(m[1], l), m[2])],
+  [/^(\w+) must be at most (\d+) characters?$/i, (m, l) => phrases(l).maxLength(field(m[1], l), m[2])],
+  [/^(\w+) is a required field$/i, (m, l) => phrases(l).required(field(m[1], l))],
   [/^(\w+) must be a valid email$/i, (_m, l) => text('invalidEmail', l)],
-  [
-    /^(\w+) cannot be empty$/i,
-    (m, l) => (l === 'en' ? `Please fill in ${field(m[1], l)}.` : `Falta rellenar ${field(m[1], l)}.`),
-  ],
+  [/^(\w+) cannot be empty$/i, (m, l) => phrases(l).required(field(m[1], l))],
   [/must be unique/i, (_m, l) => text('valueTaken', l)],
   [/^network\b/i, (_m, l) => text('network', l)],
   [/\bfailed to fetch\b/i, (_m, l) => text('network', l)],

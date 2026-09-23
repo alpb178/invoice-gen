@@ -15,8 +15,6 @@ const en: Messages = {
   },
   languageSwitcher: {
     label: 'Language',
-    es: 'Español',
-    en: 'English',
   },
   status: {
     draft: 'Draft',

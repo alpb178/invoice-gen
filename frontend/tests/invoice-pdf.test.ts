@@ -26,7 +26,7 @@ interface RenderResult {
   warnings: string[];
 }
 
-function render(invoice: unknown, showHours = true, locale?: 'es' | 'en'): RenderResult {
+function render(invoice: unknown, showHours = true, locale?: 'es' | 'en' | 'pt'): RenderResult {
   const res = spawnSync(process.execPath, ['--import', 'tsx', HELPER], {
     input: JSON.stringify({ invoice, showHours, locale }),
     encoding: 'utf8',
@@ -152,6 +152,13 @@ describe('invoice export to PDF', () => {
 
   it('renders with the English labels too', () => {
     const r = render(invoiceOf(3, 30), true, 'en');
+    assert.ok(r.isPdf);
+    assert.ok(r.pages >= 3, `expected at least 3 pages, got ${r.pages}`);
+    assert.deepEqual(r.warnings, []);
+  });
+
+  it('renders with the Portuguese labels too', () => {
+    const r = render(invoiceOf(3, 30), true, 'pt');
     assert.ok(r.isPdf);
     assert.ok(r.pages >= 3, `expected at least 3 pages, got ${r.pages}`);
     assert.deepEqual(r.warnings, []);
