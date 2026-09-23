@@ -27,6 +27,30 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* --- Group language menu (components/LanguageSwitcher.tsx) --- */
+
+.lang-menu {
+  --lang-fg: #18181b;          /* ink-900 */
+  --lang-bg: #ffffff;          /* paper */
+  --lang-border: #e5e5e7;      /* ink-200 */
+  --lang-menu-bg: #ffffff;
+  --lang-menu-fg: #3f3f46;     /* ink-700 */
+  --lang-menu-border: #e5e5e7; /* ink-200 */
+  --lang-accent: var(--stamp);
+  --lang-hover: #f5f1e8;       /* cream */
+  /* The button inherits the font: mono, like the other data labels. */
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+.lang-menu ul {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+/* On the black footer the button sits on dark; the menu stays on paper. */
+.lang-menu--dark {
+  --lang-fg: #f4f4f5;
+  --lang-bg: transparent;
+  --lang-border: rgba(255, 255, 255, 0.18);
+}
+
 input, textarea, select {
   font-family: var(--font-sans), system-ui, sans-serif;
 }

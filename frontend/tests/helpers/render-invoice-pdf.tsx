@@ -6,7 +6,7 @@
 // test process it would block the event loop and no timeout would ever fire;
 // the only way to detect it is to kill the child process from outside.
 //
-// Input (stdin, JSON): { invoice, showHours }
+// Input (stdin, JSON): { invoice, showHours, locale? }
 // Output (stdout, JSON): { bytes, pages, warnings }
 
 import React from 'react';
@@ -35,9 +35,9 @@ const pageCount = (pdf: Buffer) => {
 };
 
 (async () => {
-  const { invoice, showHours } = JSON.parse(await readStdin());
+  const { invoice, showHours, locale } = JSON.parse(await readStdin());
   const buffer = await renderToBuffer(
-    React.createElement(InvoicePDF, { invoice, showHours: !!showHours }) as any,
+    React.createElement(InvoicePDF, { invoice, showHours: !!showHours, locale }) as any,
   );
   process.stdout.write(
     JSON.stringify({

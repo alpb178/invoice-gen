@@ -4,6 +4,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
 import { Invoice, Section } from '@/types';
+import { intlTag, type Locale } from '@/i18n/config';
 
 // Editorial palette (white paper + ink + stamp)
 const PAPER = '#ffffff';
@@ -14,15 +15,80 @@ const HAIR = '#d9d5cb';
 const STAMP = '#b0543f';
 
 const CUR_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', BOB: 'Bs' };
-const STATUS_LABEL: Record<string, string> = {
-  draft: 'BORRADOR',
-  sent: 'ENVIADA',
-  paid: 'PAGADA',
-  cancelled: 'CANCELADA',
-};
+// The PDF is rendered by react-pdf outside the React tree of the page (no
+// next-intl provider there), so its labels live here, keyed by UI locale.
+const LABELS = {
+  es: {
+    status: { draft: 'BORRADOR', sent: 'ENVIADA', paid: 'PAGADA', cancelled: 'CANCELADA' } as Record<string, string>,
+    title: 'FACTURA - No.',
+    taxId: 'CIF: ',
+    billedTo: 'Emitido a favor de:',
+    bank: 'Nombre y dirección del Banco: ',
+    date: 'FECHA',
+    currency: 'MONEDA',
+    transfer: 'Transferencia',
+    concept: 'CONCEPTO',
+    hours: 'HORAS',
+    amount: 'IMPORTE',
+    section: (n: number) => `Sección ${n}`,
+    notes: 'NOTAS',
+    issuedBy: 'EMITIDO POR',
+    generated: 'GENERADO · INVOICE GENERATOR',
+    page: (n: number, total: number) => `PÁG. ${n} / ${total}`,
+    fileName: 'Factura',
+    draftFileName: 'borrador',
+  },
+  en: {
+    status: { draft: 'DRAFT', sent: 'SENT', paid: 'PAID', cancelled: 'CANCELLED' } as Record<string, string>,
+    title: 'INVOICE - No.',
+    taxId: 'Tax ID: ',
+    billedTo: 'Billed to:',
+    bank: 'Bank name and address: ',
+    date: 'DATE',
+    currency: 'CURRENCY',
+    transfer: 'Bank transfer',
+    concept: 'DESCRIPTION',
+    hours: 'HOURS',
+    amount: 'AMOUNT',
+    section: (n: number) => `Section ${n}`,
+    notes: 'NOTES',
+    issuedBy: 'ISSUED BY',
+    generated: 'GENERATED · INVOICE GENERATOR',
+    page: (n: number, total: number) => `PAGE ${n} / ${total}`,
+    fileName: 'Invoice',
+    draftFileName: 'draft',
+  },
+  pt: {
+    status: { draft: 'RASCUNHO', sent: 'ENVIADA', paid: 'PAGA', cancelled: 'CANCELADA' } as Record<string, string>,
+    title: 'FATURA - Nº',
+    taxId: 'CIF: ',
+    billedTo: 'Emitida para:',
+    bank: 'Nome e endereço do banco: ',
+    date: 'DATA',
+    currency: 'MOEDA',
+    transfer: 'Transferência',
+    concept: 'DESCRIÇÃO',
+    hours: 'HORAS',
+    amount: 'VALOR',
+    section: (n: number) => `Seção ${n}`,
+    notes: 'OBSERVAÇÕES',
+    issuedBy: 'EMITIDA POR',
+    generated: 'GERADA · INVOICE GENERATOR',
+    page: (n: number, total: number) => `PÁG. ${n} / ${total}`,
+    fileName: 'Fatura',
+    draftFileName: 'rascunho',
+  },
+} satisfies Record<Locale, unknown>;
 
-const money = (n: number) =>
-  new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+export const pdfLabels = (locale: Locale) => LABELS[locale] ?? LABELS.es;
+
+const moneyFormatter = (locale: Locale) => {
+  const fmt = new Intl.NumberFormat(intlTag[locale] ?? intlTag.es, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return (n: number) => fmt.format(n || 0);
+};
 
 const fmtDate = (iso?: string) => {
   if (!iso) return '';
@@ -190,7 +256,15 @@ export const estimateRowHeight = (description?: string) => {
 export const isRowBreakable = (description?: string) =>
   estimateRowHeight(description) > MAX_UNBREAKABLE_HEIGHT;
 
-function ItemRow({ task, showHours }: { task: any; showHours: boolean }) {
+function ItemRow({
+  task,
+  showHours,
+  money,
+}: {
+  task: any;
+  showHours: boolean;
+  money: (n: number) => string;
+}) {
   const breakable = isRowBreakable(task.description);
   return (
     <View style={styles.itemRow} wrap={breakable}>
@@ -207,15 +281,19 @@ function ItemRow({ task, showHours }: { task: any; showHours: boolean }) {
 interface Props {
   invoice: Invoice;
   showHours: boolean;
+  /** UI locale the labels (not the invoice data) are printed in. */
+  locale?: Locale;
 }
 
-const InvoicePDF = ({ invoice, showHours }: Props) => {
+const InvoicePDF = ({ invoice, showHours, locale = 'es' }: Props) => {
+  const L = pdfLabels(locale);
+  const money = moneyFormatter(locale);
   const total = invoice.sections.reduce((a, s) => a + calcSubtotal(s), 0);
   const cur = invoice.currency || 'USD';
   const sym = CUR_SYMBOL[cur] || '';
   const multiSection = invoice.sections.length > 1;
   const status = invoice.status || 'draft';
-  const statusLabel = STATUS_LABEL[status] || status.toUpperCase();
+  const statusLabel = L.status[status] || status.toUpperCase();
   const hasBank = !!(invoice.clientIBAN || invoice.clientSwift || invoice.clientBank);
 
   return (
@@ -224,14 +302,14 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
         {/* ——— Header: issuer/client on the left · stamp + date + currency on the right ——— */}
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
-            <Text style={styles.invoiceTitle}>FACTURA - No. {invoice.number || '—'}</Text>
+            <Text style={styles.invoiceTitle}>{L.title} {invoice.number || '—'}</Text>
 
             {/* — Issuer — */}
             <View style={styles.infoBlock}>
               {invoice.companyName ? <Text style={styles.infoCompany}>{invoice.companyName}</Text> : null}
               {invoice.companyCIF ? (
                 <Text style={styles.infoLine}>
-                  <Text style={styles.infoBold}>CIF: </Text>
+                  <Text style={styles.infoBold}>{L.taxId}</Text>
                   {invoice.companyCIF}
                 </Text>
               ) : null}
@@ -247,7 +325,7 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
             {/* — Recipient — */}
             {invoice.clientName || invoice.clientIBAN || invoice.clientSwift || invoice.clientBank ? (
               <View style={styles.infoBlock}>
-                <Text style={styles.infoHeader}>Emitido a favor de:</Text>
+                <Text style={styles.infoHeader}>{L.billedTo}</Text>
                 {invoice.clientName ? <Text style={styles.infoName}>{invoice.clientName}</Text> : null}
                 {invoice.clientIBAN ? (
                   <Text style={styles.infoLine}>
@@ -261,7 +339,7 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
                 ) : null}
                 {invoice.clientBank ? (
                   <Text style={styles.infoLine}>
-                    Nombre y dirección del Banco: <Text style={styles.infoBold}>{invoice.clientBank}</Text>
+                    {L.bank}<Text style={styles.infoBold}>{invoice.clientBank}</Text>
                   </Text>
                 ) : null}
               </View>
@@ -274,25 +352,25 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
               <Text style={styles.stampText}>{statusLabel}</Text>
             </View>
             <View style={styles.metaGroup}>
-              <Text style={styles.label}>FECHA</Text>
+              <Text style={styles.label}>{L.date}</Text>
               <Text style={styles.metaValueR}>{fmtDate(invoice.date) || '—'}</Text>
             </View>
             <View style={styles.metaGroup}>
-              <Text style={styles.label}>MONEDA</Text>
+              <Text style={styles.label}>{L.currency}</Text>
               <Text style={styles.metaValueR}>
                 {cur}
                 {sym ? ` ${sym}` : ''}
               </Text>
-              {hasBank ? <Text style={styles.metaSubR}>Transferencia</Text> : null}
+              {hasBank ? <Text style={styles.metaSubR}>{L.transfer}</Text> : null}
             </View>
           </View>
         </View>
 
         {/* ——— Items ——— */}
         <View style={styles.itemsHead}>
-          <Text style={[styles.label, styles.itemsHeadConcept]}>CONCEPTO</Text>
-          {showHours && <Text style={[styles.label, styles.colQty]}>HORAS</Text>}
-          <Text style={[styles.label, styles.colAmount]}>IMPORTE{sym ? ` (${sym})` : ''}</Text>
+          <Text style={[styles.label, styles.itemsHeadConcept]}>{L.concept}</Text>
+          {showHours && <Text style={[styles.label, styles.colQty]}>{L.hours}</Text>}
+          <Text style={[styles.label, styles.colAmount]}>{L.amount}{sym ? ` (${sym})` : ''}</Text>
         </View>
         <View style={styles.ruleHair} />
 
@@ -310,7 +388,7 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
               </View>
             ) : null}
             {sec.tasks.map((task, tIdx) => (
-              <ItemRow key={tIdx} task={task} showHours={showHours} />
+              <ItemRow key={tIdx} task={task} showHours={showHours} money={money} />
             ))}
           </View>
         ))}
@@ -323,7 +401,7 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
             {multiSection &&
               invoice.sections.map((sec, i) => (
                 <View key={i} style={styles.subtotalRow}>
-                  <Text style={styles.subtotalLabel}>Subtotal · {sec.title || `Sección ${i + 1}`}</Text>
+                  <Text style={styles.subtotalLabel}>Subtotal · {sec.title || L.section(i + 1)}</Text>
                   <Text style={styles.subtotalVal}>{money(calcSubtotal(sec))}</Text>
                 </View>
               ))}
@@ -341,7 +419,7 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
         {/* ——— Notes ——— */}
         {invoice.notes ? (
           <View style={styles.notes} wrap={false}>
-            <Text style={styles.label}>NOTAS</Text>
+            <Text style={styles.label}>{L.notes}</Text>
             {invoice.notes.split('\n').map((l, i) => (
               <Text key={i} style={[styles.notesText, { marginTop: i === 0 ? 5 : 0 }]}>
                 {l}
@@ -356,11 +434,11 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
             `fixed` and made "EMITIDO POR" disappear on long invoices). */}
         <View style={styles.signatureBlock} wrap={false}>
           <View style={styles.signatureLine} />
-          <Text style={styles.signatureLabel}>EMITIDO POR</Text>
+          <Text style={styles.signatureLabel}>{L.issuedBy}</Text>
           <Link src="https://invoices.corpsc.com/" style={styles.signatureUrl}>
             https://invoices.corpsc.com/
           </Link>
-          <Link src="https://www.corpsc.com/es" style={styles.signaturePromo}>
+          <Link src={`https://www.corpsc.com/${locale}`} style={styles.signaturePromo}>
             corpsc.com
           </Link>
         </View>
@@ -376,10 +454,8 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
             };
             return (
               <>
-                <Text style={styles.footerText}>GENERADO · INVOICE GENERATOR</Text>
-                <Text style={styles.footerText}>
-                  PÁG. {pageNumber} / {totalPages}
-                </Text>
+                <Text style={styles.footerText}>{L.generated}</Text>
+                <Text style={styles.footerText}>{L.page(pageNumber, totalPages)}</Text>
               </>
             );
           }}

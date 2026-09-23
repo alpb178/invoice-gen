@@ -2,7 +2,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { Invoice, Section, Task } from '@/types';
 import { saveFullInvoice, saveInvoiceParties, markInvoiceExported, getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, setActiveTeamId } from '@/lib/auth';
@@ -51,6 +52,8 @@ export default function InvoiceEditor({ initial }: Props) {
   const prefilledTeamRef = useRef<number | null>(null);
   const user = typeof window !== 'undefined' ? getUser() : null;
   const toast = useToast();
+  const t = useTranslations('editor');
+  const ts = useTranslations('status');
 
   useEffect(() => {
     (async () => {
@@ -243,7 +246,7 @@ export default function InvoiceEditor({ initial }: Props) {
 
   const handleSave = async () => {
     if (!teamId) {
-      toast.error('Selecciona un equipo antes de guardar.');
+      toast.error(t('selectTeam'));
       return;
     }
     setSaving(true);
@@ -252,13 +255,13 @@ export default function InvoiceEditor({ initial }: Props) {
         // Frozen invoice: only issuer and client travel. Sections and amounts are
         // not sent, and the backend would reject the payload if they were.
         await saveInvoiceParties(invoice);
-        toast.success('Datos de emisor y cliente guardados.');
+        toast.success(t('partiesSaved'));
       } else {
         await saveFullInvoice(invoice, teamId, {
           canEditHeader,
           canEditSection: (sec) => canEditSection(sec),
         });
-        toast.success('Factura guardada.');
+        toast.success(t('saved'));
       }
       router.push('/invoices');
     } catch (e) {
@@ -284,15 +287,15 @@ export default function InvoiceEditor({ initial }: Props) {
   if (isNew && !isTeamOwner && teamId) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900 mb-2">Solo el dueño puede crear facturas</h1>
+        <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900 mb-2">{t('ownerOnlyTitle')}</h1>
         <p className="text-ink-500 text-sm mb-6">
-          Pídele al dueño del equipo que cree la factura. Cuando esté creada podrás añadir y editar tus propias secciones.
+          {t('ownerOnlyBody')}
         </p>
         <button
           onClick={() => router.push('/app')}
           className="inline-flex items-center gap-1.5 px-6 py-3 bg-ink-950 hover:bg-ink-800 text-[#f5f1e8] font-medium rounded-full text-sm transition-colors"
         >
-          Ir al dashboard
+          {t('goToDashboard')}
           <span aria-hidden>→</span>
         </button>
       </div>
@@ -303,10 +306,13 @@ export default function InvoiceEditor({ initial }: Props) {
     <div className="w-full px-4 md:px-10 lg:px-16 py-8">
       <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
         <div>
-          <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900">{initial ? `Factura #${initial.number}` : 'Nueva Factura'}</h1>
+          <h1 className="font-serif-display text-3xl md:text-4xl font-medium tracking-tight text-ink-900">{initial ? t('titleExisting', { number: initial.number }) : t('titleNew')}</h1>
           {initial?.author && (
             <p className="text-xs text-ink-500 mt-1">
-              Creada por <span className="text-ink-900 font-medium">{initial.author.email}</span>
+              {t.rich('createdBy', {
+                email: initial.author.email,
+                strong: (chunks) => <span className="text-ink-900 font-medium">{chunks}</span>,
+              })}
             </p>
           )}
         </div>
@@ -318,7 +324,7 @@ export default function InvoiceEditor({ initial }: Props) {
               onChange={(e) => setShowHours(e.target.checked)}
               className="accent-ink-900"
             />
-            Mostrar horas
+            {t('showHours')}
           </label>
           {teams.length > 1 && !initial && (
             <select
@@ -346,10 +352,10 @@ export default function InvoiceEditor({ initial }: Props) {
               disabled={saving}
               className="px-6 py-2.5 bg-ink-950 hover:bg-ink-800 disabled:opacity-50 text-[#f5f1e8] font-medium rounded-full text-sm transition-colors"
             >
-              {saving ? 'Guardando...' : 'Guardar'}
+              {saving ? t('saving') : t('save')}
             </button>
           ) : (
-            <span className="text-xs text-ink-500 italic">No tienes permisos para editar</span>
+            <span className="text-xs text-ink-500 italic">{t('noPermission')}</span>
           )}
         </div>
       </div>
@@ -363,11 +369,11 @@ export default function InvoiceEditor({ initial }: Props) {
             ✓
           </span>
           <div className="text-emerald-900">
-            <div className="font-semibold">Factura pagada — congelada</div>
+            <div className="font-semibold">{t('paidFrozenTitle')}</div>
             <div className="text-emerald-700 text-xs mt-0.5">
               {canEditParties
-                ? 'Secciones, tareas e importes no se pueden modificar. Sí puedes corregir los datos de emisor y cliente.'
-                : 'Esta factura está marcada como pagada y no puede modificarse.'}
+                ? t('paidFrozenOwner')
+                : t('paidFrozenMember')}
             </div>
           </div>
         </div>
@@ -375,15 +381,15 @@ export default function InvoiceEditor({ initial }: Props) {
 
       {!isLocked && !canEditHeader && initial && (
         <div className="mb-5 text-xs text-ink-700 bg-ink-50 border border-ink-200 rounded-xl px-3 py-2">
-          Solo el dueño del equipo puede modificar la cabecera. Puedes añadir secciones nuevas y editar las tuyas.
+          {t('headerOwnerOnly')}
         </div>
       )}
 
       <div className="bg-paper border border-ink-200 rounded-2xl p-6 mb-6 shadow-card">
-        <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-4">Datos de la Factura</h2>
+        <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-4">{t('invoiceDetails')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <ClearableField
-            label="Nº Factura"
+            label={t('number')}
             value={invoice.number || ''}
             onChange={(v) => update('number', v)}
             disabled={!canEditHeader}
@@ -392,20 +398,20 @@ export default function InvoiceEditor({ initial }: Props) {
             labelClassName={labelClass}
           />
           <div>
-            <label className={labelClass}>Fecha</label>
+            <label className={labelClass}>{t('date')}</label>
             <input disabled={!canEditHeader} className={inputClass} type="date" value={invoice.date} onChange={(e) => update('date', e.target.value)} />
           </div>
           <div>
-            <label className={labelClass}>Estado</label>
+            <label className={labelClass}>{t('status')}</label>
             <select disabled={!canEditHeader} className={inputClass} value={invoice.status} onChange={(e) => update('status', e.target.value)}>
-              <option value="draft">Borrador</option>
-              <option value="sent">Enviada</option>
-              <option value="paid">Pagada</option>
-              <option value="cancelled">Cancelada</option>
+              <option value="draft">{ts('draft')}</option>
+              <option value="sent">{ts('sent')}</option>
+              <option value="paid">{ts('paid')}</option>
+              <option value="cancelled">{ts('cancelled')}</option>
             </select>
           </div>
           <div>
-            <label className={labelClass}>Moneda</label>
+            <label className={labelClass}>{t('currency')}</label>
             <select disabled={!canEditHeader} className={inputClass} value={invoice.currency} onChange={(e) => update('currency', e.target.value)}>
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
@@ -425,9 +431,9 @@ export default function InvoiceEditor({ initial }: Props) {
             aria-expanded={partiesOpen}
           >
             <div>
-              <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight">Emisor y Cliente</h2>
+              <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wider font-mono-tight">{t('partiesTitle')}</h2>
               <p className="text-xs text-ink-500 mt-0.5">
-                Se pre-rellenan con los del equipo al crear la factura. Editables en cualquier estado.
+                {t('partiesHint')}
               </p>
             </div>
             <span className={`text-ink-500 transition-transform ${partiesOpen ? 'rotate-180' : ''}`}>▾</span>
@@ -435,10 +441,10 @@ export default function InvoiceEditor({ initial }: Props) {
           {partiesOpen && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 pb-6 border-t border-ink-200 pt-6">
               <div>
-                <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-3">Emisor</h3>
+                <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-3">{t('issuer')}</h3>
                 <div className="space-y-3">
                   <ClearableField
-                    label="Empresa"
+                    label={t('company')}
                     value={invoice.companyName || ''}
                     onChange={(v) => update('companyName', v)}
                     disabled={!canEditParties}
@@ -447,7 +453,7 @@ export default function InvoiceEditor({ initial }: Props) {
                     labelClassName={labelClass}
                   />
                   <ClearableField
-                    label="CIF"
+                    label={t('taxId')}
                     value={invoice.companyCIF || ''}
                     onChange={(v) => update('companyCIF', v)}
                     disabled={!canEditParties}
@@ -456,11 +462,11 @@ export default function InvoiceEditor({ initial }: Props) {
                     labelClassName={labelClass}
                   />
                   <ClearableField
-                    label="Dirección"
+                    label={t('address')}
                     value={invoice.companyAddress || ''}
                     onChange={(v) => update('companyAddress', v)}
                     disabled={!canEditParties}
-                    placeholder="Calle..."
+                    placeholder={t('addressPlaceholder')}
                     multiline
                     inputClassName={inputClass}
                     labelClassName={labelClass}
@@ -469,10 +475,10 @@ export default function InvoiceEditor({ initial }: Props) {
               </div>
 
               <div>
-                <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-3">Cliente</h3>
+                <h3 className="text-xs font-semibold text-ink-700 uppercase tracking-wider font-mono-tight mb-3">{t('client')}</h3>
                 <div className="space-y-3">
                   <ClearableField
-                    label="Nombre"
+                    label={t('name')}
                     value={invoice.clientName || ''}
                     onChange={(v) => update('clientName', v)}
                     disabled={!canEditParties}
@@ -499,7 +505,7 @@ export default function InvoiceEditor({ initial }: Props) {
                     labelClassName={labelClass}
                   />
                   <ClearableField
-                    label="Banco"
+                    label={t('bank')}
                     value={invoice.clientBank || ''}
                     onChange={(v) => update('clientBank', v)}
                     disabled={!canEditParties}
@@ -527,7 +533,7 @@ export default function InvoiceEditor({ initial }: Props) {
             }
             className="text-xs text-ink-600 hover:text-ink-900 border border-ink-200 rounded-lg px-3 py-1.5 bg-paper transition-colors"
           >
-            {collapsedSections.size === invoice.sections.length ? 'Mostrar todas' : 'Ocultar todas'}
+            {collapsedSections.size === invoice.sections.length ? t('expandAll') : t('collapseAll')}
           </button>
         </div>
       )}
@@ -548,13 +554,13 @@ export default function InvoiceEditor({ initial }: Props) {
           >
             <div className="min-w-0">
               <h2 className="text-sm font-semibold text-ink-900 truncate">
-                {sec.title?.trim() || `Sección ${sIdx + 1}`}
+                {sec.title?.trim() || t('sectionN', { n: sIdx + 1 })}
               </h2>
               <p className="text-xs text-ink-500 mt-0.5 truncate">
                 {sec.subtitle?.trim()
-                  ? `Responsable: ${sec.subtitle}`
-                  : 'Sin responsable'}
-                <span className="text-ink-400"> · {sec.tasks.length} {sec.tasks.length === 1 ? 'tarea' : 'tareas'}</span>
+                  ? t('ownerLabel', { name: sec.subtitle })
+                  : t('noOwner')}
+                <span className="text-ink-400"> · {t('taskCount', { count: sec.tasks.length })}</span>
               </p>
             </div>
             <div className="flex items-center gap-4 shrink-0">
@@ -571,7 +577,7 @@ export default function InvoiceEditor({ initial }: Props) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
               <ClearableField
-                label="Título de sección"
+                label={t('sectionTitle')}
                 value={sec.title || ''}
                 onChange={(v) => updateSection(sIdx, 'title', v)}
                 disabled={!secEditable}
@@ -580,7 +586,7 @@ export default function InvoiceEditor({ initial }: Props) {
                 labelClassName={labelClass}
               />
               <ClearableField
-                label="Responsable"
+                label={t('sectionOwner')}
                 value={sec.subtitle || ''}
                 onChange={(v) => updateSection(sIdx, 'subtitle', v)}
                 disabled={!secEditable}
@@ -590,13 +596,13 @@ export default function InvoiceEditor({ initial }: Props) {
               />
             </div>
             {secEditable && (
-              <button onClick={() => removeSection(sIdx)} className="ml-3 mt-5 text-red-600 hover:text-red-700 text-lg" title="Eliminar sección">✕</button>
+              <button onClick={() => removeSection(sIdx)} className="ml-3 mt-5 text-red-600 hover:text-red-700 text-lg" title={t('removeSection')}>✕</button>
             )}
           </div>
 
           {sec.author?.email && !secEditable && (
             <div className="mb-3 text-[11px] text-ink-500 italic">
-              Sección de {sec.author.email} — solo lectura.
+              {t('readOnlySection', { email: sec.author.email })}
             </div>
           )}
 
@@ -606,11 +612,11 @@ export default function InvoiceEditor({ initial }: Props) {
             <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="text-ink-500 text-xs uppercase tracking-wider font-mono-tight border-b border-ink-200">
-                  <th className="text-left py-3 pr-3 w-14">Nº</th>
-                  <th className="text-left py-3 pr-3 w-32">Código</th>
-                  <th className="text-left py-3 pr-3">Descripción</th>
-                  {showHours && <th className="text-right py-3 pr-3 w-24">Horas</th>}
-                  <th className="text-right py-3 pr-3 w-36">Monto ({invoice.currency})</th>
+                  <th className="text-left py-3 pr-3 w-14">{t('colNumber')}</th>
+                  <th className="text-left py-3 pr-3 w-32">{t('colCode')}</th>
+                  <th className="text-left py-3 pr-3">{t('colDescription')}</th>
+                  {showHours && <th className="text-right py-3 pr-3 w-24">{t('colHours')}</th>}
+                  <th className="text-right py-3 pr-3 w-36">{t('colAmount', { currency: invoice.currency })}</th>
                   <th className="w-10"></th>
                 </tr>
               </thead>
@@ -631,7 +637,7 @@ export default function InvoiceEditor({ initial }: Props) {
                         value={task.code || ''}
                         onChange={(v) => updateTask(sIdx, tIdx, 'code', v)}
                         disabled={!secEditable}
-                        ariaLabel="Código de la tarea"
+                        ariaLabel={t('taskCodeAria')}
                         dense
                         placeholder="XXXX"
                         inputClassName="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-800 text-sm font-mono focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
@@ -642,9 +648,9 @@ export default function InvoiceEditor({ initial }: Props) {
                         value={task.description || ''}
                         onChange={(v) => updateTask(sIdx, tIdx, 'description', v)}
                         disabled={!secEditable}
-                        ariaLabel="Descripción de la tarea"
+                        ariaLabel={t('taskDescriptionAria')}
                         dense
-                        placeholder="Descripción de la tarea..."
+                        placeholder={t('taskDescriptionPlaceholder')}
                         inputClassName="w-full px-3 py-2 bg-paper border border-ink-200 rounded-lg text-ink-800 text-sm focus:outline-none focus:border-ink-900 disabled:bg-ink-50"
                       />
                     </td>
@@ -695,7 +701,7 @@ export default function InvoiceEditor({ initial }: Props) {
                   onClick={() => addTask(sIdx)}
                   className="text-xs text-ink-600 hover:text-ink-900 border border-dashed border-ink-300 rounded-lg px-3 py-1.5 transition-colors"
                 >
-                  + Agregar tarea
+                  {t('addTask')}
                 </button>
                 {/* Temporarily hidden — option to import text or PDF
                 <button
@@ -708,7 +714,7 @@ export default function InvoiceEditor({ initial }: Props) {
               </div>
             ) : <span />}
             <div className="text-right">
-              <span className="text-xs text-ink-500 mr-3 uppercase tracking-wider font-mono-tight">Subtotal Sección {sIdx + 1}</span>
+              <span className="text-xs text-ink-500 mr-3 uppercase tracking-wider font-mono-tight">{t('sectionSubtotal', { n: sIdx + 1 })}</span>
               <span className="font-mono-tight num-dot font-semibold text-ink-900">{fmtMoney(calcSectionTotal(sec))}</span>
             </div>
           </div>
@@ -723,7 +729,7 @@ export default function InvoiceEditor({ initial }: Props) {
           onClick={addSection}
           className="w-full py-3 bg-paper border-2 border-dashed border-ink-300 rounded-2xl text-ink-700 hover:text-ink-900 hover:border-ink-500 hover:bg-ink-50 text-sm font-medium transition-colors mb-6 shadow-card"
         >
-          + Agregar Sección
+          {t('addSection')}
         </button>
       )}
 
@@ -736,7 +742,7 @@ export default function InvoiceEditor({ initial }: Props) {
           }`}
         >
           <div className="min-w-0 md:flex-1 md:max-w-lg">
-            <h3 className="font-serif-display text-xl font-medium text-ink-900">Total General</h3>
+            <h3 className="font-serif-display text-xl font-medium text-ink-900">{t('grandTotal')}</h3>
 
             {/* Per-section breakdown. The rule between the name and the amount acts
                 as a proportion bar: the inked stretch is what that section
@@ -754,7 +760,7 @@ export default function InvoiceEditor({ initial }: Props) {
                         className="shrink-0 w-28 sm:w-40 truncate text-ink-900"
                         title={[sec.title?.trim(), sec.subtitle?.trim()].filter(Boolean).join(' · ')}
                       >
-                        {sec.title?.trim() || `Sección ${i + 1}`}
+                        {sec.title?.trim() || t('sectionN', { n: i + 1 })}
                         {sec.subtitle?.trim() ? (
                           <span className="text-ink-500"> · {sec.subtitle}</span>
                         ) : null}
@@ -787,11 +793,11 @@ export default function InvoiceEditor({ initial }: Props) {
 
       <div className="mt-6">
         <ClearableField
-          label="Notas (opcional)"
+          label={t('notes')}
           value={invoice.notes || ''}
           onChange={(v) => update('notes', v)}
           disabled={!canEditHeader}
-          placeholder="Notas adicionales..."
+          placeholder={t('notesPlaceholder')}
           multiline
           heightClass="h-20"
           inputClassName={inputClass}

@@ -2,6 +2,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { translateError } from '@/lib/errors';
 import { drainNotices, NoticeKind } from '@/lib/notify';
 
@@ -12,7 +13,10 @@ interface ToastItem {
 }
 
 interface ToastApi {
-  /** Shows an already-translated error, or translates whatever a `catch` hands it. */
+  /**
+   * Shows an error. A string is UI copy the caller already localized and is
+   * shown as is; anything else (what a `catch` hands over) is translated.
+   */
   error: (err: unknown) => void;
   success: (text: string) => void;
   info: (text: string) => void;
@@ -36,6 +40,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const nextId = useRef(1);
   const recent = useRef<Map<string, number>>(new Map());
   const timers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const t = useTranslations('toast');
 
   const dismiss = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -69,7 +74,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const api = useMemo<ToastApi>(
     () => ({
-      error: (err: unknown) => push('error', translateError(err)),
+      error: (err: unknown) => push('error', typeof err === 'string' ? err : translateError(err)),
       success: (text: string) => push('success', text),
       info: (text: string) => push('info', text),
       dismiss,
@@ -94,7 +99,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const onRejection = (ev: PromiseRejectionEvent) => {
       push('error', translateError(ev.reason));
     };
-    const onOffline = () => push('error', 'Te has quedado sin conexión.');
+    const onOffline = () => push('error', t('offline'));
 
     window.addEventListener('error', onError, true);
     window.addEventListener('unhandledrejection', onRejection);
@@ -104,7 +109,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('unhandledrejection', onRejection);
       window.removeEventListener('offline', onOffline);
     };
-  }, [push]);
+  }, [push, t]);
 
   useEffect(() => {
     const map = timers.current;
@@ -128,10 +133,10 @@ export function useToast(): ToastApi {
   return ctx;
 }
 
-const STYLES: Record<NoticeKind, { accent: string; icon: string; label: string }> = {
-  error: { accent: 'bg-red-600', icon: '!', label: 'Error' },
-  success: { accent: 'bg-emerald-600', icon: '✓', label: 'Listo' },
-  info: { accent: 'bg-ink-900', icon: 'i', label: 'Aviso' },
+const STYLES: Record<NoticeKind, { accent: string; icon: string }> = {
+  error: { accent: 'bg-red-600', icon: '!' },
+  success: { accent: 'bg-emerald-600', icon: '✓' },
+  info: { accent: 'bg-ink-900', icon: 'i' },
 };
 
 function ToastViewport({
@@ -141,6 +146,7 @@ function ToastViewport({
   toasts: ToastItem[];
   onDismiss: (id: number) => void;
 }) {
+  const label = useTranslations('toast');
   return (
     <div
       aria-live="polite"
@@ -163,14 +169,14 @@ function ToastViewport({
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500 font-mono-tight">
-                {s.label}
+                {label(t.kind)}
               </div>
               <p className="text-sm text-ink-900 mt-0.5 break-words">{t.text}</p>
             </div>
             <button
               type="button"
               onClick={() => onDismiss(t.id)}
-              aria-label="Cerrar aviso"
+              aria-label={label('dismiss')}
               className="shrink-0 text-ink-400 hover:text-ink-900 transition-colors text-sm leading-none mt-0.5"
             >
               ✕

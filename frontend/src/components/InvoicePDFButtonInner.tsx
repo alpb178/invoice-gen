@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { downloadInvoicePDF } from './invoicePdfDownload';
 import { Invoice } from '@/types';
 import { useToast } from './Toast';
@@ -21,16 +22,18 @@ interface Props {
 export default function InvoicePDFButtonInner({ invoice, showHours, onExported }: Props) {
   const [generating, setGenerating] = useState(false);
   const toast = useToast();
+  const locale = useLocale();
+  const t = useTranslations('pdfButton');
 
   const handleDownload = async () => {
     if (generating) return;
     setGenerating(true);
     try {
-      await downloadInvoicePDF(invoice, showHours);
+      await downloadInvoicePDF(invoice, showHours, locale);
       onExported?.();
     } catch (e) {
       console.error(e);
-      toast.error('No se pudo generar el PDF. Inténtalo de nuevo.');
+      toast.error(t('failed'));
     } finally {
       setGenerating(false);
     }
@@ -43,7 +46,7 @@ export default function InvoicePDFButtonInner({ invoice, showHours, onExported }
       disabled={generating}
       className="px-4 py-2.5 bg-paper hover:bg-ink-100 border border-ink-200 text-ink-900 rounded-xl text-sm font-medium transition-colors disabled:opacity-60"
     >
-      {generating ? 'Generando...' : 'Descargar PDF'}
+      {generating ? t('generating') : t('download')}
     </button>
   );
 }

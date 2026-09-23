@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   LayoutDashboard,
   FileText,
@@ -15,10 +14,12 @@ import {
   X,
   ChevronDown,
 } from 'lucide-react';
+import { Link, usePathname } from '@/i18n/navigation';
 import { getMyTeams } from '@/lib/api';
 import { getActiveTeamId, getUser, logout, setActiveTeamId } from '@/lib/auth';
 import SiteFooter from './SiteFooter';
 import GroupTicker from './GroupTicker';
+import LanguageMenu from './LanguageMenu';
 import { useToast } from './Toast';
 
 // Routes that live inside the authenticated panel and therefore get the app
@@ -32,17 +33,17 @@ function isAppRoute(pathname: string) {
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: 'dashboard' | 'invoices' | 'reports' | 'teams' | 'settings';
   icon: React.ComponentType<{ size?: number | string; className?: string }>;
   ownerOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/app', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/invoices', label: 'Facturas', icon: FileText },
-  { href: '/reports', label: 'Reportes', icon: BarChart3 },
-  { href: '/teams', label: 'Equipos', icon: Users },
-  { href: '/settings', label: 'Ajustes', icon: Settings },
+  { href: '/app', labelKey: 'dashboard', icon: LayoutDashboard },
+  { href: '/invoices', labelKey: 'invoices', icon: FileText },
+  { href: '/reports', labelKey: 'reports', icon: BarChart3 },
+  { href: '/teams', labelKey: 'teams', icon: Users },
+  { href: '/settings', labelKey: 'settings', icon: Settings },
 ];
 
 const NEW_INVOICE_HREF = '/invoices/new';
@@ -61,7 +62,10 @@ function activeHref(pathname: string) {
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  // Path without the locale prefix: /es/invoices → /invoices.
   const pathname = usePathname();
+  const locale = useLocale();
+  const t = useTranslations('shell');
   const showShell = isAppRoute(pathname);
 
   const [teams, setTeams] = useState<any[]>([]);
@@ -134,7 +138,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const expanded = pinned;
   const current = activeHref(pathname);
-  const displayName = user?.email || 'Cuenta';
+  const displayName = user?.email || t('account');
   const initials = displayName.slice(0, 2).toUpperCase();
 
   // The label fades in with a delay (once the width has grown) and fades out
@@ -179,24 +183,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => setPinned((v) => !v)}
-            aria-label={expanded ? 'Cerrar menú' : 'Abrir menú'}
+            aria-label={expanded ? t('closeMenu') : t('openMenu')}
             aria-expanded={expanded}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ink-700 transition-colors hover:bg-ink-100 hover:text-ink-900"
           >
             {expanded ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <span className={`${labelCls} text-[10px] uppercase tracking-[0.2em] text-ink-500`}>Menú</span>
+          <span className={`${labelCls} text-[10px] uppercase tracking-[0.2em] text-ink-500`}>{t('menu')}</span>
         </div>
 
         <nav className="flex flex-col gap-1 p-3">
           {NAV_ITEMS.map((item) => {
             const active = current === item.href;
             const Icon = item.icon;
+            const label = t(`nav.${item.labelKey}`);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                title={item.label}
+                title={label}
                 onClick={collapseOnPick}
                 className={`flex h-10 items-center gap-3 rounded-xl px-2 transition-colors ${
                   active ? 'bg-ink-900 text-paper' : 'text-ink-700 hover:bg-ink-100 hover:text-ink-900'
@@ -205,7 +210,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center">
                   <Icon size={18} className={active ? 'text-paper' : 'text-ink-500'} />
                 </span>
-                <span className={`${labelCls} text-sm font-medium`}>{item.label}</span>
+                <span className={`${labelCls} text-sm font-medium`}>{label}</span>
               </Link>
             );
           })}
@@ -213,7 +218,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {isOwner && (
             <Link
               href={NEW_INVOICE_HREF}
-              title="Nueva Factura"
+              title={t('newInvoice')}
               onClick={collapseOnPick}
               className={`mt-3 flex h-10 items-center gap-3 rounded-xl px-2 transition-colors ${
                 current === NEW_INVOICE_HREF
@@ -227,7 +232,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   style={current === NEW_INVOICE_HREF ? undefined : { color: 'var(--stamp)' }}
                 />
               </span>
-              <span className={`${labelCls} text-sm font-medium`}>Nueva Factura</span>
+              <span className={`${labelCls} text-sm font-medium`}>{t('newInvoice')}</span>
             </Link>
           )}
         </nav>
@@ -249,15 +254,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex-1 flex justify-center">
             <a
-              href="https://www.corpsc.com/es"
+              href={`https://www.corpsc.com/${locale}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium text-ink-700 border border-ink-200 hover:border-ink-300 hover:text-ink-900 transition-colors"
             >
-              Conoce CorpSC
+              {t('meetCorpsc')}
               <span aria-hidden>↗</span>
             </a>
           </div>
+
+          <LanguageMenu className="hidden sm:inline-block" />
 
           {teams.length > 0 && (
             <select
@@ -294,20 +301,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <div aria-hidden className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
                 <div
                   role="menu"
-                  className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-ink-200 bg-paper shadow-xl"
+                  className="absolute right-0 top-full z-50 mt-2 w-60 rounded-xl border border-ink-200 bg-paper shadow-xl"
                 >
                   <div className="border-b border-ink-200 px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-ink-500">Sesión</p>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-ink-500">{t('session')}</p>
                     <p className="truncate text-sm font-medium text-ink-900">{displayName}</p>
+                  </div>
+                  {/* On phones the header has no room for the switcher. */}
+                  <div className="border-b border-ink-200 px-4 py-3 sm:hidden">
+                    <LanguageMenu align="start" onSelect={() => setUserMenuOpen(false)} />
                   </div>
                   <button
                     type="button"
                     role="menuitem"
                     onClick={logout}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-sm text-rose-700 transition-colors hover:bg-rose-50"
+                    className="flex w-full items-center gap-2 rounded-b-xl px-4 py-3 text-sm text-rose-700 transition-colors hover:bg-rose-50"
                   >
                     <LogOut size={16} />
-                    Cerrar sesión
+                    {t('logout')}
                   </button>
                 </div>
               </>

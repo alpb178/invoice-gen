@@ -1,3 +1,6 @@
+'use client';
+
+import { useLocale, useTranslations } from 'next-intl';
 import { GROUP_SITES, groupSiteUrl, siteDomain } from '@/lib/group-sites';
 
 // CorpSC Group ticker: a thin strip at the top of the page with the sibling
@@ -9,8 +12,9 @@ import { GROUP_SITES, groupSiteUrl, siteDomain } from '@/lib/group-sites';
 // the second is exactly where the first started, so the loop has no jump. The
 // duplicate copy is hidden from screen readers and kept out of the tab order.
 export default function GroupTicker() {
+  const t = useTranslations('ticker');
   return (
-    <aside className="gt" aria-label="Sitios de interés">
+    <aside className="gt" aria-label={t('label')}>
       <div className="gt-viewport">
         <div className="gt-track">
           <TickerRow />
@@ -18,18 +22,21 @@ export default function GroupTicker() {
         </div>
       </div>
 
-      <style>{CSS}</style>
+      {/* Raw on purpose: as a text child React escapes the quotes in the CSS on
+          the server but not on the client, and hydration fails. */}
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
     </aside>
   );
 }
 
 function TickerRow({ duplicate = false }: { duplicate?: boolean }) {
+  const locale = useLocale();
   return (
     <ul className="gt-row" aria-hidden={duplicate || undefined}>
       {GROUP_SITES.map((site) => (
         <li key={site.slug}>
           <a
-            href={groupSiteUrl(site.url)}
+            href={groupSiteUrl(site.localizedUrl?.[locale] ?? site.url)}
             target="_blank"
             rel="noopener noreferrer"
             tabIndex={duplicate ? -1 : undefined}
@@ -42,7 +49,7 @@ function TickerRow({ duplicate = false }: { duplicate?: boolean }) {
             />
             <span className="gt-name">{site.name}</span>
             <span className="gt-url">{siteDomain(site.url)}</span>
-            <span className="gt-desc">{site.tagline}</span>
+            <span className="gt-desc">{site.tagline[locale]}</span>
           </a>
         </li>
       ))}
