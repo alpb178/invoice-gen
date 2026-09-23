@@ -164,14 +164,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </noscript>
         {/* End Google Tag Manager (noscript) */}
 
-        {/* Envuelve toda la app: los toasts deben poder salir desde cualquier
-            pantalla, incluidas login y registro (que van fuera del app-shell). */}
+        {/* Wraps the whole app: toasts must be able to fire from any screen,
+            including login and sign-up (which sit outside the app shell). */}
         <ToastProvider>
           <AuthGuard>
             <AppShell>{children}</AppShell>
           </AuthGuard>
         </ToastProvider>
-        {/* No pinta nada: manda la visita y los clics al hub del grupo. */}
+        {/* Renders nothing: sends the visit and the clicks to the group hub. */}
         <HubAnalytics />
       </body>
     </html>

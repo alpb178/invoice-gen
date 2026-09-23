@@ -67,8 +67,8 @@ export async function loginWithPassword(identifier: string, password: string) {
   }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    // Strapi contesta en inglés ("Invalid identifier or password"): se traduce
-    // aquí para que la pantalla de login solo tenga que mostrar el mensaje.
+    // Strapi answers in English ("Invalid identifier or password"): it is
+    // translated here so the login screen only has to show the message.
     throw new ApiError(translateMessage(body?.error?.message, res.status), res.status);
   }
   setSession(body.jwt, body.user);

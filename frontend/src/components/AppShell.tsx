@@ -21,9 +21,9 @@ import SiteFooter from './SiteFooter';
 import GroupTicker from './GroupTicker';
 import { useToast } from './Toast';
 
-// Rutas que viven dentro del panel autenticado y por tanto llevan el app-shell
-// (header fijo + drawer). El resto (landing, login, legales, invitaciones) se
-// renderiza tal cual, sin navegación lateral.
+// Routes that live inside the authenticated panel and therefore get the app
+// shell (sticky header + drawer). The rest (landing, login, legal pages,
+// invitations) render as they are, without side navigation.
 const APP_PREFIXES = ['/app', '/invoices', '/reports', '/teams', '/settings'];
 
 function isAppRoute(pathname: string) {
@@ -52,8 +52,8 @@ function matches(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-// Gana el href más específico: estando en /invoices/new se marca "Nueva
-// Factura" y no también "Facturas".
+// The most specific href wins: on /invoices/new "Nueva Factura" is marked,
+// and "Facturas" is not.
 function activeHref(pathname: string) {
   return [...NAV_ITEMS.map((i) => i.href), NEW_INVOICE_HREF]
     .filter((href) => matches(pathname, href))
@@ -69,11 +69,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isOwner, setIsOwner] = useState(false);
   const [user, setUser] = useState<any>(null);
   const toast = useToast();
-  // El menú vive colapsado como riel de iconos: se expande con hover/focus en
-  // escritorio (solo CSS) y con el botón ☰ en táctil ("pinned").
+  // The menu lives collapsed as an icon rail: it expands on hover/focus on
+  // desktop (CSS only) and with the ☰ button on touch screens ("pinned").
   const [pinned, setPinned] = useState(false);
-  // Al elegir una opción el riel se cierra al instante aunque el cursor siga
-  // encima: se apaga la expansión por hover hasta que el mouse salga.
+  // Picking an option closes the rail right away even if the cursor is still
+  // over it: hover expansion is turned off until the mouse leaves.
   const [hoverEnabled, setHoverEnabled] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -98,14 +98,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     })();
   }, [showShell]);
 
-  // Al navegar, el riel vuelve a colapsarse.
+  // On navigation, the rail collapses again.
   useEffect(() => {
     setPinned(false);
     setUserMenuOpen(false);
   }, [pathname]);
 
-  // Escape también lo colapsa (y suelta el foco del ☰, que de otro modo
-  // mantendría el riel expandido vía focus-within).
+  // Escape collapses it too (and releases focus from ☰, which would otherwise
+  // keep the rail expanded through focus-within).
   useEffect(() => {
     if (!pinned) return;
     const onKey = (e: KeyboardEvent) => {
@@ -137,14 +137,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const displayName = user?.email || 'Cuenta';
   const initials = displayName.slice(0, 2).toUpperCase();
 
-  // La etiqueta entra con retardo (cuando el ancho ya avanzó) y se desvanece
-  // sin retardo al colapsar.
+  // The label fades in with a delay (once the width has grown) and fades out
+  // with no delay on collapse.
   const labelCls = `whitespace-nowrap transition-opacity duration-200 ease-out group-hover:opacity-100 group-hover:delay-100 group-focus-within:opacity-100 group-focus-within:delay-100 ${
     expanded ? 'opacity-100' : 'opacity-0'
   }`;
 
-  // Cierra el riel al elegir una opción (también si se navega a la página
-  // actual, donde pathname no cambia).
+  // Closes the rail when an option is picked (also when navigating to the
+  // current page, where pathname does not change).
   const collapseOnPick = (e: React.MouseEvent<HTMLElement>) => {
     setPinned(false);
     setHoverEnabled(false);
@@ -153,11 +153,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex bg-cream">
-      {/* Hueco del riel en el layout: el aside real es fijo y al expandirse se
-          superpone al contenido sin empujarlo. */}
+      {/* The rail's slot in the layout: the real aside is fixed and, when it
+          expands, overlays the content without pushing it. */}
       <div className="w-16 shrink-0" aria-hidden />
 
-      {/* Fondo oscurecido solo en modo fijado (táctil). */}
+      {/* Dimmed backdrop only in pinned mode (touch). */}
       <div
         aria-hidden
         onClick={() => setPinned(false)}
@@ -166,15 +166,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }`}
       />
 
-      {/* Expansión con curva "emphasized"; anima también la sombra para que no
-          aparezca de golpe al final. */}
+      {/* Expansion with an "emphasized" curve; the shadow animates too so it
+          does not pop in at the end. */}
       <aside
         onMouseLeave={() => setHoverEnabled(true)}
         className={`group fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden border-r border-ink-200 bg-paper transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${
           hoverEnabled ? 'hover:w-64 hover:shadow-xl focus-within:w-64' : ''
         } ${expanded ? 'w-64 shadow-xl' : 'w-16'}`}
       >
-        {/* Cabecera del riel: ☰ fija el menú en táctil. */}
+        {/* Rail header: ☰ pins the menu on touch screens. */}
         <div className="flex h-16 shrink-0 items-center gap-2 border-b border-ink-200 px-3">
           <button
             type="button"
@@ -236,7 +236,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <GroupTicker />
 
-        {/* Header fijo */}
+        {/* Sticky header */}
         <header className="sticky top-0 z-30 h-16 flex items-center gap-3 px-4 md:px-6 bg-paper/90 backdrop-blur border-b border-ink-200">
           <Link href="/app" className="flex items-center gap-2 shrink-0">
             <span className="font-serif-display text-xl font-semibold tracking-tight text-ink-900">
@@ -273,7 +273,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </select>
           )}
 
-          {/* Avatar: al hacer click se abre el menú de sesión. */}
+          {/* Avatar: clicking it opens the session menu. */}
           <div className="relative shrink-0">
             <button
               type="button"
@@ -290,7 +290,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             {userMenuOpen && (
               <>
-                {/* Click fuera cierra el menú. */}
+                {/* Clicking outside closes the menu. */}
                 <div aria-hidden className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
                 <div
                   role="menu"
@@ -315,7 +315,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Contenido — sin footer de marketing dentro del panel */}
+        {/* Content — no marketing footer inside the panel */}
         <main className="flex-1 min-w-0">{children}</main>
       </div>
     </div>

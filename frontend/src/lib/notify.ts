@@ -1,9 +1,9 @@
 // src/lib/notify.ts
 //
-// Cola de avisos para código que NO es un componente de React (por ejemplo
-// `fetchAPI`, que al recibir un 401 limpia la sesión y recarga la página hacia
-// /login). Un toast lanzado justo antes de una recarga no se vería, así que se
-// guarda en sessionStorage y el ToastProvider lo saca al montar.
+// Notice queue for code that is NOT a React component (for example
+// `fetchAPI`, which on a 401 clears the session and reloads the page to
+// /login). A toast fired right before a reload would never be seen, so it is
+// stored in sessionStorage and the ToastProvider drains it on mount.
 
 export type NoticeKind = 'error' | 'success' | 'info';
 export interface Notice {
@@ -18,12 +18,12 @@ export function queueNotice(kind: NoticeKind, text: string) {
   try {
     const raw = window.sessionStorage.getItem(KEY);
     const list: Notice[] = raw ? JSON.parse(raw) : [];
-    // Sin duplicados: si el mismo aviso ya está en cola, no se repite.
+    // No duplicates: if the same notice is already queued, it is not repeated.
     if (list.some((n) => n.kind === kind && n.text === text)) return;
     list.push({ kind, text });
     window.sessionStorage.setItem(KEY, JSON.stringify(list.slice(-5)));
   } catch {
-    // sessionStorage puede fallar en modo privado: el aviso se pierde, no pasa nada.
+    // sessionStorage can fail in private mode: the notice is lost, no harm done.
   }
 }
 

@@ -2,17 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-// Gráficas del panel y de reportes, sin dependencias. La de tendencia
-// (`LineChart`) es SVG plano y comparte el marco `ChartFrame`; el reparto por
-// estado (`HBarChart`) va en HTML, que para barras horizontales resuelve solo
-// el flujo y el truncado de las etiquetas.
+// Dashboard and report charts, with no dependencies. The trend chart
+// (`LineChart`) is plain SVG and shares the `ChartFrame` wrapper; the
+// breakdown by status (`HBarChart`) is HTML, which for horizontal bars handles
+// label flow and truncation on its own.
 
 export const CHART = {
   width: 900,
   height: 230,
 };
 
-/** Respeta la preferencia del sistema de reducir el movimiento. */
+/** Honours the system's reduced-motion preference. */
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -26,9 +26,9 @@ function usePrefersReducedMotion() {
 }
 
 /**
- * Pasa de false a true en el primer frame tras montar (o tras cambiar los
- * datos): así la transición CSS tiene un estado inicial que animar. Con dos
- * rAF, el navegador pinta el estado "en cero" antes de arrancar.
+ * Flips from false to true on the first frame after mount (or after the data
+ * changes): that gives the CSS transition an initial state to animate from.
+ * With two rAFs, the browser paints the "at zero" state before starting.
  */
 function useEntrance(signature: string, reduced: boolean) {
   const [entered, setEntered] = useState(false);
@@ -50,25 +50,25 @@ function useEntrance(signature: string, reduced: boolean) {
   return entered;
 }
 
-// Rejilla y trazo de la gráfica de tendencia: medidos sobre la referencia de
-// diseño (#e8e8e9 y #8db636), declarados como tokens en globals.css. Van por
-// `style` y no por atributo: `stroke="var(--x)"` como atributo SVG no resuelve
-// en todos los navegadores, en una declaración CSS sí.
+// Grid and stroke of the trend chart: measured from the design reference
+// (#e8e8e9 and #8db636), declared as tokens in globals.css. They go through
+// `style` and not an attribute: `stroke="var(--x)"` as an SVG attribute does
+// not resolve in every browser, in a CSS declaration it does.
 const LINE_GRID = 'var(--chart-grid)';
 const LINE_STROKE = 'var(--chart-line)';
 const AXIS_TEXT = '#71717a';
 const INK = '#18181b';
 
 /**
- * En pantallas estrechas la gráfica no se comprime: se desplaza en horizontal
- * para que las etiquetas del SVG sigan siendo legibles.
+ * On narrow screens the chart is not squeezed: it scrolls horizontally so
+ * the SVG labels stay readable.
  */
 export function ChartFrame({
   children,
   overlay,
 }: {
   children: React.ReactNode;
-  /** Capa HTML sobre el SVG (tooltips). Se posiciona en % del área del SVG. */
+  /** HTML layer over the SVG (tooltips). Positioned in % of the SVG area. */
   overlay?: React.ReactNode;
 }) {
   return (
@@ -88,14 +88,14 @@ interface LineChartProps {
   format: (n: number) => string;
 }
 
-// Padding propio: sin etiquetas de eje Y la gráfica respira a lo ancho.
+// Own padding: without Y-axis labels the chart can breathe across its width.
 const LINE_PAD = { top: 24, right: 18, bottom: 34, left: 18 };
 const LINE_GRID_LINES = 5;
 
 /**
- * Catmull-Rom convertido a Bézier: la curva pasa por todos los puntos y suaviza
- * los tramos intermedios. Los puntos de control se recortan al área de dibujo
- * porque en series con picos la curva se sale por arriba o por abajo.
+ * Catmull-Rom converted to Bézier: the curve goes through every point and
+ * smooths the segments in between. Control points are clamped to the drawing
+ * area because in spiky series the curve overshoots above or below.
  */
 function smoothPath(pts: { x: number; y: number }[], minY: number, maxY: number) {
   if (pts.length === 0) return '';
@@ -119,15 +119,15 @@ function smoothPath(pts: { x: number; y: number }[], minY: number, maxY: number)
 }
 
 /**
- * Props del trazo según el estado del dibujado. Se saca del componente para
- * poder fijarlo en un test: el orden importa y ya se rompió una vez.
+ * Stroke props for each drawing state. Pulled out of the component so a test
+ * can pin it down: the order matters and it already broke once.
  *
- *  - Sin medir (length 0): nada que animar y el trazo oculto.
- *  - Medido y sin arrancar: el trazo entero desplazado fuera y SIN transición.
- *    Si aquí hubiera transición, el propio salto a la longitud se animaría en
- *    sentido contrario y el dibujado real arrancaría casi en su destino.
- *  - Arrancado: destino 0 y transición puesta, que es lo que dibuja la línea.
- *  - Con movimiento reducido: estado final, sin transición.
+ *  - Not measured (length 0): nothing to animate and the stroke hidden.
+ *  - Measured, not started: the whole stroke offset out of view and WITHOUT a
+ *    transition. With a transition here, the jump to the length itself would
+ *    animate backwards and the real drawing would start almost at its end.
+ *  - Started: target 0 with the transition on, which is what draws the line.
+ *  - Reduced motion: final state, no transition.
  */
 export function strokeDrawProps(length: number, on: boolean, reduced: boolean) {
   const drawing = length > 0 && !reduced;
@@ -155,10 +155,10 @@ export function LineChart({ points, format }: LineChartProps) {
   }));
   const path = smoothPath(coords, pad.top, baseline);
 
-  // El trazo se dibuja de izquierda a derecha con dashoffset, así que hace falta
-  // su longitud real, que solo sabe el navegador. Medir y arrancar van en el
-  // mismo efecto a propósito: si fueran dos, el trazo podría llegar a `on`
-  // antes de tener longitud y el dibujado se saltaría.
+  // The stroke is drawn left to right with dashoffset, so its real length is
+  // needed, and only the browser knows it. Measuring and starting share one
+  // effect on purpose: with two, the stroke could reach `on` before having a
+  // length and the drawing would be skipped.
   const pathRef = useRef<SVGPathElement | null>(null);
   const reduced = usePrefersReducedMotion();
   const [draw, setDraw] = useState({ length: 0, on: false });
@@ -184,9 +184,9 @@ export function LineChart({ points, format }: LineChartProps) {
 
   const stroke = strokeDrawProps(draw.length, draw.on, reduced);
 
-  // Punto bajo el cursor. Se calcula con el ancho real de la zona sensible, no
-  // con las coordenadas del viewBox, así da igual a qué escala se esté pintando
-  // el SVG.
+  // Point under the cursor. Computed from the real width of the hit area, not
+  // from viewBox coordinates, so it does not matter at what scale the SVG is
+  // being painted.
   const [hover, setHover] = useState<number | null>(null);
   const pickNearest = (clientX: number, target: SVGRectElement) => {
     const box = target.getBoundingClientRect();
@@ -196,8 +196,8 @@ export function LineChart({ points, format }: LineChartProps) {
   };
 
   const active = hover !== null ? coords[hover] : null;
-  // El tooltip se centra sobre el punto, salvo en los extremos, donde se
-  // alinearía fuera de la tarjeta.
+  // The tooltip is centred over the point, except at the ends, where it would
+  // stick out of the card.
   const anchor =
     hover === null
       ? ''
@@ -211,8 +211,8 @@ export function LineChart({ points, format }: LineChartProps) {
     <ChartFrame
       overlay={
         <>
-          {/* El importe de cada mes solo aparece al pasar el cursor, así que
-              para lectores de pantalla va también como lista. */}
+          {/* Each month's amount only shows on hover, so for screen readers it
+              is also rendered as a list. */}
           <ul className="sr-only">
             {points.map((p, i) => (
               <li key={i}>{`${p.label}: ${format(p.value)}`}</li>
@@ -302,7 +302,7 @@ export function LineChart({ points, format }: LineChartProps) {
             strokeDasharray="3 3"
             style={{ stroke: LINE_GRID }}
           />
-          {/* Aro del color del papel para que el punto se lea sobre el trazo. */}
+          {/* Paper-coloured ring so the dot reads against the stroke. */}
           <circle
             cx={active.x}
             cy={active.y}
@@ -313,8 +313,8 @@ export function LineChart({ points, format }: LineChartProps) {
         </>
       )}
 
-      {/* Zona sensible: cubre el área de dibujo y va al final para quedar
-          por encima del resto y recibir los eventos. */}
+      {/* Hit area: covers the drawing area and goes last so it sits on top of
+          everything else and receives the events. */}
       <rect
         x={pad.left}
         y={pad.top}
@@ -335,18 +335,18 @@ export function LineChart({ points, format }: LineChartProps) {
 interface HBarChartProps {
   bars: { key: string; label: string; value: number; color?: string }[];
   format: (n: number) => string;
-  /** Añade el porcentaje sobre el total junto al valor. */
+  /** Adds the share of the total next to the value. */
   showShare?: boolean;
 }
 
 /**
- * Barras horizontales para repartos con pocas categorías (los cuatro estados de
- * la factura). En HTML y no en SVG: las etiquetas fluyen y truncan solas, y la
- * barra se anima con una transición de ancho.
+ * Horizontal bars for breakdowns with few categories (the four invoice
+ * statuses). HTML rather than SVG: labels flow and truncate on their own, and
+ * the bar animates with a width transition.
  *
- * La longitud es relativa al valor MÁS ALTO, no al total: así la categoría
- * mayor llena la barra y se comparan magnitudes de un vistazo. El peso sobre el
- * total va aparte, en el porcentaje.
+ * Length is relative to the HIGHEST value, not the total: that way the largest
+ * category fills the bar and magnitudes compare at a glance. The share of the
+ * total goes separately, in the percentage.
  */
 export function HBarChart({ bars, format, showShare = false }: HBarChartProps) {
   const max = Math.max(1, ...bars.map((b) => b.value));
@@ -357,7 +357,7 @@ export function HBarChart({ bars, format, showShare = false }: HBarChartProps) {
   return (
     <div className="space-y-3">
       {bars.map((b, i) => {
-        // Un valor > 0 nunca se queda en un hilo invisible.
+        // A value > 0 never shrinks to an invisible sliver.
         const width = b.value > 0 ? Math.max(2, (b.value / max) * 100) : 0;
         const share = total > 0 ? Math.round((b.value / total) * 100) : 0;
         return (

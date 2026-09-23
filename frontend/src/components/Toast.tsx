@@ -12,7 +12,7 @@ interface ToastItem {
 }
 
 interface ToastApi {
-  /** Muestra un error ya traducido o traduce lo que le llegue de un `catch`. */
+  /** Shows an already-translated error, or translates whatever a `catch` hands it. */
   error: (err: unknown) => void;
   success: (text: string) => void;
   info: (text: string) => void;
@@ -27,8 +27,8 @@ const DURATION: Record<NoticeKind, number> = {
   info: 5000,
 };
 const MAX_VISIBLE = 4;
-// Ventana antiduplicados: el mismo texto repetido (dos pantallas cargando el
-// mismo endpoint caído, por ejemplo) no apila toasts iguales.
+// De-duplication window: the same text repeated (two screens loading the same
+// broken endpoint, for example) does not stack identical toasts.
 const DEDUPE_MS = 4000;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -77,17 +77,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     [push, dismiss],
   );
 
-  // Avisos dejados en cola antes de una recarga (sesión caducada, etc.).
+  // Notices queued before a reload (expired session, etc.).
   useEffect(() => {
     drainNotices().forEach((n) => push(n.kind, n.text));
   }, [push]);
 
-  // Red de seguridad: cualquier error no capturado o promesa rechazada acaba
-  // aquí en vez de morir en la consola sin que el usuario se entere.
+  // Safety net: any uncaught error or rejected promise ends up here instead of
+  // dying in the console without the user noticing.
   useEffect(() => {
     const onError = (ev: ErrorEvent) => {
-      // Los fallos de carga de recursos (<img>, <script>) también disparan
-      // 'error' y no interesan: no son errores de la aplicación.
+      // Resource load failures (<img>, <script>) also fire 'error' and are
+      // not interesting: they are not application errors.
       if (ev.target && ev.target !== window) return;
       push('error', translateError(ev.error ?? ev.message));
     };
@@ -124,7 +124,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
 export function useToast(): ToastApi {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast debe usarse dentro de <ToastProvider>');
+  if (!ctx) throw new Error('useToast must be used inside <ToastProvider>');
   return ctx;
 }
 

@@ -80,8 +80,8 @@ export default function InvoicesIndexPage() {
         const a = inv.attributes || inv;
         if (status !== 'all' && a.status !== status) return false;
         if (!q) return true;
-        const hay = [a.number, a.clientName, a.companyName, a.author?.email].filter(Boolean).join(' ').toLowerCase();
-        return hay.includes(q);
+        const haystack = [a.number, a.clientName, a.companyName, a.author?.email].filter(Boolean).join(' ').toLowerCase();
+        return haystack.includes(q);
       })
       .map((inv: any) => {
         const a = inv.attributes || inv;
@@ -169,8 +169,8 @@ export default function InvoicesIndexPage() {
                     </div>
                   </div>
                 </div>
-                {/* En móvil las acciones bajan a su propia línea: con importe,
-                    Editar, PDF y borrar no caben junto al nombre. */}
+                {/* On mobile the actions drop to their own line: amount, Edit, PDF
+                    and delete do not fit next to the name. */}
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap justify-end">
                   <span className="font-mono font-semibold text-ink-900 text-base sm:text-lg">
                     {fmtMoney(inv.displayAmount || 0, a.currency || 'USD')}

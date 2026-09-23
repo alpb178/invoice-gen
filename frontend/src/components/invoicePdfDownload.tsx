@@ -1,12 +1,12 @@
 // src/components/invoicePdfDownload.tsx
 //
-// Generación y descarga del PDF. Está en su propio módulo para que tanto el
-// botón del editor como la acción del listado usen el mismo camino.
+// PDF generation and download. It lives in its own module so both the editor
+// button and the list action take the same path.
 //
-// IMPORTANTE: este módulo carga @react-pdf/renderer, que no funciona en SSR y
-// pesa. Impórtalo solo desde un componente con `ssr: false`, o con un
-// `await import(...)` dentro del propio manejador del clic. Nunca de forma
-// estática desde una pantalla de edición: el PDF se genera bajo demanda.
+// IMPORTANT: this module loads @react-pdf/renderer, which does not work in SSR
+// and is heavy. Import it only from a component with `ssr: false`, or with an
+// `await import(...)` inside the click handler itself. Never statically from an
+// edit screen: the PDF is generated on demand.
 
 import { pdf } from '@react-pdf/renderer';
 import InvoicePDF from './InvoicePDF';
