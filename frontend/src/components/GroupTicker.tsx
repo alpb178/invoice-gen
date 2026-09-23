@@ -62,7 +62,7 @@ const CSS = `
   height: 38px;
   overflow: hidden;
   background: #06132e;
-  /* CorpSC's header is the same navy blue: without this line the strip would
+  /* The CorpSC header is the same navy blue: without this line the strip would
      melt into it. */
   border-bottom: 1px solid rgba(127, 176, 255, 0.22);
   color: #ffffff;
