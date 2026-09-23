@@ -11,14 +11,16 @@
  * - Every option is a real link, so crawlers and no-JS visitors can switch too.
  * - Colours come from CSS variables with neutral fallbacks, so it takes each
  *   brand's palette without depending on that site's Tailwind config:
- *     button: --lang-fg, --lang-bg, --lang-border
+ *     button: --lang-fg, --lang-bg, --lang-border, --lang-radius (999px pill by default)
  *     menu:   --lang-menu-bg, --lang-menu-fg, --lang-menu-border,
  *             --lang-accent (current item and focus ring), --lang-hover
  * - Keyboard: Enter/Space/ArrowDown open it, arrows move, Escape closes and
  *   returns focus to the button, Tab leaves it.
+ * - It is a disclosure (a button that shows a list of links), not an ARIA
+ *   menu: no aria-haspopup, so screen readers announce plain links.
  */
 
-import { useEffect, useId, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ComponentType, type CSSProperties, type ReactNode, type Ref } from 'react';
 
 export interface LanguageOption {
   /** Locale code as it appears in the URL: `es`, `en`, `pt`. */
@@ -32,13 +34,13 @@ export interface LanguageOption {
 }
 
 type LinkLike = ComponentType<{
-  ref?: (node: HTMLAnchorElement | null) => void;
+  // Any ref shape, so next/link and next-intl's Link fit without a cast.
+  ref?: Ref<HTMLAnchorElement>;
   href: string;
   className?: string;
   style?: CSSProperties;
   hrefLang?: string;
   lang?: string;
-  role?: string;
   tabIndex?: number;
   "aria-current"?: "true" | undefined;
   onClick?: () => void;
@@ -153,16 +155,22 @@ export function LanguageSwitcher({
   return (
     <div
       ref={rootRef}
-      className={className}
-      style={{ position: 'relative', display: 'inline-block' }}
+      // No inline `display`: the site's own classes (e.g. `hidden sm:flex`)
+      // must be able to hide or lay it out; the default lives in :where() below.
+      className={className ? `lang-switcher ${className}` : 'lang-switcher'}
+      style={{ position: 'relative' }}
       onBlur={(event) => {
-        if (open && !rootRef.current?.contains(event.relatedTarget as Node)) setOpen(false);
+        // Only when focus actually moves to something else outside. Safari
+        // doesn't focus a link on click, so relatedTarget is null there, and
+        // closing on that would swallow the click. Clicks outside are handled
+        // by the pointerdown listener instead.
+        const next = event.relatedTarget as Node | null;
+        if (open && next && !rootRef.current?.contains(next)) setOpen(false);
       }}
     >
       <button
         ref={buttonRef}
         type='button'
-        aria-haspopup='true'
         aria-expanded={open}
         aria-controls={menuId}
         aria-label={`${label}: ${active.label}`}
@@ -178,7 +186,7 @@ export function LanguageSwitcher({
           alignItems: 'center',
           gap: 6,
           padding: '6px 10px',
-          borderRadius: 999,
+          borderRadius: 'var(--lang-radius, 999px)',
           border: '1px solid var(--lang-border, rgba(0, 0, 0, 0.15))',
           background: 'var(--lang-bg, transparent)',
           color: 'var(--lang-fg, currentColor)',
@@ -255,7 +263,7 @@ export function LanguageSwitcher({
       </ul>
 
       {/* Hover and keyboard focus for the items, without a stylesheet per site. */}
-      <style>{`.lang-switcher-item:hover,.lang-switcher-item:focus-visible{background:var(--lang-hover,rgba(0,0,0,.05))}.lang-switcher-item:focus-visible{outline:2px solid var(--lang-accent,currentColor);outline-offset:-2px}`}</style>
+      <style>{`:where(.lang-switcher){display:inline-block}.lang-switcher-item:hover,.lang-switcher-item:focus-visible{background:var(--lang-hover,rgba(0,0,0,.05))}.lang-switcher-item:focus-visible{outline:2px solid var(--lang-accent,currentColor);outline-offset:-2px}`}</style>
     </div>
   );
 }

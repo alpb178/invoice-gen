@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useEffect, useState, type ComponentProps } from 'react';
+import { forwardRef, useEffect, useState, type ComponentProps, type ComponentPropsWithoutRef } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { isLocale } from '@/i18n/config';
 import { Link, usePathname } from '@/i18n/navigation';
@@ -12,14 +12,16 @@ import { GROUP_LANGUAGES, LanguageSwitcher } from './LanguageSwitcher';
  * next-intl (rather than next/link) is what stores the choice in the
  * NEXT_LOCALE cookie, so a later visit to `/` lands on the same language.
  */
-const LocaleLink = forwardRef<HTMLAnchorElement, Omit<ComponentProps<'a'>, 'href'> & { href: string }>(
+const LocaleLink = forwardRef<HTMLAnchorElement, Omit<ComponentPropsWithoutRef<'a'>, 'href'> & { href: string }>(
   function LocaleLink({ href, ...rest }, ref) {
     const match = href.match(/^\/([^/?#]+)([^?#]*)(.*)$/);
     const locale = match && isLocale(match[1]) ? match[1] : undefined;
     const path = match && locale ? `${match[2] || '/'}${match[3]}` : href;
     return <Link ref={ref} href={path} locale={locale} {...rest} />;
   },
-) as unknown as LinkAs; // the shared LinkLike only types callback refs, which no forwardRef component matches
+  // With @types/react 18, a forwardRef component's ref is `LegacyRef` (string
+  // refs included), which the shared `LinkLike` type (`Ref`) does not accept.
+) as unknown as LinkAs;
 
 type LinkAs = NonNullable<ComponentProps<typeof LanguageSwitcher>['linkAs']>;
 

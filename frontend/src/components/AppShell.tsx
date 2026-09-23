@@ -264,11 +264,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </a>
           </div>
 
-          {/* The menu sets its own inline display, so hiding it on phones
-              takes a wrapper. */}
-          <div className="hidden sm:block">
-            <LanguageMenu />
-          </div>
+          <LanguageMenu className="hidden sm:inline-block" />
 
           {teams.length > 0 && (
             <select
