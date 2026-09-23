@@ -5,7 +5,7 @@
     "singularName": "invitation",
     "pluralName": "invitations",
     "displayName": "Invitation",
-    "description": "Invitación a formar parte de un equipo"
+    "description": "An invitation to join a team"
   },
   "options": {
     "draftAndPublish": false

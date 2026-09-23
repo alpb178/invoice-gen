@@ -1,13 +1,14 @@
 // src/lib/api.ts
 
 import { clearSession, getToken } from './auth';
-import { ApiError, NETWORK_MESSAGE, SESSION_EXPIRED_MESSAGE, translateMessage } from './errors';
+import { ApiError, networkMessage, sessionExpiredMessage, translateMessage } from './errors';
 import { queueNotice } from './notify';
+import { localizedPath } from '@/i18n/client-locale';
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 
-// Todos los errores salen de aquí ya traducidos al español, así ninguna pantalla
-// tiene que preocuparse de los textos en inglés que devuelve Strapi.
+// Every error leaves here already translated into the UI language, so no screen
+// has to worry about the English texts Strapi returns.
 async function fetchAPI(path: string, options: RequestInit = {}) {
   const url = `${STRAPI_URL}/api${path}`;
   const token = getToken();
@@ -22,16 +23,16 @@ async function fetchAPI(path: string, options: RequestInit = {}) {
       },
     });
   } catch {
-    // Servidor caído, CORS o sin internet: fetch lanza TypeError.
-    throw new ApiError(NETWORK_MESSAGE, 0);
+    // Server down, CORS or no internet: fetch throws TypeError.
+    throw new ApiError(networkMessage(), 0);
   }
   if (res.status === 401) {
     clearSession();
-    // La redirección recarga la página, así que el aviso se deja en cola para
-    // que el ToastProvider lo muestre ya en /login.
-    queueNotice('error', SESSION_EXPIRED_MESSAGE);
-    if (typeof window !== 'undefined') window.location.href = '/login';
-    throw new ApiError(SESSION_EXPIRED_MESSAGE, 401);
+    // The redirect reloads the page, so the notice is queued for the
+    // ToastProvider to show once on /login.
+    queueNotice('error', sessionExpiredMessage());
+    if (typeof window !== 'undefined') window.location.href = localizedPath('/login');
+    throw new ApiError(sessionExpiredMessage(), 401);
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -175,7 +176,7 @@ export async function parseTasksFromPdf(file: File) {
       body: form,
     });
   } catch {
-    throw new ApiError(NETWORK_MESSAGE, 0);
+    throw new ApiError(networkMessage(), 0);
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -231,11 +232,10 @@ export async function deleteTask(id: number) {
 
 // ── Utility: Save full invoice with sections and tasks ──
 //
-// Una sola llamada al backend: POST /invoices/save-full envía el árbol completo
-// y el servidor reconcilia cabecera + secciones + tareas dentro de una
-// transacción, aplicando permisos por item. Los opts se mantienen por
-// compatibilidad con llamadores antiguos, pero hoy no se usan: la autorización
-// real vive en el backend.
+// A single backend call: POST /invoices/save-full sends the whole tree and the
+// server reconciles header + sections + tasks inside one transaction, applying
+// per-item permissions. The opts are kept for compatibility with older
+// callers, but are unused today: the real authorization lives in the backend.
 
 interface SaveOpts {
   canEditHeader?: boolean;
@@ -282,10 +282,10 @@ export async function saveFullInvoice(invoice: any, teamId: number, _opts: SaveO
   return res.data?.id as number;
 }
 
-// Guarda solo los datos de emisor y cliente. Se usa cuando la factura está
-// congelada (pagada): esos campos se pueden corregir en cualquier estado, pero
-// el backend rechaza el guardado completo, así que el payload no lleva
-// secciones ni el resto de la cabecera.
+// Saves only the issuer and client details. Used when the invoice is frozen
+// (paid): those fields can be corrected in any status, but the backend rejects
+// the full save, so the payload carries neither the sections nor the rest of
+// the header.
 export async function saveInvoiceParties(invoice: any) {
   const payload = {
     id: invoice.id,

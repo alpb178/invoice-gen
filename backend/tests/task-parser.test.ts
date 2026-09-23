@@ -98,7 +98,7 @@ Adjuntos de Golf
   });
 
   it('detects hours column when two numbers appear per row', () => {
-    // descripción + horas(penúltimo) + monto(último)
+    // description + hours (second to last) + amount (last)
     const input = `
       1  Landing Page Human Core   10  149.00
       2  Chrono por empleados       2   15.00
@@ -112,7 +112,7 @@ Adjuntos de Golf
   });
 
   it('does NOT misinterpret a large second number as hours', () => {
-    // Si hay "800 900" ninguno es claramente horas: solo toma el último como amount.
+    // With "800 900" neither is clearly hours: only the last one is taken as amount.
     const input = `Cosas grandes 800 900`;
     const tasks = parseTasksFromText(input);
     assert.equal(tasks.length, 1);
@@ -174,7 +174,7 @@ Subtotal Sección 2: 535.00 USD
     const tasks = parseTasksFromText(input);
     assert.ok(tasks.length >= 10, `expected at least 10 tasks, got ${tasks.length}`);
 
-    // No deben entrar los encabezados ni los subtotales
+    // Headers and subtotals must not get in
     const descriptions = tasks.map((t) => t.description.toLowerCase());
     for (const d of descriptions) {
       assert.ok(!d.includes('subtotal'));
@@ -182,7 +182,7 @@ Subtotal Sección 2: 535.00 USD
       assert.ok(!d.includes('factura'));
     }
 
-    // verifica algunos campos conocidos
+    // check a few known fields
     const byAmount = new Map(tasks.map((t) => [t.amount, t]));
     assert.ok(byAmount.has(70), 'checklist general = 70');
     assert.ok(byAmount.has(190), 'crud checklist = 190');

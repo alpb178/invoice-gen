@@ -19,8 +19,8 @@ const SECTION = 'api::section.section' as const;
 const TASK = 'api::task.task' as const;
 const TEAM = 'api::team.team' as any;
 
-// Datos de emisor y cliente. Son identidad, no importes: el dueño los puede
-// corregir en cualquier estado de la factura, incluso pagada.
+// Issuer and client details. They are identity, not amounts: the owner can
+// correct them in any invoice status, even paid.
 const PARTY_FIELDS = [
   'companyName', 'companyCIF', 'companyAddress',
   'clientName', 'clientIBAN', 'clientSwift', 'clientBank',
@@ -48,8 +48,8 @@ async function loadInvoice(id: number) {
 }
 
 /**
- * Un miembro (no dueño) solo ve las secciones que él mismo creó.
- * El dueño del equipo ve todas.
+ * A member (not the owner) only sees the sections they created themselves.
+ * The team owner sees all of them.
  */
 function filterSectionsForViewer<T extends { team?: any; sections?: any[] }>(
   invoice: T,
@@ -188,7 +188,7 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
     const body = ctx.request.body?.data || {};
     const incomingSections: any[] = Array.isArray(body.sections) ? body.sections : [];
 
-    // --- 1. Resolver factura existente o equipo para crear ---
+    // --- 1. Resolve the existing invoice, or the team to create it in ---
     let existing: any = null;
     let team: any = null;
 
@@ -212,10 +212,10 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
 
     const isOwner = isTeamOwner(team, user.id);
 
-    // Una factura pagada queda congelada: ni secciones, ni tareas, ni importes.
-    // El dueño solo puede cambiar el estado (para des-marcarla como pagada) o
-    // corregir los datos de emisor y cliente (partiesOnly). Ninguna de las dos
-    // cosas admite secciones en el payload.
+    // A paid invoice is frozen: no sections, no tasks, no amounts.
+    // The owner can only change the status (to unmark it as paid) or correct
+    // the issuer and client details (partiesOnly). Neither accepts sections in
+    // the payload.
     if (existing && isInvoiceFrozen(existing)) {
       const canEditParties = canEditInvoiceParties(existing, user.id);
       const sendsSections = incomingSections.length > 0;
@@ -244,9 +244,9 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
       return;
     }
 
-    // Guardado parcial de emisor y cliente: no toca secciones ni el resto de la
-    // cabecera. Llega desde el editor cuando la factura está congelada, pero se
-    // acepta en cualquier estado.
+    // Partial save of issuer and client: touches neither the sections nor the
+    // rest of the header. The editor sends it when the invoice is frozen, but
+    // it is accepted in any status.
     if (existing && body.partiesOnly === true) {
       if (!canEditInvoiceParties(existing, user.id)) {
         return ctx.forbidden('Solo el dueño del equipo puede modificar emisor y cliente');
@@ -263,7 +263,7 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
       return;
     }
 
-    // Campos de cabecera que acepta la factura. Cualquier otro se ignora.
+    // Header fields the invoice accepts. Anything else is ignored.
     const headerFields = [
       'number', 'date', 'status', 'currency',
       ...PARTY_FIELDS,
@@ -272,10 +272,10 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
     const headerData: Record<string, any> = {};
     for (const k of headerFields) if (k in body) headerData[k] = body[k];
 
-    // --- 2. Transacción: todo o nada ---
+    // --- 2. Transaction: all or nothing ---
     let invoiceId: number;
     await strapi.db.transaction(async () => {
-      // 2a. Cabecera
+      // 2a. Header
       if (existing) {
         invoiceId = existing.id;
         if (isOwner && Object.keys(headerData).length > 0) {
@@ -296,7 +296,7 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
         incomingSections.filter((s) => s?.id).map((s) => Number(s.id)),
       );
 
-      // 2b. Borrar secciones que el usuario puede editar y no están en el payload
+      // 2b. Delete sections the user can edit that are missing from the payload
       for (const sec of existingSections) {
         if (incomingIds.has(sec.id)) continue;
         const secWithInvoice = { ...sec, invoice: { team } };
@@ -304,7 +304,7 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
         await strapi.db.query(SECTION).delete({ where: { id: sec.id } });
       }
 
-      // 2c. Upsert de secciones y sus tareas
+      // 2c. Upsert sections and their tasks
       for (let i = 0; i < incomingSections.length; i++) {
         const inSec = incomingSections[i];
         const sectionData = {
@@ -318,9 +318,9 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
 
         if (inSec.id) {
           existingSec = existingSections.find((s) => s.id === Number(inSec.id));
-          if (!existingSec) continue; // id desconocido: ignorar
+          if (!existingSec) continue; // unknown id: ignore
           const secWithInvoice = { ...existingSec, invoice: { team } };
-          if (!canEditSection(secWithInvoice, user.id)) continue; // permiso denegado: silencio
+          if (!canEditSection(secWithInvoice, user.id)) continue; // permission denied: skip silently
           await strapi.db.query(SECTION).update({
             where: { id: existingSec.id },
             data: sectionData,
@@ -334,7 +334,7 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
           sectionId = created.id;
         }
 
-        // Reconciliar tareas de esta sección
+        // Reconcile this section's tasks
         const existingTasks: any[] = existingSec?.tasks || [];
         const existingTaskIds = new Set(existingTasks.map((t) => t.id));
         const incomingTasks: any[] = Array.isArray(inSec.tasks) ? inSec.tasks : [];
@@ -378,7 +378,7 @@ export default factories.createCoreController(INVOICE, ({ strapi }) => ({
       }
     });
 
-    // --- 3. Recalcular total y devolver el árbol completo ---
+    // --- 3. Recompute the total and return the full tree ---
     await recomputeInvoiceTotal(invoiceId!);
     const fresh = await loadInvoice(invoiceId!);
     ctx.body = { data: filterSectionsForViewer(fresh, user.id) };

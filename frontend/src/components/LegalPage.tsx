@@ -1,9 +1,19 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 export type LegalSection = {
   heading: string;
   body: ReactNode;
+};
+
+/** A legal page's content in one language. */
+export type LegalDoc = {
+  title: string;
+  description: string;
+  updatedAt: string;
+  summary?: string;
+  sections: LegalSection[];
 };
 
 type Props = {
@@ -15,13 +25,14 @@ type Props = {
 };
 
 export default function LegalPage({ eyebrow, title, updatedAt, summary, sections }: Props) {
+  const t = useTranslations('legal');
   return (
     <main className="max-w-3xl mx-auto px-5 md:px-8 py-14 md:py-20">
       <Link
         href="/"
         className="inline-flex items-center gap-1.5 text-xs text-ink-500 hover:text-ink-900 font-mono-tight uppercase tracking-[0.18em] mb-8 transition-colors"
       >
-        ← Volver al inicio
+        {t('backHome')}
       </Link>
 
       {eyebrow && (
@@ -35,7 +46,7 @@ export default function LegalPage({ eyebrow, title, updatedAt, summary, sections
       </h1>
 
       <p className="text-xs uppercase tracking-[0.18em] text-ink-500 font-mono-tight mb-8">
-        Última actualización: {updatedAt}
+        {t('updatedAt', { date: updatedAt })}
       </p>
 
       {summary && (

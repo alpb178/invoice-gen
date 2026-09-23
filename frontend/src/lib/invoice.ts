@@ -1,9 +1,9 @@
 // src/lib/invoice.ts
 //
-// Normalización de la factura que llega de Strapi. Vive aquí (y no en la
-// pantalla de edición) porque la exportación a PDF desde el listado necesita
-// exactamente la misma forma que el editor: si las dos pantallas normalizaran
-// por su cuenta, el PDF de una y de la otra podrían no coincidir.
+// Normalization of the invoice that comes from Strapi. It lives here (and not in
+// the edit screen) because the PDF export from the list needs exactly the same
+// shape as the editor: if both screens normalized on their own, the PDF from
+// one and the other might not match.
 
 import { Invoice, Section, Task } from '@/types';
 

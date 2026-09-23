@@ -1,148 +1,323 @@
 // src/lib/errors.ts
 //
-// Traducción de errores a español. Todo lo que se le muestra al usuario pasa
-// por aquí, así nunca se filtra un mensaje en inglés del backend (Strapi manda
-// cosas como "Invalid identifier or password") ni un error técnico de red.
+// Error translation into the UI language. Everything shown to the user goes
+// through here, so an English backend message (Strapi sends things like
+// "Invalid identifier or password") or a technical network error never leaks
+// through as is.
 //
-// Los mensajes propios del backend ya vienen en español y se dejan tal cual;
-// solo se reemplazan los que se detectan como inglés o técnicos.
+// The backend's own messages come in Spanish and are passed through untouched
+// in every locale (a known limitation: the English and Portuguese UIs show
+// them in Spanish).
+// Only the ones detected as English or technical are replaced, with the text of
+// the current UI locale.
 
-export const NETWORK_MESSAGE =
-  'No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.';
-export const GENERIC_MESSAGE = 'Algo salió mal. Inténtalo de nuevo.';
-export const SESSION_EXPIRED_MESSAGE = 'Tu sesión ha caducado. Vuelve a iniciar sesión.';
+import type { Locale } from '@/i18n/config';
+import { currentLocale } from '@/i18n/client-locale';
 
-// Mensajes conocidos (comparación en minúsculas y sin puntuación final).
-const EXACT: Record<string, string> = {
-  // — plugin users-permissions de Strapi (login / registro) —
-  'invalid identifier or password': 'Email o contraseña incorrectos.',
-  'email or username are already taken': 'Ese email ya tiene una cuenta. Inicia sesión.',
-  'email already taken': 'Ese email ya tiene una cuenta. Inicia sesión.',
-  'username already taken': 'Ese nombre de usuario ya está en uso.',
-  'your account email is not confirmed': 'Tu cuenta aún no está confirmada. Revisa tu correo.',
-  'your account has been blocked by an administrator':
-    'Tu cuenta está bloqueada. Ponte en contacto con soporte.',
-  'invalid token': 'El enlace ya no es válido. Pide uno nuevo.',
-  'missing or invalid credentials': SESSION_EXPIRED_MESSAGE,
-  'identifier or password invalid': 'Email o contraseña incorrectos.',
-  'this email does not exist': 'No existe ninguna cuenta con ese email.',
-  'incorrect code provided': 'El código no es correcto.',
-  'auth.form.error.invalid': 'Email o contraseña incorrectos.',
-  'auth.form.error.email.taken': 'Ese email ya tiene una cuenta. Inicia sesión.',
+type MessageId =
+  | 'network'
+  | 'generic'
+  | 'sessionExpired'
+  | 'invalidCredentials'
+  | 'emailTaken'
+  | 'usernameTaken'
+  | 'emailNotConfirmed'
+  | 'accountBlocked'
+  | 'invalidLink'
+  | 'noSuchEmail'
+  | 'wrongCode'
+  | 'forbidden'
+  | 'notFound'
+  | 'badRequest'
+  | 'serverError'
+  | 'fileTooLarge'
+  | 'tooManyRequests'
+  | 'invalidForm'
+  | 'alreadyExists'
+  | 'valueTaken'
+  | 'invalidEmail'
+  | 'timeout';
 
-  // — respuestas HTTP genéricas de Strapi (ctx.forbidden() y compañía sin texto) —
-  unauthorized: SESSION_EXPIRED_MESSAGE,
-  forbidden: 'No tienes permisos para hacer esto.',
-  'not found': 'No encontramos lo que buscabas.',
-  'bad request': 'La solicitud no es válida. Revisa los datos e inténtalo de nuevo.',
-  'internal server error': 'El servidor tuvo un problema. Inténtalo de nuevo en unos minutos.',
-  'method not allowed': GENERIC_MESSAGE,
-  'payload too large': 'El archivo es demasiado grande.',
-  'too many requests': 'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
-  validationerror: 'Hay datos incorrectos en el formulario. Revísalos e inténtalo de nuevo.',
-  'validation error': 'Hay datos incorrectos en el formulario. Revísalos e inténtalo de nuevo.',
-
-  // — errores de red del navegador —
-  'failed to fetch': NETWORK_MESSAGE,
-  'load failed': NETWORK_MESSAGE,
-  'network request failed': NETWORK_MESSAGE,
-  'the internet connection appears to be offline': NETWORK_MESSAGE,
+const TEXT: Record<Locale, Record<MessageId, string>> = {
+  es: {
+    network: 'No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.',
+    generic: 'Algo salió mal. Inténtalo de nuevo.',
+    sessionExpired: 'Tu sesión ha caducado. Vuelve a iniciar sesión.',
+    invalidCredentials: 'Email o contraseña incorrectos.',
+    emailTaken: 'Ese email ya tiene una cuenta. Inicia sesión.',
+    usernameTaken: 'Ese nombre de usuario ya está en uso.',
+    emailNotConfirmed: 'Tu cuenta aún no está confirmada. Revisa tu correo.',
+    accountBlocked: 'Tu cuenta está bloqueada. Ponte en contacto con soporte.',
+    invalidLink: 'El enlace ya no es válido. Pide uno nuevo.',
+    noSuchEmail: 'No existe ninguna cuenta con ese email.',
+    wrongCode: 'El código no es correcto.',
+    forbidden: 'No tienes permisos para hacer esto.',
+    notFound: 'No encontramos lo que buscabas.',
+    badRequest: 'La solicitud no es válida. Revisa los datos e inténtalo de nuevo.',
+    serverError: 'El servidor tuvo un problema. Inténtalo de nuevo en unos minutos.',
+    fileTooLarge: 'El archivo es demasiado grande.',
+    tooManyRequests: 'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
+    invalidForm: 'Hay datos incorrectos en el formulario. Revísalos e inténtalo de nuevo.',
+    alreadyExists: 'Ese registro ya existe.',
+    valueTaken: 'Ese valor ya está en uso.',
+    invalidEmail: 'Introduce un email válido.',
+    timeout: 'El servidor tardó demasiado en responder. Inténtalo de nuevo.',
+  },
+  en: {
+    network: "Can't reach the server. Check your internet connection and try again.",
+    generic: 'Something went wrong. Please try again.',
+    sessionExpired: 'Your session has expired. Please sign in again.',
+    invalidCredentials: 'Incorrect email or password.',
+    emailTaken: 'That email already has an account. Sign in instead.',
+    usernameTaken: 'That username is already taken.',
+    emailNotConfirmed: "Your account isn't confirmed yet. Check your email.",
+    accountBlocked: 'Your account is blocked. Please contact support.',
+    invalidLink: 'This link is no longer valid. Request a new one.',
+    noSuchEmail: 'There is no account with that email.',
+    wrongCode: 'That code is not correct.',
+    forbidden: "You don't have permission to do this.",
+    notFound: "We couldn't find what you were looking for.",
+    badRequest: 'The request is not valid. Check the details and try again.',
+    serverError: 'The server ran into a problem. Please try again in a few minutes.',
+    fileTooLarge: 'The file is too large.',
+    tooManyRequests: 'Too many attempts. Wait a moment and try again.',
+    invalidForm: 'Some fields in the form are incorrect. Check them and try again.',
+    alreadyExists: 'That record already exists.',
+    valueTaken: 'That value is already in use.',
+    invalidEmail: 'Enter a valid email.',
+    timeout: 'The server took too long to respond. Please try again.',
+  },
+  pt: {
+    network: 'Sem conexão com o servidor. Verifique sua internet e tente novamente.',
+    generic: 'Algo deu errado. Tente novamente.',
+    sessionExpired: 'Sua sessão expirou. Entre novamente.',
+    invalidCredentials: 'E-mail ou senha incorretos.',
+    emailTaken: 'Esse e-mail já tem uma conta. Entre com ele.',
+    usernameTaken: 'Esse nome de usuário já está em uso.',
+    emailNotConfirmed: 'Sua conta ainda não foi confirmada. Verifique seu e-mail.',
+    accountBlocked: 'Sua conta está bloqueada. Entre em contato com o suporte.',
+    invalidLink: 'O link não é mais válido. Peça um novo.',
+    noSuchEmail: 'Não existe nenhuma conta com esse e-mail.',
+    wrongCode: 'O código não está correto.',
+    forbidden: 'Você não tem permissão para fazer isso.',
+    notFound: 'Não encontramos o que você procurava.',
+    badRequest: 'A solicitação não é válida. Confira os dados e tente novamente.',
+    serverError: 'O servidor teve um problema. Tente novamente em alguns minutos.',
+    fileTooLarge: 'O arquivo é grande demais.',
+    tooManyRequests: 'Tentativas demais. Aguarde um momento e tente novamente.',
+    invalidForm: 'Há dados incorretos no formulário. Confira e tente novamente.',
+    alreadyExists: 'Esse registro já existe.',
+    valueTaken: 'Esse valor já está em uso.',
+    invalidEmail: 'Digite um e-mail válido.',
+    timeout: 'O servidor demorou demais para responder. Tente novamente.',
+  },
 };
 
-// Nombres de campo que Strapi devuelve en inglés dentro de sus validaciones.
-const FIELDS: Record<string, string> = {
-  email: 'el email',
-  password: 'la contraseña',
-  username: 'el usuario',
-  name: 'el nombre',
-  identifier: 'el email',
-  number: 'el número',
-  date: 'la fecha',
-  currency: 'la moneda',
-  amount: 'el importe',
-  description: 'la descripción',
-  team: 'el equipo',
-  title: 'el título',
+const text = (id: MessageId, locale: Locale = currentLocale()) => (TEXT[locale] ?? TEXT.es)[id];
+
+// Stable exports for callers outside React. They resolve the locale when read.
+export const networkMessage = (locale?: Locale) => text('network', locale);
+export const genericMessage = (locale?: Locale) => text('generic', locale);
+export const sessionExpiredMessage = (locale?: Locale) => text('sessionExpired', locale);
+
+// Known messages (compared lowercased and without trailing punctuation). The
+// keys are Strapi's own English messages and must stay exactly as Strapi sends
+// them.
+const EXACT: Record<string, MessageId> = {
+  // — Strapi users-permissions plugin (login / sign-up) —
+  'invalid identifier or password': 'invalidCredentials',
+  'email or username are already taken': 'emailTaken',
+  'email already taken': 'emailTaken',
+  'username already taken': 'usernameTaken',
+  'your account email is not confirmed': 'emailNotConfirmed',
+  'your account has been blocked by an administrator': 'accountBlocked',
+  'invalid token': 'invalidLink',
+  'missing or invalid credentials': 'sessionExpired',
+  'identifier or password invalid': 'invalidCredentials',
+  'this email does not exist': 'noSuchEmail',
+  'incorrect code provided': 'wrongCode',
+  'auth.form.error.invalid': 'invalidCredentials',
+  'auth.form.error.email.taken': 'emailTaken',
+
+  // — generic Strapi HTTP responses (ctx.forbidden() and friends with no text) —
+  unauthorized: 'sessionExpired',
+  forbidden: 'forbidden',
+  'not found': 'notFound',
+  'bad request': 'badRequest',
+  'internal server error': 'serverError',
+  'method not allowed': 'generic',
+  'payload too large': 'fileTooLarge',
+  'too many requests': 'tooManyRequests',
+  validationerror: 'invalidForm',
+  'validation error': 'invalidForm',
+
+  // — browser network errors —
+  'failed to fetch': 'network',
+  'load failed': 'network',
+  'network request failed': 'network',
+  'the internet connection appears to be offline': 'network',
 };
 
-const field = (raw: string) => FIELDS[raw.toLowerCase()] || `el campo «${raw}»`;
+// Field names Strapi returns in English inside its validation messages.
+const FIELDS: Record<Locale, Record<string, string>> = {
+  es: {
+    email: 'el email',
+    password: 'la contraseña',
+    username: 'el usuario',
+    name: 'el nombre',
+    identifier: 'el email',
+    number: 'el número',
+    date: 'la fecha',
+    currency: 'la moneda',
+    amount: 'el importe',
+    description: 'la descripción',
+    team: 'el equipo',
+    title: 'el título',
+  },
+  en: {
+    email: 'the email',
+    password: 'the password',
+    username: 'the username',
+    name: 'the name',
+    identifier: 'the email',
+    number: 'the number',
+    date: 'the date',
+    currency: 'the currency',
+    amount: 'the amount',
+    description: 'the description',
+    team: 'the team',
+    title: 'the title',
+  },
+  pt: {
+    email: 'o e-mail',
+    password: 'a senha',
+    username: 'o usuário',
+    name: 'o nome',
+    identifier: 'o e-mail',
+    number: 'o número',
+    date: 'a data',
+    currency: 'a moeda',
+    amount: 'o valor',
+    description: 'a descrição',
+    team: 'a equipe',
+    title: 'o título',
+  },
+};
 
-const PATTERNS: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
-  [
-    /^(\w+) must be at least (\d+) characters?$/i,
-    (m) => `${capitalize(field(m[1]))} debe tener al menos ${m[2]} caracteres.`,
-  ],
-  [
-    /^(\w+) must be at most (\d+) characters?$/i,
-    (m) => `${capitalize(field(m[1]))} no puede pasar de ${m[2]} caracteres.`,
-  ],
-  [/^(\w+) is a required field$/i, (m) => `Falta rellenar ${field(m[1])}.`],
-  [/^(\w+) must be a valid email$/i, () => 'Introduce un email válido.'],
-  [/^(\w+) cannot be empty$/i, (m) => `Falta rellenar ${field(m[1])}.`],
-  [/must be unique/i, () => 'Ese valor ya está en uso.'],
-  [/^network\b/i, () => NETWORK_MESSAGE],
-  [/\bfailed to fetch\b/i, () => NETWORK_MESSAGE],
-  [/\btimeout\b|\btimed out\b/i, () => 'El servidor tardó demasiado en responder. Inténtalo de nuevo.'],
+// Sentences built around a field name, per locale.
+const PHRASES: Record<
+  Locale,
+  {
+    unknownField: (raw: string) => string;
+    minLength: (field: string, n: string) => string;
+    maxLength: (field: string, n: string) => string;
+    required: (field: string) => string;
+  }
+> = {
+  es: {
+    unknownField: (raw) => `el campo «${raw}»`,
+    minLength: (f, n) => `${capitalize(f)} debe tener al menos ${n} caracteres.`,
+    maxLength: (f, n) => `${capitalize(f)} no puede pasar de ${n} caracteres.`,
+    required: (f) => `Falta rellenar ${f}.`,
+  },
+  en: {
+    unknownField: (raw) => `the “${raw}” field`,
+    minLength: (f, n) => `${capitalize(f)} must be at least ${n} characters long.`,
+    maxLength: (f, n) => `${capitalize(f)} can't be longer than ${n} characters.`,
+    required: (f) => `Please fill in ${f}.`,
+  },
+  pt: {
+    unknownField: (raw) => `o campo “${raw}”`,
+    minLength: (f, n) => `${capitalize(f)} deve ter pelo menos ${n} caracteres.`,
+    maxLength: (f, n) => `${capitalize(f)} não pode passar de ${n} caracteres.`,
+    required: (f) => `Preencha ${f}.`,
+  },
+};
+
+const phrases = (locale: Locale) => PHRASES[locale] ?? PHRASES.es;
+
+const field = (raw: string, locale: Locale) =>
+  (FIELDS[locale] ?? FIELDS.es)[raw.toLowerCase()] || phrases(locale).unknownField(raw);
+
+type Builder = (m: RegExpMatchArray, locale: Locale) => string;
+
+const PATTERNS: Array<[RegExp, Builder]> = [
+  [/^(\w+) must be at least (\d+) characters?$/i, (m, l) => phrases(l).minLength(field(m[1], l), m[2])],
+  [/^(\w+) must be at most (\d+) characters?$/i, (m, l) => phrases(l).maxLength(field(m[1], l), m[2])],
+  [/^(\w+) is a required field$/i, (m, l) => phrases(l).required(field(m[1], l))],
+  [/^(\w+) must be a valid email$/i, (_m, l) => text('invalidEmail', l)],
+  [/^(\w+) cannot be empty$/i, (m, l) => phrases(l).required(field(m[1], l))],
+  [/must be unique/i, (_m, l) => text('valueTaken', l)],
+  [/^network\b/i, (_m, l) => text('network', l)],
+  [/\bfailed to fetch\b/i, (_m, l) => text('network', l)],
+  [/\btimeout\b|\btimed out\b/i, (_m, l) => text('timeout', l)],
 ];
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// Heurística para no dejar pasar un mensaje en inglés que no esté en el
-// diccionario: los mensajes del backend propio están en español (llevan tildes,
-// eñes o palabras castellanas frecuentes).
+// Heuristic so an English message missing from the dictionary does not slip
+// through: the backend's own messages are in Spanish (they carry accents, ñ or
+// common Spanish words).
 const SPANISH_HINT =
   /[áéíóúñü¿¡]|\b(el|la|los|las|de|del|no|que|para|con|una|este|esta|solo|tu|tus|ya|debe|falta|puedes|perteneces|equipo|factura|sección|tarea|invitación|correo|enlace|servidor|inténtalo|revisa)\b/i;
 const ENGLISH_HINT =
   /\b(the|is|are|was|be|must|not|your|this|that|invalid|already|required|cannot|does|has|have|failed|error|unexpected|undefined|null|token|forbidden|unauthorized|found|request|server|property|function|object|string|number)\b/i;
 
-export function messageForStatus(status?: number): string {
-  if (!status) return GENERIC_MESSAGE;
-  if (status === 400) return 'La solicitud no es válida. Revisa los datos e inténtalo de nuevo.';
-  if (status === 401) return SESSION_EXPIRED_MESSAGE;
-  if (status === 403) return 'No tienes permisos para hacer esto.';
-  if (status === 404) return 'No encontramos lo que buscabas.';
-  if (status === 409) return 'Ese registro ya existe.';
-  if (status === 413) return 'El archivo es demasiado grande.';
-  if (status === 429) return 'Demasiados intentos. Espera un momento e inténtalo de nuevo.';
-  if (status >= 500) return 'El servidor tuvo un problema. Inténtalo de nuevo en unos minutos.';
-  return GENERIC_MESSAGE;
+export function messageForStatus(status?: number, locale: Locale = currentLocale()): string {
+  if (!status) return text('generic', locale);
+  if (status === 400) return text('badRequest', locale);
+  if (status === 401) return text('sessionExpired', locale);
+  if (status === 403) return text('forbidden', locale);
+  if (status === 404) return text('notFound', locale);
+  if (status === 409) return text('alreadyExists', locale);
+  if (status === 413) return text('fileTooLarge', locale);
+  if (status === 429) return text('tooManyRequests', locale);
+  if (status >= 500) return text('serverError', locale);
+  return text('generic', locale);
 }
 
 /**
- * Traduce un mensaje suelto. `status` se usa como respaldo cuando el texto
- * viene en inglés y no está en el diccionario.
+ * Translates a single message. `status` is the fallback when the text is in
+ * English and not in the dictionary.
  */
-export function translateMessage(raw?: string | null, status?: number): string {
-  const text = (raw || '').trim();
-  if (!text) return messageForStatus(status);
+export function translateMessage(
+  raw?: string | null,
+  status?: number,
+  locale: Locale = currentLocale(),
+): string {
+  const input = (raw || '').trim();
+  if (!input) return messageForStatus(status, locale);
 
-  const key = text.toLowerCase().replace(/[.!]+$/, '');
-  if (EXACT[key]) return EXACT[key];
+  const key = input.toLowerCase().replace(/[.!]+$/, '');
+  const known = EXACT[key];
+  if (known) return text(known, locale);
 
   for (const [re, build] of PATTERNS) {
-    const m = text.match(re);
-    if (m) return build(m);
+    const m = input.match(re);
+    if (m) return build(m, locale);
   }
 
-  // Español (o algo que no parece inglés): se muestra tal cual.
-  if (SPANISH_HINT.test(text) || !ENGLISH_HINT.test(text)) return text;
+  // Spanish (or something that does not look English): shown as is.
+  if (SPANISH_HINT.test(input) || !ENGLISH_HINT.test(input)) return input;
 
-  // Inglés desconocido o traza técnica: no se le enseña al usuario.
+  // Unknown English or a technical trace: never shown to the user.
   if (typeof console !== 'undefined') {
-    console.debug('[errores] mensaje sin traducción:', text);
+    console.debug('[errors] untranslated message:', input);
   }
-  return messageForStatus(status);
+  return messageForStatus(status, locale);
 }
 
-/** Traduce cualquier cosa que llegue a un `catch` o a un handler global. */
+/** Translates anything that reaches a `catch` or a global handler. */
 export function translateError(err: unknown, status?: number): string {
   if (err == null) return messageForStatus(status);
+  // Thrown by lib/api.ts and lib/auth.ts, already translated for the UI locale.
+  if (err instanceof ApiError) return err.message;
   if (typeof err === 'string') return translateMessage(err, status);
 
   if (err instanceof Error) {
-    // Un fetch caído lanza TypeError («Failed to fetch», «Load failed»…).
+    // A failed fetch throws TypeError ("Failed to fetch", "Load failed"…).
     if (err instanceof TypeError && /fetch|network|load failed/i.test(err.message)) {
-      return NETWORK_MESSAGE;
+      return networkMessage();
     }
     const withStatus = err as Error & { status?: number };
     return translateMessage(err.message, status ?? withStatus.status);
@@ -158,7 +333,7 @@ export function translateError(err: unknown, status?: number): string {
   return messageForStatus(status);
 }
 
-/** Error de API que conserva el código HTTP para poder decidir en el `catch`. */
+/** API error that keeps the HTTP status so the `catch` can decide on it. */
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -168,7 +343,7 @@ export class ApiError extends Error {
   }
 }
 
-/** ¿Se está sin conexión? Se usa para no culpar al servidor. */
+/** Are we offline? Used to avoid blaming the server. */
 export function isOffline() {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }

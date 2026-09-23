@@ -2,6 +2,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { translateError } from '@/lib/errors';
 import { drainNotices, NoticeKind } from '@/lib/notify';
 
@@ -12,7 +13,10 @@ interface ToastItem {
 }
 
 interface ToastApi {
-  /** Muestra un error ya traducido o traduce lo que le llegue de un `catch`. */
+  /**
+   * Shows an error. A string is UI copy the caller already localized and is
+   * shown as is; anything else (what a `catch` hands over) is translated.
+   */
   error: (err: unknown) => void;
   success: (text: string) => void;
   info: (text: string) => void;
@@ -27,8 +31,8 @@ const DURATION: Record<NoticeKind, number> = {
   info: 5000,
 };
 const MAX_VISIBLE = 4;
-// Ventana antiduplicados: el mismo texto repetido (dos pantallas cargando el
-// mismo endpoint caído, por ejemplo) no apila toasts iguales.
+// De-duplication window: the same text repeated (two screens loading the same
+// broken endpoint, for example) does not stack identical toasts.
 const DEDUPE_MS = 4000;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -36,6 +40,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const nextId = useRef(1);
   const recent = useRef<Map<string, number>>(new Map());
   const timers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const t = useTranslations('toast');
 
   const dismiss = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -69,7 +74,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const api = useMemo<ToastApi>(
     () => ({
-      error: (err: unknown) => push('error', translateError(err)),
+      error: (err: unknown) => push('error', typeof err === 'string' ? err : translateError(err)),
       success: (text: string) => push('success', text),
       info: (text: string) => push('info', text),
       dismiss,
@@ -77,24 +82,24 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     [push, dismiss],
   );
 
-  // Avisos dejados en cola antes de una recarga (sesión caducada, etc.).
+  // Notices queued before a reload (expired session, etc.).
   useEffect(() => {
     drainNotices().forEach((n) => push(n.kind, n.text));
   }, [push]);
 
-  // Red de seguridad: cualquier error no capturado o promesa rechazada acaba
-  // aquí en vez de morir en la consola sin que el usuario se entere.
+  // Safety net: any uncaught error or rejected promise ends up here instead of
+  // dying in the console without the user noticing.
   useEffect(() => {
     const onError = (ev: ErrorEvent) => {
-      // Los fallos de carga de recursos (<img>, <script>) también disparan
-      // 'error' y no interesan: no son errores de la aplicación.
+      // Resource load failures (<img>, <script>) also fire 'error' and are
+      // not interesting: they are not application errors.
       if (ev.target && ev.target !== window) return;
       push('error', translateError(ev.error ?? ev.message));
     };
     const onRejection = (ev: PromiseRejectionEvent) => {
       push('error', translateError(ev.reason));
     };
-    const onOffline = () => push('error', 'Te has quedado sin conexión.');
+    const onOffline = () => push('error', t('offline'));
 
     window.addEventListener('error', onError, true);
     window.addEventListener('unhandledrejection', onRejection);
@@ -104,7 +109,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('unhandledrejection', onRejection);
       window.removeEventListener('offline', onOffline);
     };
-  }, [push]);
+  }, [push, t]);
 
   useEffect(() => {
     const map = timers.current;
@@ -124,14 +129,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
 export function useToast(): ToastApi {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast debe usarse dentro de <ToastProvider>');
+  if (!ctx) throw new Error('useToast must be used inside <ToastProvider>');
   return ctx;
 }
 
-const STYLES: Record<NoticeKind, { accent: string; icon: string; label: string }> = {
-  error: { accent: 'bg-red-600', icon: '!', label: 'Error' },
-  success: { accent: 'bg-emerald-600', icon: '✓', label: 'Listo' },
-  info: { accent: 'bg-ink-900', icon: 'i', label: 'Aviso' },
+const STYLES: Record<NoticeKind, { accent: string; icon: string }> = {
+  error: { accent: 'bg-red-600', icon: '!' },
+  success: { accent: 'bg-emerald-600', icon: '✓' },
+  info: { accent: 'bg-ink-900', icon: 'i' },
 };
 
 function ToastViewport({
@@ -141,6 +146,7 @@ function ToastViewport({
   toasts: ToastItem[];
   onDismiss: (id: number) => void;
 }) {
+  const label = useTranslations('toast');
   return (
     <div
       aria-live="polite"
@@ -163,14 +169,14 @@ function ToastViewport({
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-[10px] uppercase tracking-[0.18em] text-ink-500 font-mono-tight">
-                {s.label}
+                {label(t.kind)}
               </div>
               <p className="text-sm text-ink-900 mt-0.5 break-words">{t.text}</p>
             </div>
             <button
               type="button"
               onClick={() => onDismiss(t.id)}
-              aria-label="Cerrar aviso"
+              aria-label={label('dismiss')}
               className="shrink-0 text-ink-400 hover:text-ink-900 transition-colors text-sm leading-none mt-0.5"
             >
               ✕

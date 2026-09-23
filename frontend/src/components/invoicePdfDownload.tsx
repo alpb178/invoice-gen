@@ -1,23 +1,25 @@
 // src/components/invoicePdfDownload.tsx
 //
-// Generación y descarga del PDF. Está en su propio módulo para que tanto el
-// botón del editor como la acción del listado usen el mismo camino.
+// PDF generation and download. It lives in its own module so both the editor
+// button and the list action take the same path.
 //
-// IMPORTANTE: este módulo carga @react-pdf/renderer, que no funciona en SSR y
-// pesa. Impórtalo solo desde un componente con `ssr: false`, o con un
-// `await import(...)` dentro del propio manejador del clic. Nunca de forma
-// estática desde una pantalla de edición: el PDF se genera bajo demanda.
+// IMPORTANT: this module loads @react-pdf/renderer, which does not work in SSR
+// and is heavy. Import it only from a component with `ssr: false`, or with an
+// `await import(...)` inside the click handler itself. Never statically from an
+// edit screen: the PDF is generated on demand.
 
 import { pdf } from '@react-pdf/renderer';
-import InvoicePDF from './InvoicePDF';
+import InvoicePDF, { pdfLabels } from './InvoicePDF';
 import { Invoice } from '@/types';
+import type { Locale } from '@/i18n/config';
 
-export async function downloadInvoicePDF(invoice: Invoice, showHours: boolean) {
-  const blob = await pdf(<InvoicePDF invoice={invoice} showHours={showHours} />).toBlob();
+export async function downloadInvoicePDF(invoice: Invoice, showHours: boolean, locale: Locale) {
+  const blob = await pdf(<InvoicePDF invoice={invoice} showHours={showHours} locale={locale} />).toBlob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Factura_${invoice.number || 'borrador'}.pdf`;
+  const labels = pdfLabels(locale);
+  a.download = `${labels.fileName}_${invoice.number || labels.draftFileName}.pdf`;
   document.body.appendChild(a);
   a.click();
   a.remove();

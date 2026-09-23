@@ -4,17 +4,17 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { isRowBreakable } from '../src/components/InvoicePDF';
 
-// Exportar una factura se rompió dos veces por la misma razón: react-pdf no
-// avisa, se cuelga. Estos tests cubren los dos fallos:
+// Exporting an invoice broke twice for the same reason: react-pdf does not
+// warn, it hangs. These tests cover both failures:
 //
-//  1. `minPresenceAhead` en un View más alto que una página metía a react-pdf en
-//     un bucle infinito de paginación. Al ser síncrono congelaba la pestaña y el
-//     navegador abortaba la exportación por timeout.
-//  2. `wrap={false}` en una fila más alta que una página hacía que react-pdf la
-//     recortara, perdiendo texto de la descripción sin avisar al usuario.
+//  1. `minPresenceAhead` on a View taller than a page sent react-pdf into an
+//     infinite pagination loop. Being synchronous, it froze the tab and the
+//     browser aborted the export on timeout.
+//  2. `wrap={false}` on a row taller than a page made react-pdf clip it,
+//     losing description text without telling the user.
 //
-// El caso 1 solo se detecta con un proceso aparte y un timeout duro: un bucle
-// síncrono bloquea el event loop y ningún temporizador interno se dispararía.
+// Case 1 can only be detected with a separate process and a hard timeout: a
+// synchronous loop blocks the event loop and no internal timer would fire.
 
 const HELPER = path.join(__dirname, 'helpers', 'render-invoice-pdf.tsx');
 const TIMEOUT_MS = 30_000;
@@ -26,9 +26,9 @@ interface RenderResult {
   warnings: string[];
 }
 
-function render(invoice: unknown, showHours = true): RenderResult {
+function render(invoice: unknown, showHours = true, locale?: 'es' | 'en' | 'pt'): RenderResult {
   const res = spawnSync(process.execPath, ['--import', 'tsx', HELPER], {
-    input: JSON.stringify({ invoice, showHours }),
+    input: JSON.stringify({ invoice, showHours, locale }),
     encoding: 'utf8',
     timeout: TIMEOUT_MS,
     maxBuffer: 20 * 1024 * 1024,
@@ -36,12 +36,12 @@ function render(invoice: unknown, showHours = true): RenderResult {
 
   if (res.signal) {
     assert.fail(
-      `La generación del PDF no terminó en ${TIMEOUT_MS / 1000}s (proceso terminado con ${res.signal}). ` +
-        'Casi seguro es un bucle infinito de paginación en react-pdf: revisa `minPresenceAhead` ' +
-        'en nodos que puedan ser más altos que una página.',
+      `PDF generation did not finish within ${TIMEOUT_MS / 1000}s (process killed with ${res.signal}). ` +
+        'It is almost certainly an infinite pagination loop in react-pdf: check `minPresenceAhead` ' +
+        'on nodes that can be taller than a page.',
     );
   }
-  assert.equal(res.status, 0, `El render falló:\n${res.stderr}`);
+  assert.equal(res.status, 0, `Render failed:\n${res.stderr}`);
   return JSON.parse(res.stdout) as RenderResult;
 }
 
@@ -56,8 +56,8 @@ const task = (n: number, description: string) => ({
 const LONG = 'descripción muy larga que ocupa varias líneas y fuerza el salto de página. ';
 
 /**
- * Factura sintética: `sections` × `tasksPerSection`. `repeat` controla el largo
- * de la descripción; con 0 son descripciones cortas de una línea.
+ * Synthetic invoice: `sections` × `tasksPerSection`. `repeat` controls the
+ * description length; with 0 they are short one-line descriptions.
  */
 function invoiceOf(sections: number, tasksPerSection: number, repeat = 1) {
   return {
@@ -89,74 +89,88 @@ function invoiceOf(sections: number, tasksPerSection: number, repeat = 1) {
 }
 
 describe('isRowBreakable', () => {
-  it('mantiene las filas normales sin partir', () => {
+  it('keeps normal rows unbroken', () => {
     assert.equal(isRowBreakable(''), false);
     assert.equal(isRowBreakable(undefined), false);
     assert.equal(isRowBreakable('Endpoint de facturas y pruebas'), false);
-    // Una descripción larga pero que sigue cabiendo de sobra en una página.
+    // A long description that still fits comfortably on one page.
     assert.equal(isRowBreakable('x'.repeat(600)), false);
   });
 
-  it('permite partir las filas que no caben en una página', () => {
+  it('allows breaking rows that do not fit on a page', () => {
     assert.equal(isRowBreakable('x'.repeat(3000)), true);
     assert.equal(isRowBreakable('x'.repeat(9000)), true);
   });
 });
 
-describe('exportación de la factura a PDF', () => {
-  it('genera un PDF de una página para una factura pequeña', () => {
+describe('invoice export to PDF', () => {
+  it('generates a one-page PDF for a small invoice', () => {
     const r = render(invoiceOf(1, 5, 0));
-    assert.ok(r.isPdf, 'la salida no es un PDF');
-    assert.ok(r.bytes > 1000, `PDF sospechosamente pequeño: ${r.bytes} bytes`);
+    assert.ok(r.isPdf, 'the output is not a PDF');
+    assert.ok(r.bytes > 1000, `suspiciously small PDF: ${r.bytes} bytes`);
     assert.equal(r.pages, 1);
     assert.deepEqual(r.warnings, []);
   });
 
-  it('pagina una factura de varias páginas sin colgarse', () => {
+  it('paginates a multi-page invoice without hanging', () => {
     const r = render(invoiceOf(1, 45));
-    assert.ok(r.pages > 1, `esperaba varias páginas, salieron ${r.pages}`);
+    assert.ok(r.pages > 1, `expected several pages, got ${r.pages}`);
     assert.deepEqual(r.warnings, []);
   });
 
-  // Este es el caso exacto que congelaba la web: varias secciones que en
-  // conjunto ocupan más de dos páginas.
-  it('no se cuelga con muchas secciones y muchas tareas', () => {
+  // This is the exact case that froze the site: several sections that together
+  // take up more than two pages.
+  it('does not hang with many sections and many tasks', () => {
     const r = render(invoiceOf(3, 30));
-    assert.ok(r.pages >= 3, `esperaba al menos 3 páginas, salieron ${r.pages}`);
+    assert.ok(r.pages >= 3, `expected at least 3 pages, got ${r.pages}`);
     assert.deepEqual(r.warnings, []);
   });
 
-  it('no se cuelga con descripciones largas repartidas en muchas secciones', () => {
+  it('does not hang with long descriptions spread over many sections', () => {
     const r = render(invoiceOf(5, 40, 12));
-    assert.ok(r.pages > 5, `esperaba muchas páginas, salieron ${r.pages}`);
+    assert.ok(r.pages > 5, `expected many pages, got ${r.pages}`);
     assert.deepEqual(r.warnings, []);
   });
 
-  it('no se cuelga con una sección por integrante', () => {
+  it('does not hang with one section per member', () => {
     const r = render(invoiceOf(10, 15, 12));
     assert.ok(r.pages > 3);
     assert.deepEqual(r.warnings, []);
   });
 
-  // Regresión del recorte: una descripción más alta que la página entera debe
-  // partirse entre páginas, no perder texto.
-  it('parte las filas más altas que una página en vez de recortarlas', () => {
+  // Clipping regression: a description taller than a whole page must break
+  // across pages, not lose text.
+  it('breaks rows taller than a page instead of clipping them', () => {
     const r = render(invoiceOf(1, 2, 120));
     assert.deepEqual(
       r.warnings,
       [],
-      'react-pdf avisó de que un nodo no cabe y lo recortó: se está perdiendo texto de la descripción',
+      'react-pdf warned that a node does not fit and clipped it: description text is being lost',
     );
-    assert.ok(r.pages >= 3, `una fila enorme debe ocupar varias páginas, salieron ${r.pages}`);
+    assert.ok(r.pages >= 3, `a huge row must span several pages, got ${r.pages}`);
   });
 
-  it('funciona sin la columna de horas', () => {
+  it('renders with the English labels too', () => {
+    const r = render(invoiceOf(3, 30), true, 'en');
+    assert.ok(r.isPdf);
+    assert.ok(r.pages >= 3, `expected at least 3 pages, got ${r.pages}`);
+    assert.deepEqual(r.warnings, []);
+  });
+
+  it('renders with the Portuguese labels too', () => {
+    const r = render(invoiceOf(3, 30), true, 'pt');
+    assert.ok(r.isPdf);
+    assert.ok(r.pages >= 3, `expected at least 3 pages, got ${r.pages}`);
+    assert.deepEqual(r.warnings, []);
+  });
+
+  it('works without the hours column', () => {
     const r = render(invoiceOf(2, 20), false);
     assert.ok(r.isPdf);
     assert.deepEqual(r.warnings, []);
   });
 
-  it('aguanta una factura casi vacía', () => {
+  it('copes with an almost empty invoice', () => {
     const r = render({
       number: '',
       date: '',

@@ -433,7 +433,7 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
 export interface ApiInvitationInvitation extends Struct.CollectionTypeSchema {
   collectionName: 'invitations';
   info: {
-    description: 'Invitaci\u00F3n a formar parte de un equipo';
+    description: 'An invitation to join a team';
     displayName: 'Invitation';
     pluralName: 'invitations';
     singularName: 'invitation';
@@ -475,7 +475,7 @@ export interface ApiInvitationInvitation extends Struct.CollectionTypeSchema {
 export interface ApiInvoiceInvoice extends Struct.CollectionTypeSchema {
   collectionName: 'invoices';
   info: {
-    description: 'Factura principal';
+    description: 'Main invoice';
     displayName: 'Invoice';
     pluralName: 'invoices';
     singularName: 'invoice';
@@ -526,7 +526,7 @@ export interface ApiInvoiceInvoice extends Struct.CollectionTypeSchema {
 export interface ApiSectionSection extends Struct.CollectionTypeSchema {
   collectionName: 'sections';
   info: {
-    description: 'Secci\u00F3n dentro de una factura';
+    description: 'A section inside an invoice';
     displayName: 'Section';
     pluralName: 'sections';
     singularName: 'section';
@@ -564,7 +564,7 @@ export interface ApiSectionSection extends Struct.CollectionTypeSchema {
 export interface ApiTaskTask extends Struct.CollectionTypeSchema {
   collectionName: 'tasks';
   info: {
-    description: 'Tarea individual dentro de una secci\u00F3n';
+    description: 'A single task inside a section';
     displayName: 'Task';
     pluralName: 'tasks';
     singularName: 'task';
@@ -598,7 +598,7 @@ export interface ApiTaskTask extends Struct.CollectionTypeSchema {
 export interface ApiTeamTeam extends Struct.CollectionTypeSchema {
   collectionName: 'teams';
   info: {
-    description: 'Equipo o compa\u00F1\u00EDa que agrupa usuarios y facturas';
+    description: 'Team or company that groups users and invoices';
     displayName: 'Team';
     pluralName: 'teams';
     singularName: 'team';

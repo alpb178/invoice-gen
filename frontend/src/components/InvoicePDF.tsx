@@ -4,8 +4,9 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
 import { Invoice, Section } from '@/types';
+import { intlTag, type Locale } from '@/i18n/config';
 
-// Paleta editorial (papel blanco + tinta + sello)
+// Editorial palette (white paper + ink + stamp)
 const PAPER = '#ffffff';
 const INK = '#1c1c1f';
 const MUTED = '#8a8782';
@@ -14,15 +15,80 @@ const HAIR = '#d9d5cb';
 const STAMP = '#b0543f';
 
 const CUR_SYMBOL: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', BOB: 'Bs' };
-const STATUS_LABEL: Record<string, string> = {
-  draft: 'BORRADOR',
-  sent: 'ENVIADA',
-  paid: 'PAGADA',
-  cancelled: 'CANCELADA',
-};
+// The PDF is rendered by react-pdf outside the React tree of the page (no
+// next-intl provider there), so its labels live here, keyed by UI locale.
+const LABELS = {
+  es: {
+    status: { draft: 'BORRADOR', sent: 'ENVIADA', paid: 'PAGADA', cancelled: 'CANCELADA' } as Record<string, string>,
+    title: 'FACTURA - No.',
+    taxId: 'CIF: ',
+    billedTo: 'Emitido a favor de:',
+    bank: 'Nombre y dirección del Banco: ',
+    date: 'FECHA',
+    currency: 'MONEDA',
+    transfer: 'Transferencia',
+    concept: 'CONCEPTO',
+    hours: 'HORAS',
+    amount: 'IMPORTE',
+    section: (n: number) => `Sección ${n}`,
+    notes: 'NOTAS',
+    issuedBy: 'EMITIDO POR',
+    generated: 'GENERADO · INVOICE GENERATOR',
+    page: (n: number, total: number) => `PÁG. ${n} / ${total}`,
+    fileName: 'Factura',
+    draftFileName: 'borrador',
+  },
+  en: {
+    status: { draft: 'DRAFT', sent: 'SENT', paid: 'PAID', cancelled: 'CANCELLED' } as Record<string, string>,
+    title: 'INVOICE - No.',
+    taxId: 'Tax ID: ',
+    billedTo: 'Billed to:',
+    bank: 'Bank name and address: ',
+    date: 'DATE',
+    currency: 'CURRENCY',
+    transfer: 'Bank transfer',
+    concept: 'DESCRIPTION',
+    hours: 'HOURS',
+    amount: 'AMOUNT',
+    section: (n: number) => `Section ${n}`,
+    notes: 'NOTES',
+    issuedBy: 'ISSUED BY',
+    generated: 'GENERATED · INVOICE GENERATOR',
+    page: (n: number, total: number) => `PAGE ${n} / ${total}`,
+    fileName: 'Invoice',
+    draftFileName: 'draft',
+  },
+  pt: {
+    status: { draft: 'RASCUNHO', sent: 'ENVIADA', paid: 'PAGA', cancelled: 'CANCELADA' } as Record<string, string>,
+    title: 'FATURA - Nº',
+    taxId: 'CIF: ',
+    billedTo: 'Emitida para:',
+    bank: 'Nome e endereço do banco: ',
+    date: 'DATA',
+    currency: 'MOEDA',
+    transfer: 'Transferência',
+    concept: 'DESCRIÇÃO',
+    hours: 'HORAS',
+    amount: 'VALOR',
+    section: (n: number) => `Seção ${n}`,
+    notes: 'OBSERVAÇÕES',
+    issuedBy: 'EMITIDA POR',
+    generated: 'GERADA · INVOICE GENERATOR',
+    page: (n: number, total: number) => `PÁG. ${n} / ${total}`,
+    fileName: 'Fatura',
+    draftFileName: 'rascunho',
+  },
+} satisfies Record<Locale, unknown>;
 
-const money = (n: number) =>
-  new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0);
+export const pdfLabels = (locale: Locale) => LABELS[locale] ?? LABELS.es;
+
+const moneyFormatter = (locale: Locale) => {
+  const fmt = new Intl.NumberFormat(intlTag[locale] ?? intlTag.es, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return (n: number) => fmt.format(n || 0);
+};
 
 const fmtDate = (iso?: string) => {
   if (!iso) return '';
@@ -43,7 +109,7 @@ const styles = StyleSheet.create({
     backgroundColor: PAPER,
   },
 
-  // — etiquetas pequeñas tipográficas —
+  // — small typographic labels —
   label: {
     fontSize: 7,
     fontFamily: 'Helvetica',
@@ -51,7 +117,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
   },
 
-  // — cabecera —
+  // — header —
   invoiceTitle: { fontFamily: 'Times-Bold', fontSize: 22, color: INK, marginBottom: 6 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   headerLeft: { flex: 1, paddingRight: 24 },
@@ -78,7 +144,7 @@ const styles = StyleSheet.create({
   ruleStrong: { borderTopWidth: 1, borderTopColor: RULE, borderStyle: 'solid', marginTop: 16 },
   ruleHair: { borderTopWidth: 0.6, borderTopColor: HAIR, borderStyle: 'solid' },
 
-  // — bloques de información (emisor / receptor), estilo factura —
+  // — information blocks (issuer / recipient), invoice style —
   infoBlock: { marginTop: 18 },
   infoCompany: { fontFamily: 'Times-Bold', fontSize: 11, color: INK },
   infoHeader: { fontFamily: 'Times-Bold', fontSize: 10.5, color: INK },
@@ -102,7 +168,7 @@ const styles = StyleSheet.create({
   itemQty: { width: 48, textAlign: 'right', fontFamily: 'Courier', fontSize: 10, color: INK },
   itemAmount: { width: 92, textAlign: 'right', fontFamily: 'Courier', fontSize: 10, color: INK },
 
-  // — totales —
+  // — totals —
   totalsBlock: { marginTop: 26, alignItems: 'flex-end' },
   totalsInner: { width: 260 },
   subtotalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
@@ -112,11 +178,11 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 8, fontFamily: 'Helvetica', color: MUTED, letterSpacing: 2 },
   totalValue: { fontFamily: 'Times-Bold', fontSize: 24, color: INK },
 
-  // — notas —
+  // — notes —
   notes: { marginTop: 22 },
   notesText: { fontSize: 9, color: '#555', lineHeight: 1.5 },
 
-  // — firma (al final del contenido, alineada a la derecha) —
+  // — signature (at the end of the content, right-aligned) —
   signatureBlock: { marginTop: 48, marginBottom: 8, width: 240, alignSelf: 'flex-end' },
   signatureLine: { borderTopWidth: 0.6, borderTopColor: '#777', borderStyle: 'solid', marginBottom: 6 },
   signatureLabel: {
@@ -143,7 +209,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // — pie (todas las páginas) —
+  // — footer (every page) —
   footer: {
     position: 'absolute',
     bottom: 28,
@@ -157,27 +223,27 @@ const styles = StyleSheet.create({
 
 const calcSubtotal = (sec: Section) => sec.tasks.reduce((a, t) => a + (t.amount || 0), 0);
 
-// — ¿Puede partirse una fila entre páginas? —
+// — Can a row break across pages? —
 //
-// Lo normal es que no: una fila cortada por la mitad queda fea. Pero con
-// `wrap={false}` react-pdf no puede paginar una fila más alta que la página y
-// la RECORTA (avisa por consola "can't wrap between pages and it's bigger than
-// available page height"), perdiendo texto de la descripción sin que se note.
-// Así que estimamos la altura de la fila y, si se acerca al alto útil de la
-// página, dejamos que se parta: es más feo, pero no se pierde información.
+// Normally not: a row cut in half looks bad. But with `wrap={false}` react-pdf
+// cannot paginate a row taller than the page and CLIPS it (it warns in the
+// console "can't wrap between pages and it's bigger than available page
+// height"), silently losing description text. So we estimate the row height
+// and, if it gets close to the usable page height, let it break: uglier, but
+// no information is lost.
 //
-// A4 = 595.28 × 841.89pt. Ancho útil de la descripción:
-//   595.28 − 96 (padding horizontal) − 92 (importe) − 48 (horas) − 12 (gutter) ≈ 347
-// Alto útil de la página: 841.89 − 48 (arriba) − 96 (abajo) ≈ 698
+// A4 = 595.28 × 841.89pt. Usable description width:
+//   595.28 − 96 (horizontal padding) − 92 (amount) − 48 (hours) − 12 (gutter) ≈ 347
+// Usable page height: 841.89 − 48 (top) − 96 (bottom) ≈ 698
 const DESC_WIDTH = 347;
 const DESC_FONT_SIZE = 10.5;
 const DESC_LINE_HEIGHT = DESC_FONT_SIZE * 1.35;
-// Sobreestimamos el ancho medio de carácter (0.6em, Helvetica ronda 0.5em) para
-// que la cuenta de líneas salga por exceso y nunca nos quedemos cortos.
+// We overestimate the average character width (0.6em; Helvetica is around
+// 0.5em) so the line count errs on the high side and never falls short.
 const CHARS_PER_LINE = Math.max(1, Math.floor(DESC_WIDTH / (DESC_FONT_SIZE * 0.6)));
 const PAGE_CONTENT_HEIGHT = 698;
-// Umbral holgado (60% de la página): la estimación es aproximada y preferimos
-// permitir el corte antes de arriesgarnos a que react-pdf recorte la fila.
+// Generous threshold (60% of the page): the estimate is rough and we would
+// rather allow the break than risk react-pdf clipping the row.
 const MAX_UNBREAKABLE_HEIGHT = PAGE_CONTENT_HEIGHT * 0.6;
 
 export const estimateRowHeight = (description?: string) => {
@@ -186,11 +252,19 @@ export const estimateRowHeight = (description?: string) => {
   return lines * DESC_LINE_HEIGHT;
 };
 
-/** ¿Se permite que esta fila se parta entre páginas? (ver tests/invoice-pdf.test.ts) */
+/** Is this row allowed to break across pages? (see tests/invoice-pdf.test.ts) */
 export const isRowBreakable = (description?: string) =>
   estimateRowHeight(description) > MAX_UNBREAKABLE_HEIGHT;
 
-function ItemRow({ task, showHours }: { task: any; showHours: boolean }) {
+function ItemRow({
+  task,
+  showHours,
+  money,
+}: {
+  task: any;
+  showHours: boolean;
+  money: (n: number) => string;
+}) {
   const breakable = isRowBreakable(task.description);
   return (
     <View style={styles.itemRow} wrap={breakable}>
@@ -207,31 +281,35 @@ function ItemRow({ task, showHours }: { task: any; showHours: boolean }) {
 interface Props {
   invoice: Invoice;
   showHours: boolean;
+  /** UI locale the labels (not the invoice data) are printed in. */
+  locale?: Locale;
 }
 
-const InvoicePDF = ({ invoice, showHours }: Props) => {
+const InvoicePDF = ({ invoice, showHours, locale = 'es' }: Props) => {
+  const L = pdfLabels(locale);
+  const money = moneyFormatter(locale);
   const total = invoice.sections.reduce((a, s) => a + calcSubtotal(s), 0);
   const cur = invoice.currency || 'USD';
   const sym = CUR_SYMBOL[cur] || '';
   const multiSection = invoice.sections.length > 1;
   const status = invoice.status || 'draft';
-  const statusLabel = STATUS_LABEL[status] || status.toUpperCase();
+  const statusLabel = L.status[status] || status.toUpperCase();
   const hasBank = !!(invoice.clientIBAN || invoice.clientSwift || invoice.clientBank);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* ——— Cabecera: izquierda emisor/cliente · derecha sello + fecha + moneda ——— */}
+        {/* ——— Header: issuer/client on the left · stamp + date + currency on the right ——— */}
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
-            <Text style={styles.invoiceTitle}>FACTURA - No. {invoice.number || '—'}</Text>
+            <Text style={styles.invoiceTitle}>{L.title} {invoice.number || '—'}</Text>
 
-            {/* — Emisor — */}
+            {/* — Issuer — */}
             <View style={styles.infoBlock}>
               {invoice.companyName ? <Text style={styles.infoCompany}>{invoice.companyName}</Text> : null}
               {invoice.companyCIF ? (
                 <Text style={styles.infoLine}>
-                  <Text style={styles.infoBold}>CIF: </Text>
+                  <Text style={styles.infoBold}>{L.taxId}</Text>
                   {invoice.companyCIF}
                 </Text>
               ) : null}
@@ -244,10 +322,10 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
                 : null}
             </View>
 
-            {/* — Receptor — */}
+            {/* — Recipient — */}
             {invoice.clientName || invoice.clientIBAN || invoice.clientSwift || invoice.clientBank ? (
               <View style={styles.infoBlock}>
-                <Text style={styles.infoHeader}>Emitido a favor de:</Text>
+                <Text style={styles.infoHeader}>{L.billedTo}</Text>
                 {invoice.clientName ? <Text style={styles.infoName}>{invoice.clientName}</Text> : null}
                 {invoice.clientIBAN ? (
                   <Text style={styles.infoLine}>
@@ -261,46 +339,46 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
                 ) : null}
                 {invoice.clientBank ? (
                   <Text style={styles.infoLine}>
-                    Nombre y dirección del Banco: <Text style={styles.infoBold}>{invoice.clientBank}</Text>
+                    {L.bank}<Text style={styles.infoBold}>{invoice.clientBank}</Text>
                   </Text>
                 ) : null}
               </View>
             ) : null}
           </View>
 
-          {/* — Sello + fecha + moneda (derecha) — */}
+          {/* — Stamp + date + currency (right) — */}
           <View style={styles.headerRight}>
             <View style={styles.stamp}>
               <Text style={styles.stampText}>{statusLabel}</Text>
             </View>
             <View style={styles.metaGroup}>
-              <Text style={styles.label}>FECHA</Text>
+              <Text style={styles.label}>{L.date}</Text>
               <Text style={styles.metaValueR}>{fmtDate(invoice.date) || '—'}</Text>
             </View>
             <View style={styles.metaGroup}>
-              <Text style={styles.label}>MONEDA</Text>
+              <Text style={styles.label}>{L.currency}</Text>
               <Text style={styles.metaValueR}>
                 {cur}
                 {sym ? ` ${sym}` : ''}
               </Text>
-              {hasBank ? <Text style={styles.metaSubR}>Transferencia</Text> : null}
+              {hasBank ? <Text style={styles.metaSubR}>{L.transfer}</Text> : null}
             </View>
           </View>
         </View>
 
         {/* ——— Items ——— */}
         <View style={styles.itemsHead}>
-          <Text style={[styles.label, styles.itemsHeadConcept]}>CONCEPTO</Text>
-          {showHours && <Text style={[styles.label, styles.colQty]}>HORAS</Text>}
-          <Text style={[styles.label, styles.colAmount]}>IMPORTE{sym ? ` (${sym})` : ''}</Text>
+          <Text style={[styles.label, styles.itemsHeadConcept]}>{L.concept}</Text>
+          {showHours && <Text style={[styles.label, styles.colQty]}>{L.hours}</Text>}
+          <Text style={[styles.label, styles.colAmount]}>{L.amount}{sym ? ` (${sym})` : ''}</Text>
         </View>
         <View style={styles.ruleHair} />
 
-        {/* OJO: `minPresenceAhead` NUNCA en el View que envuelve la sección completa.
-            Ese wrapper puede ser más alto que una página; react-pdf entra en un bucle
-            infinito de paginación (`paginate()` no tiene tope de iteraciones) y, al ser
-            síncrono, congela la pestaña y el navegador aborta por timeout. La pista
-            anti-huérfanos va en la cabecera de sección, que sí cabe en una página. */}
+        {/* CAREFUL: NEVER put `minPresenceAhead` on the View that wraps a whole section.
+            That wrapper can be taller than a page; react-pdf enters an infinite
+            pagination loop (`paginate()` has no iteration cap) and, being synchronous,
+            freezes the tab until the browser aborts on timeout. The anti-orphan hint
+            goes on the section header, which does fit on a page. */}
         {invoice.sections.map((sec, sIdx) => (
           <View key={sIdx}>
             {sec.title || sec.subtitle ? (
@@ -310,20 +388,20 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
               </View>
             ) : null}
             {sec.tasks.map((task, tIdx) => (
-              <ItemRow key={tIdx} task={task} showHours={showHours} />
+              <ItemRow key={tIdx} task={task} showHours={showHours} money={money} />
             ))}
           </View>
         ))}
 
         <View style={styles.ruleHair} />
 
-        {/* ——— Totales ——— */}
+        {/* ——— Totals ——— */}
         <View style={styles.totalsBlock} wrap={false}>
           <View style={styles.totalsInner}>
             {multiSection &&
               invoice.sections.map((sec, i) => (
                 <View key={i} style={styles.subtotalRow}>
-                  <Text style={styles.subtotalLabel}>Subtotal · {sec.title || `Sección ${i + 1}`}</Text>
+                  <Text style={styles.subtotalLabel}>Subtotal · {sec.title || L.section(i + 1)}</Text>
                   <Text style={styles.subtotalVal}>{money(calcSubtotal(sec))}</Text>
                 </View>
               ))}
@@ -338,10 +416,10 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
           </View>
         </View>
 
-        {/* ——— Notas ——— */}
+        {/* ——— Notes ——— */}
         {invoice.notes ? (
           <View style={styles.notes} wrap={false}>
-            <Text style={styles.label}>NOTAS</Text>
+            <Text style={styles.label}>{L.notes}</Text>
             {invoice.notes.split('\n').map((l, i) => (
               <Text key={i} style={[styles.notesText, { marginTop: i === 0 ? 5 : 0 }]}>
                 {l}
@@ -350,22 +428,22 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
           </View>
         ) : null}
 
-        {/* ——— Firma: última página, abajo a la derecha ———
-            Bloque absoluto NO fixed: al ser el último hijo del flujo se ancla
-            a la última página, sin depender de `totalPages` (que con `fixed`
-            fallaba y hacía desaparecer el "EMITIDO POR" en facturas largas). */}
+        {/* ——— Signature: last page, bottom right ———
+            A NON-fixed block: being the last child in the flow it anchors to
+            the last page, without depending on `totalPages` (which failed with
+            `fixed` and made "EMITIDO POR" disappear on long invoices). */}
         <View style={styles.signatureBlock} wrap={false}>
           <View style={styles.signatureLine} />
-          <Text style={styles.signatureLabel}>EMITIDO POR</Text>
+          <Text style={styles.signatureLabel}>{L.issuedBy}</Text>
           <Link src="https://invoices.corpsc.com/" style={styles.signatureUrl}>
             https://invoices.corpsc.com/
           </Link>
-          <Link src="https://www.corpsc.com/es" style={styles.signaturePromo}>
+          <Link src={`https://www.corpsc.com/${locale}`} style={styles.signaturePromo}>
             corpsc.com
           </Link>
         </View>
 
-        {/* ——— Pie: todas las páginas ——— */}
+        {/* ——— Footer: every page ——— */}
         <View
           style={styles.footer}
           fixed
@@ -376,10 +454,8 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
             };
             return (
               <>
-                <Text style={styles.footerText}>GENERADO · INVOICE GENERATOR</Text>
-                <Text style={styles.footerText}>
-                  PÁG. {pageNumber} / {totalPages}
-                </Text>
+                <Text style={styles.footerText}>{L.generated}</Text>
+                <Text style={styles.footerText}>{L.page(pageNumber, totalPages)}</Text>
               </>
             );
           }}

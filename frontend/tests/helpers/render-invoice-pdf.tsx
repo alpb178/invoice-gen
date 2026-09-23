@@ -1,13 +1,13 @@
-// Renderiza una factura a PDF en un proceso aparte y escribe el resultado en
-// stdout como JSON.
+// Renders an invoice to PDF in a separate process and writes the result to
+// stdout as JSON.
 //
-// Vive en su propio proceso a propósito: el fallo que este test vigila es un
-// bucle infinito de paginación en react-pdf, y es SÍNCRONO. Dentro del proceso
-// de test bloquearía el event loop y ningún timeout llegaría a dispararse; la
-// única forma de detectarlo es matar el proceso hijo desde fuera.
+// It lives in its own process on purpose: the failure this test guards against
+// is an infinite pagination loop in react-pdf, and it is SYNCHRONOUS. Inside the
+// test process it would block the event loop and no timeout would ever fire;
+// the only way to detect it is to kill the child process from outside.
 //
-// Entrada (stdin, JSON): { invoice, showHours }
-// Salida (stdout, JSON): { bytes, pages, warnings }
+// Input (stdin, JSON): { invoice, showHours, locale? }
+// Output (stdout, JSON): { bytes, pages, warnings }
 
 import React from 'react';
 import { renderToBuffer } from '@react-pdf/renderer';
@@ -22,8 +22,8 @@ const readStdin = () =>
     process.stdin.on('error', reject);
   });
 
-// react-pdf avisa por console.warn cuando un nodo con wrap={false} no cabe en
-// una página y lo recorta. Lo capturamos: para el test es una señal de fallo.
+// react-pdf warns through console.warn when a node with wrap={false} does not
+// fit on a page and clips it. We capture it: for the test it signals failure.
 const warnings: string[] = [];
 console.warn = (...args: unknown[]) => {
   warnings.push(args.map(String).join(' '));
@@ -35,9 +35,9 @@ const pageCount = (pdf: Buffer) => {
 };
 
 (async () => {
-  const { invoice, showHours } = JSON.parse(await readStdin());
+  const { invoice, showHours, locale } = JSON.parse(await readStdin());
   const buffer = await renderToBuffer(
-    React.createElement(InvoicePDF, { invoice, showHours: !!showHours }) as any,
+    React.createElement(InvoicePDF, { invoice, showHours: !!showHours, locale }) as any,
   );
   process.stdout.write(
     JSON.stringify({

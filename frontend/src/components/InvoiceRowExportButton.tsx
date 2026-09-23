@@ -2,28 +2,31 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { getInvoice, markInvoiceExported } from '@/lib/api';
 import { normalizeInvoice } from '@/lib/invoice';
 import { useToast } from './Toast';
 
 interface Props {
   invoiceId: number;
-  /** Se llama tras exportar, para refrescar el sello "exportada" de la fila. */
+  /** Called after exporting, to refresh the row's "exported" stamp. */
   onExported?: () => void;
 }
 
-// Exportar el PDF desde el listado, sin abrir la factura.
+// Export the PDF from the list, without opening the invoice.
 //
-// La fila del listado no trae el árbol completo garantizado, así que se pide la
-// factura al backend en el momento del clic y se normaliza igual que en el
-// editor: así el PDF sale idéntico desde las dos pantallas.
+// The list row is not guaranteed to carry the full tree, so the invoice is
+// fetched from the backend at click time and normalized exactly as in the
+// editor: that way the PDF comes out identical from both screens.
 //
-// @react-pdf/renderer se carga con un import dinámico dentro del manejador, no
-// arriba: no funciona en SSR, pesa, y así ni entra en el bundle del listado ni
-// hay trabajo de PDF hasta que alguien lo pide.
+// @react-pdf/renderer is loaded with a dynamic import inside the handler, not
+// at the top: it does not work in SSR, it is heavy, and this way it stays out
+// of the list bundle and there is no PDF work until someone asks for it.
 export default function InvoiceRowExportButton({ invoiceId, onExported }: Props) {
   const [busy, setBusy] = useState(false);
   const toast = useToast();
+  const locale = useLocale();
+  const t = useTranslations('pdfButton');
 
   const handleExport = async () => {
     if (busy) return;
@@ -32,11 +35,11 @@ export default function InvoiceRowExportButton({ invoiceId, onExported }: Props)
       const raw = await getInvoice(invoiceId);
       const invoice = normalizeInvoice(raw);
       const { downloadInvoicePDF } = await import('./invoicePdfDownload');
-      await downloadInvoicePDF(invoice, false);
+      await downloadInvoicePDF(invoice, false, locale);
       try {
         await markInvoiceExported(invoiceId);
       } catch (e) {
-        // El PDF ya se descargó; solo falló el registro de la exportación.
+        // The PDF was already downloaded; only recording the export failed.
         toast.error(e);
       }
       onExported?.();
@@ -52,10 +55,10 @@ export default function InvoiceRowExportButton({ invoiceId, onExported }: Props)
       type="button"
       onClick={handleExport}
       disabled={busy}
-      title="Descargar el PDF de esta factura"
+      title={t('rowTitle')}
       className="px-3 py-1.5 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors disabled:opacity-60"
     >
-      {busy ? 'Generando...' : 'PDF'}
+      {busy ? t('generating') : 'PDF'}
     </button>
   );
 }
