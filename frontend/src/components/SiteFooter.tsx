@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { intlTag } from '@/i18n/config';
 import { Link } from '@/i18n/navigation';
-import LanguageSwitcher from './LanguageSwitcher';
+import LanguageMenu from './LanguageMenu';
 
 const CONTACT_EMAIL = 'alesx2soporte@gmail.com';
 
@@ -101,7 +101,7 @@ export default function SiteFooter() {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <span>v.2026.04</span>
             <span aria-hidden>·</span>
-            <LanguageSwitcher tone="dark" />
+            <LanguageMenu tone="dark" placement="top" align="start" />
             <span aria-hidden>·</span>
             <span>{intlTag[locale as keyof typeof intlTag]}</span>
             <span aria-hidden>·</span>

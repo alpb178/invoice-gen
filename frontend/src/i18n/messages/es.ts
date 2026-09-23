@@ -15,8 +15,6 @@ const es = {
   },
   languageSwitcher: {
     label: 'Idioma',
-    es: 'Español',
-    en: 'English',
   },
   status: {
     draft: 'Borrador',
