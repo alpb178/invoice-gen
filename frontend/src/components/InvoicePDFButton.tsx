@@ -2,13 +2,17 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { Invoice } from '@/types';
+
+function Loading() {
+  const t = useTranslations('pdfButton');
+  return <span className="text-ink-500 text-sm px-4 py-2.5">{t('loading')}</span>;
+}
 
 const Inner = dynamic(() => import('./InvoicePDFButtonInner'), {
   ssr: false,
-  loading: () => (
-    <span className="text-ink-500 text-sm px-4 py-2.5">Cargando PDF...</span>
-  ),
+  loading: () => <Loading />,
 });
 
 interface Props {

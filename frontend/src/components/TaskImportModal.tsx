@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { parseTasksFromText, parseTasksFromPdf } from '@/lib/api';
 import { Task } from '@/types';
 import ClearableField from './ClearableField';
@@ -27,6 +28,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
   const [pdfName, setPdfName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
+  const tm = useTranslations('taskImport');
 
   if (!open) return null;
 
@@ -44,7 +46,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
     try {
       const data = await parseTasksFromText(text);
       if (!data.tasks.length) {
-        setError('No se detectaron tareas en el texto. Revisa el formato.');
+        setError(tm('noTasksText'));
         setPreview([]);
       } else {
         setPreview(data.tasks as Task[]);
@@ -63,7 +65,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
     try {
       const data = await parseTasksFromPdf(file);
       if (!data.tasks.length) {
-        setError('No se detectaron tareas en el PDF. Puedes pegar el texto manualmente.');
+        setError(tm('noTasksPdf'));
         setPreview([]);
       } else {
         setPreview(data.tasks as Task[]);
@@ -111,9 +113,9 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
       <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden bg-paper border border-ink-200 rounded-2xl shadow-card flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-ink-200">
           <div>
-            <h2 className="text-lg font-semibold text-ink-900">Importar tareas</h2>
+            <h2 className="text-lg font-semibold text-ink-900">{tm('title')}</h2>
             <p className="text-xs text-ink-500 mt-0.5">
-              Pega texto (ej. Jira, Linear) o sube un PDF. Detectamos código, descripción y montos.
+              {tm('subtitle')}
             </p>
           </div>
           <button onClick={handleClose} className="text-ink-500 hover:text-ink-900 text-xl leading-none">
@@ -134,7 +136,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                 : 'bg-paper text-ink-900 border-ink-200 hover:bg-ink-100'
             }`}
           >
-            Pegar texto
+            {tm('pasteText')}
           </button>
           <button
             onClick={() => {
@@ -148,7 +150,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                 : 'bg-paper text-ink-900 border-ink-200 hover:bg-ink-100'
             }`}
           >
-            Subir PDF
+            {tm('uploadPdf')}
           </button>
         </div>
 
@@ -156,7 +158,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
           {mode === 'text' && (
             <div>
               <ClearableField
-                label="Pega aquí las tareas"
+                label={tm('pasteLabel')}
                 value={text}
                 onChange={setText}
                 placeholder={EXAMPLE}
@@ -170,14 +172,14 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                 disabled={loading || !text.trim()}
                 className="mt-2 px-4 py-2 bg-ink-900 hover:bg-ink-800 disabled:opacity-50 text-paper text-sm font-semibold rounded-lg transition-colors"
               >
-                {loading ? 'Analizando...' : 'Detectar tareas'}
+                {loading ? tm('parsing') : tm('detect')}
               </button>
             </div>
           )}
 
           {mode === 'pdf' && (
             <div>
-              <label className="text-xs text-ink-600 mb-1.5 block">Sube un PDF con texto</label>
+              <label className="text-xs text-ink-600 mb-1.5 block">{tm('pdfLabel')}</label>
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -189,10 +191,10 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                 className="border-2 border-dashed border-ink-300 rounded-xl p-8 text-center cursor-pointer hover:border-ink-900 transition-colors"
               >
                 <p className="text-sm text-ink-700">
-                  {pdfName ? `📄 ${pdfName}` : 'Arrastra un PDF aquí o haz clic para seleccionar'}
+                  {pdfName ? `📄 ${pdfName}` : tm('dropHint')}
                 </p>
                 <p className="text-xs text-ink-500 mt-1">
-                  Solo PDFs con capa de texto (no escaneados)
+                  {tm('textLayerOnly')}
                 </p>
               </div>
               <input
@@ -202,7 +204,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                 className="hidden"
                 onChange={(e) => handleFile(e.target.files?.[0] || null)}
               />
-              {loading && <p className="text-xs text-ink-500 mt-2">Analizando PDF...</p>}
+              {loading && <p className="text-xs text-ink-500 mt-2">{tm('parsingPdf')}</p>}
             </div>
           )}
 
@@ -216,20 +218,20 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-ink-900">
-                  Vista previa · {preview.length} tarea{preview.length === 1 ? '' : 's'}
+                  {tm('preview', { count: preview.length })}
                 </h3>
                 <button onClick={addEmpty} className="text-xs text-ink-700 hover:text-ink-900">
-                  + Añadir fila
+                  {tm('addRow')}
                 </button>
               </div>
               <div className="border border-ink-200 rounded-xl overflow-x-auto">
                 <table className="w-full min-w-[520px] text-xs">
                   <thead className="bg-ink-50">
                     <tr className="text-ink-700 uppercase tracking-wide">
-                      <th className="text-left py-2 px-2 w-24">Código</th>
-                      <th className="text-left py-2 px-2">Descripción</th>
-                      <th className="text-right py-2 px-2 w-20">Horas</th>
-                      <th className="text-right py-2 px-2 w-24">Monto ({currency})</th>
+                      <th className="text-left py-2 px-2 w-24">{tm('code')}</th>
+                      <th className="text-left py-2 px-2">{tm('description')}</th>
+                      <th className="text-right py-2 px-2 w-20">{tm('hours')}</th>
+                      <th className="text-right py-2 px-2 w-24">{tm('amount', { currency })}</th>
                       <th className="w-8"></th>
                     </tr>
                   </thead>
@@ -240,7 +242,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                           <ClearableField
                             value={t.code || ''}
                             onChange={(v) => updatePreview(i, 'code', v)}
-                            ariaLabel="Código de la tarea"
+                            ariaLabel={tm('codeAria')}
                             dense
                             placeholder="TF-123"
                             inputClassName={inputClass + ' font-mono'}
@@ -250,7 +252,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                           <ClearableField
                             value={t.description || ''}
                             onChange={(v) => updatePreview(i, 'description', v)}
-                            ariaLabel="Descripción de la tarea"
+                            ariaLabel={tm('descriptionAria')}
                             dense
                             inputClassName={inputClass}
                           />
@@ -279,7 +281,7 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
                           <button
                             onClick={() => removePreview(i)}
                             className="text-red-500 hover:text-red-700"
-                            aria-label="Eliminar"
+                            aria-label={tm('remove')}
                           >
                             ×
                           </button>
@@ -295,21 +297,21 @@ export default function TaskImportModal({ open, currency = 'USD', onClose, onImp
 
         <div className="px-6 py-4 border-t border-ink-200 flex items-center justify-between gap-3">
           <span className="text-xs text-ink-500">
-            Puedes editar cualquier valor antes de insertar.
+            {tm('editHint')}
           </span>
           <div className="flex gap-2">
             <button
               onClick={handleClose}
               className="px-4 py-2 bg-paper hover:bg-ink-100 border border-ink-200 text-ink-900 text-sm font-medium rounded-lg transition-colors"
             >
-              Cancelar
+              {tm('cancel')}
             </button>
             <button
               onClick={handleInsert}
               disabled={!preview || preview.length === 0}
               className="px-5 py-2 bg-ink-900 hover:bg-ink-800 disabled:opacity-50 text-paper text-sm font-semibold rounded-lg transition-colors"
             >
-              Insertar {preview?.length || 0} tarea{(preview?.length || 0) === 1 ? '' : 's'}
+              {tm('insert', { count: preview?.length || 0 })}
             </button>
           </div>
         </div>

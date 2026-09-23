@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { getInvoice, markInvoiceExported } from '@/lib/api';
 import { normalizeInvoice } from '@/lib/invoice';
 import { useToast } from './Toast';
@@ -24,6 +25,8 @@ interface Props {
 export default function InvoiceRowExportButton({ invoiceId, onExported }: Props) {
   const [busy, setBusy] = useState(false);
   const toast = useToast();
+  const locale = useLocale();
+  const t = useTranslations('pdfButton');
 
   const handleExport = async () => {
     if (busy) return;
@@ -32,7 +35,7 @@ export default function InvoiceRowExportButton({ invoiceId, onExported }: Props)
       const raw = await getInvoice(invoiceId);
       const invoice = normalizeInvoice(raw);
       const { downloadInvoicePDF } = await import('./invoicePdfDownload');
-      await downloadInvoicePDF(invoice, false);
+      await downloadInvoicePDF(invoice, false, locale);
       try {
         await markInvoiceExported(invoiceId);
       } catch (e) {
@@ -52,10 +55,10 @@ export default function InvoiceRowExportButton({ invoiceId, onExported }: Props)
       type="button"
       onClick={handleExport}
       disabled={busy}
-      title="Descargar el PDF de esta factura"
+      title={t('rowTitle')}
       className="px-3 py-1.5 text-xs bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg text-ink-900 transition-colors disabled:opacity-60"
     >
-      {busy ? 'Generando...' : 'PDF'}
+      {busy ? t('generating') : 'PDF'}
     </button>
   );
 }

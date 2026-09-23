@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { getToken } from '@/lib/auth';
 
-const PUBLIC_PREFIXES = ['/login', '/register', '/invitations/'];
+// Paths are compared without the locale prefix: next-intl's usePathname turns
+// /es/login into /login, and its router adds the prefix back on navigation.
+const PUBLIC_PREFIXES = ['/login', '/register', '/invitations/', '/privacy', '/terms', '/cookies'];
 
 function isPublicPath(pathname: string) {
   if (pathname === '/') return true;
@@ -14,6 +17,7 @@ function isPublicPath(pathname: string) {
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations('common');
   const isPublic = isPublicPath(pathname);
   const [ready, setReady] = useState(isPublic);
 
@@ -35,7 +39,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center text-ink-500 text-sm">
-        Cargando…
+        {t('loading')}
       </div>
     );
   }
