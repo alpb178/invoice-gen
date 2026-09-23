@@ -122,10 +122,10 @@ export default function DashboardPage() {
     }
   };
 
-  // Dueño: muestra todas las facturas con el total de la factura.
-  // Miembro: muestra todas las facturas del equipo también (para poder entrar
-  // y añadir su sección), pero el importe visible es su aporte (suma de los
-  // subtotales de SUS secciones); 0 si aún no ha añadido ninguna.
+  // Owner: shows every invoice with the invoice total.
+  // Member: also shows every team invoice (so they can open it and add their
+  // section), but the visible amount is their contribution (sum of the
+  // subtotals of THEIR sections); 0 if they have not added any yet.
   const myInvoices = useMemo(() => {
     if (isOwnerOfActive) {
       return invoices.map((inv: any) => {
@@ -487,9 +487,9 @@ export default function DashboardPage() {
 
 type KpiTone = 'violet' | 'sky' | 'amber' | 'emerald';
 
-// Tarjeta KPI editorial: blanca, borde tinta, etiqueta en mono mayúsculas y
-// valor mono con cifras alineadas. Igual al preview de la landing (sin acento
-// de color). `tone` se mantiene por compatibilidad con las llamadas, sin uso.
+// Editorial KPI card: white, ink border, uppercase mono label and a mono value
+// with aligned figures. Same as the landing preview (no colour accent). `tone`
+// is kept for call-site compatibility, unused.
 function KpiCard({
   label,
   value,

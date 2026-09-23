@@ -1,8 +1,8 @@
 // src/utils/totals.ts
-// Recalcula el total de una factura a partir de sus secciones.
-// Se llama desde los controladores de section/task después de cualquier
-// mutación, de forma que el total siempre refleje la realidad aunque
-// distintos miembros editen secciones distintas.
+// Recomputes an invoice's total from its sections.
+// Called from the section/task controllers after any mutation, so the total
+// always reflects reality even when different members edit different
+// sections.
 
 const INVOICE = 'api::invoice.invoice' as const;
 const SECTION = 'api::section.section' as const;

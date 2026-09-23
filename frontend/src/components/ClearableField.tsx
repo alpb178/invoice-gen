@@ -4,9 +4,9 @@
 interface Props {
   value: string;
   onChange: (value: string) => void;
-  /** Clases del campo, para que cada pantalla mande en su estilo. */
+  /** Field classes, so each screen stays in charge of its own style. */
   inputClassName: string;
-  /** Sin `label` no se pinta etiqueta: usa `ariaLabel` (buscador, celdas de tabla). */
+  /** Without `label` no label is rendered: use `ariaLabel` (search box, table cells). */
   label?: string;
   labelClassName?: string;
   ariaLabel?: string;
@@ -16,28 +16,27 @@ interface Props {
   required?: boolean;
   autoComplete?: string;
   multiline?: boolean;
-  /** Alto del textarea cuando `multiline`. */
+  /** Textarea height when `multiline`. */
   heightClass?: string;
-  /** Hueco y botón más estrechos, para celdas de tabla. */
+  /** Narrower gutter and button, for table cells. */
   dense?: boolean;
 }
 
-// Campo de texto con un botón pequeño para vaciarlo. Vaciar a mano
-// (seleccionar todo y borrar) es incómodo, y en varios campos dejarlo vacío es
-// una decisión habitual: en emisor y cliente es la forma de que ese dato no
-// salga en el PDF.
+// Text field with a small button to clear it. Clearing by hand (select all
+// and delete) is awkward, and in several fields leaving it empty is a common
+// choice: for issuer and client it is how that detail stays out of the PDF.
 //
-// Detalles que no son casuales:
-//  - El hueco del botón (`pr-9`) se reserva siempre, aunque el campo esté vacío
-//    y el botón no se vea, para que el texto no salte al escribir la primera
-//    letra.
-//  - El área de pulsación ocupa todo el alto del campo (`inset-y-0 w-9`) con un
-//    círculo de 24px dentro, el mismo patrón que el botón de mostrar contraseña
-//    en el login: en móvil un botón de 24px es un blanco demasiado pequeño.
+// Details that are not accidental:
+//  - The button gutter (`pr-9`) is always reserved, even when the field is
+//    empty and the button is hidden, so the text does not jump when the first
+//    letter is typed.
+//  - The hit area spans the full field height (`inset-y-0 w-9`) with a 24px
+//    circle inside, the same pattern as the show-password button on login: on
+//    mobile a 24px button is too small a target.
 //
-// No se usa en contraseñas (el botón del ojo ya ocupa ese sitio), en importes,
-// horas y números de tarea (van en mono alineados a la derecha y el hueco
-// rompería la alineación) ni en fechas (el control nativo pone ahí su icono).
+// Not used for passwords (the eye button already sits there), amounts, hours
+// and task numbers (they are monospaced and right-aligned, and the gutter would
+// break the alignment), or dates (the native control puts its icon there).
 export default function ClearableField({
   value,
   onChange,

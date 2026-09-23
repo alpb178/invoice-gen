@@ -5,7 +5,7 @@
     "singularName": "section",
     "pluralName": "sections",
     "displayName": "Section",
-    "description": "Sección dentro de una factura"
+    "description": "A section inside an invoice"
   },
   "options": {
     "draftAndPublish": false

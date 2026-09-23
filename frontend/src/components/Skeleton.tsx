@@ -1,8 +1,8 @@
 // src/components/Skeleton.tsx
-// Primitivas de skeleton reutilizables. Todas usan `animate-pulse` de Tailwind
-// y tonos `ink-100/200` para integrarse con el resto de la UI sin configuración
-// extra. Úsalas en lugar del típico placeholder "Cargando..." cuando la vista
-// está esperando datos de la API.
+// Reusable skeleton primitives. They all use Tailwind's `animate-pulse` and
+// `ink-100/200` tones to blend in with the rest of the UI without extra
+// configuration. Use them instead of the usual "Loading..." placeholder when
+// the view is waiting for API data.
 
 import { ReactNode } from 'react';
 

@@ -1,6 +1,6 @@
 // src/utils/authz.ts
-// Lógica pura de autorización. Sin dependencias de Strapi para poder testearse
-// de forma aislada.
+// Pure authorization logic. No Strapi dependencies, so it can be tested in
+// isolation.
 
 export interface AuthzUser {
   id: number;
@@ -36,40 +36,40 @@ export function isTeamMember(team: AuthzTeam | null | undefined, userId: number)
 }
 
 /**
- * Crear factura: SOLO el dueño del equipo.
+ * Create an invoice: ONLY the team owner.
  */
 export function canCreateInvoice(team: AuthzTeam | null | undefined, userId: number): boolean {
   return isTeamOwner(team, userId);
 }
 
 /**
- * Borrar factura: SOLO el dueño del equipo.
+ * Delete an invoice: ONLY the team owner.
  */
 export function canDeleteInvoice(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
   return isTeamOwner(invoice?.team, userId);
 }
 
 /**
- * Editar la cabecera de la factura (nº, fechas, cliente, notas, etc.):
- * SOLO el dueño del equipo.
+ * Edit the invoice header (number, dates, client, notes, etc.):
+ * ONLY the team owner.
  */
 export function canEditInvoiceHeader(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
   return isTeamOwner(invoice?.team, userId);
 }
 
 /**
- * Una factura pagada queda congelada: no se tocan secciones, tareas, importes
- * ni el resto de la cabecera.
+ * A paid invoice is frozen: sections, tasks, amounts and the rest of the
+ * header cannot be changed.
  */
 export function isInvoiceFrozen(invoice: AuthzInvoice | null | undefined): boolean {
   return invoice?.status === 'paid';
 }
 
 /**
- * Editar emisor y cliente: SOLO el dueño del equipo, pero en CUALQUIER estado
- * de la factura, incluida una pagada. Son datos de identidad (nombre, CIF,
- * dirección, IBAN, banco), no importes: corregir un IBAN mal escrito no cambia
- * lo facturado, y hay que poder hacerlo también después de cobrar.
+ * Edit issuer and client: ONLY the team owner, but in ANY invoice status,
+ * including paid. These are identity details (name, tax ID, address, IBAN,
+ * bank), not amounts: fixing a mistyped IBAN does not change what was billed,
+ * and it must still be possible after the invoice has been paid.
  */
 export function canEditInvoiceParties(
   invoice: AuthzInvoice | null | undefined,
@@ -79,22 +79,22 @@ export function canEditInvoiceParties(
 }
 
 /**
- * Exportar PDF / marcar como exportada: SOLO el dueño del equipo.
+ * Export the PDF / mark as exported: ONLY the team owner.
  */
 export function canExportInvoice(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
   return isTeamOwner(invoice?.team, userId);
 }
 
 /**
- * Ver una factura: cualquier miembro (incluido dueño) del equipo.
+ * View an invoice: any member of the team (owner included).
  */
 export function canViewInvoice(invoice: AuthzInvoice | null | undefined, userId: number): boolean {
   return isTeamMember(invoice?.team, userId);
 }
 
 /**
- * Crear una sección dentro de una factura: cualquier miembro del equipo
- * al que pertenece la factura. El creador queda como author de la sección.
+ * Create a section inside an invoice: any member of the team the invoice
+ * belongs to. The creator becomes the section's author.
  */
 export function canCreateSection(
   team: AuthzTeam | null | undefined,
@@ -104,9 +104,9 @@ export function canCreateSection(
 }
 
 /**
- * Editar / borrar una sección (y sus tareas):
- *  - dueño del equipo siempre
- *  - el miembro que creó la sección (author)
+ * Edit / delete a section (and its tasks):
+ *  - the team owner, always
+ *  - the member who created the section (author)
  */
 export function canEditSection(
   section: AuthzSection | null | undefined,

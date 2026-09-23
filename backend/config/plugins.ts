@@ -1,9 +1,9 @@
 import type { Core } from '@strapi/strapi';
 
-// Configuración de envíos de email.
-// Si hay SMTP_HOST en el entorno usamos nodemailer. Si no, caemos al provider
-// por defecto (sendmail) para que Strapi no falle — los controladores capturan
-// errores y muestran el acceptUrl para copiar a mano.
+// Email delivery configuration.
+// If SMTP_HOST is set we use nodemailer. Otherwise we fall back to the default
+// provider (sendmail) so Strapi does not fail — the controllers catch errors
+// and show the acceptUrl so it can be copied by hand.
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => {
   const smtpHost = env('SMTP_HOST');
 
@@ -25,8 +25,8 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin =>
           },
         },
         settings: {
-          // Si SMTP_FROM no está definido, se usa el propio SMTP_USER como
-          // remitente (útil para Gmail, Outlook, etc.).
+          // If SMTP_FROM is not set, SMTP_USER itself is used as the sender
+          // (handy for Gmail, Outlook, etc.).
           defaultFrom: env('SMTP_FROM') || env('SMTP_USER', 'no-reply@example.com'),
           defaultReplyTo: env('SMTP_REPLY_TO') || env('SMTP_FROM') || env('SMTP_USER', 'no-reply@example.com'),
         },

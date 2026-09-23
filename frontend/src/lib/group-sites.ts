@@ -1,14 +1,13 @@
-// Sitios del Grupo CorpSC que promociona el cintillo superior. Invoices no se
-// lista a sí mismo: cada sitio del grupo enlaza solo a sus hermanos.
+// CorpSC Group sites promoted by the top ticker. Invoices does not list
+// itself: each group site only links to its siblings.
 
 export interface GroupSite {
   slug: string;
   name: string;
-  // Descripción corta que acompaña al enlace en la franja.
+  // Short description shown next to the link in the strip.
   tagline: string;
   url: string;
-  // Acento de la marca, elegido para que el punto se lea sobre el azul marino
-  // de la franja.
+  // Brand accent, chosen so the dot reads against the strip's navy blue.
   accent: string;
 }
 
@@ -43,9 +42,9 @@ export const GROUP_SITES: GroupSite[] = [
   },
 ];
 
-// Marca los enlaces del cintillo con UTM para poder medir, del lado del sitio
-// de destino (GA/GTM), cuánta atención trae la franja del grupo. Si la URL ya
-// traía parámetros se conservan; llamarla dos veces da el mismo resultado.
+// Tags the ticker links with UTM so the destination site (GA/GTM) can measure
+// how much attention the group strip brings. Existing URL parameters are kept;
+// calling it twice gives the same result.
 export function groupSiteUrl(url: string): string {
   const target = new URL(url);
   target.searchParams.set('utm_source', 'invoices');
@@ -54,8 +53,8 @@ export function groupSiteUrl(url: string): string {
   return target.toString();
 }
 
-// Dominio que se muestra junto al nombre en el cintillo: el enlace a la vista,
-// sin protocolo, sin "www." y sin la barra final.
+// Domain shown next to the name in the ticker: the visible link, without
+// protocol, without "www." and without the trailing slash.
 export function siteDomain(url: string): string {
   return new URL(url).host.replace(/^www\./, '');
 }

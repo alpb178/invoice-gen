@@ -16,8 +16,8 @@
   --stamp-dark: #8a3f2e;
   --rule: #1c1c1f;
 
-  /* Serie de la gráfica de tendencia del panel. Verde tomado de la referencia
-     de diseño; vive aquí como token para no repartir el literal por el SVG. */
+  /* Series of the dashboard trend chart. Green taken from the design
+     reference; it lives here as a token so the literal is not scattered across the SVG. */
   --chart-line: #8db636;
   --chart-grid: #e8e8e9;
 }
@@ -136,7 +136,7 @@ input[type="number"] { -moz-appearance: textfield; }
   animation: rise 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-/* Entrada de los toasts (ver components/Toast.tsx) */
+/* Toast entrance (see components/Toast.tsx) */
 @keyframes toast-in {
   0%   { opacity: 0; transform: translateY(10px) scale(0.98); }
   100% { opacity: 1; transform: translateY(0) scale(1); }

@@ -97,7 +97,7 @@ export default function ReportsPage() {
     }, 0);
   };
 
-  // Secciones de una factura, con el autor normalizado.
+  // An invoice's sections, with the author normalized.
   const sectionsOf = (inv: any) => {
     const a = inv.attributes || inv;
     const list = a.sections?.data || a.sections || [];
@@ -108,9 +108,9 @@ export default function ReportsPage() {
     });
   };
 
-  // Lo aportado por el usuario con sesión: solo sus propias secciones. Para un
-  // miembro coincide con el total visible (la API ya le filtra las ajenas);
-  // para el dueño separa su aporte del resto del equipo.
+  // What the signed-in user contributed: only their own sections. For a member
+  // it matches the visible total (the API already filters out other people's);
+  // for the owner it separates their contribution from the rest of the team.
   const myAmount = (inv: any) =>
     sectionsOf(inv)
       .filter((s: any) => (s.authorId != null && me?.id != null ? s.authorId === me.id : s.authorEmail === me?.email))
@@ -153,10 +153,10 @@ export default function ReportsPage() {
 
   const grandTotal = useMemo(() => groups.reduce((a, g) => a + g.total, 0), [groups]);
 
-  // Ganancias por mes — solo lo aportado por el usuario con sesión. Rango
-  // continuo entre el primer y el último mes con datos (los meses sin
-  // facturas salen en cero, no se saltan), recortado a los 12 últimos para
-  // que las barras no se apelmacen.
+  // Earnings per month — only what the signed-in user contributed. A continuous
+  // range between the first and last month with data (months without invoices
+  // show as zero, they are not skipped), trimmed to the last 12 so the bars do
+  // not get crammed.
   const monthlyEarnings = useMemo(() => {
     const buckets = new Map<string, number>();
     for (const inv of filtered) {
@@ -193,10 +193,10 @@ export default function ReportsPage() {
 
   const myTotal = useMemo(() => monthlyEarnings.reduce((a, m) => a + m.value, 0), [monthlyEarnings]);
 
-  // Ganancias por integrante — se atribuyen por el autor de cada sección, que
-  // es quien realmente aportó ese subtotal. El dueño ve a todo el equipo; un
-  // miembro solo recibe sus propias secciones desde la API, así que se ve a sí
-  // mismo.
+  // Earnings per member — attributed to each section's author, who is the one
+  // who actually contributed that subtotal. The owner sees the whole team; a
+  // member only receives their own sections from the API, so they see
+  // themselves.
   const perMember = useMemo(() => {
     const map = new Map<
       string,
@@ -297,7 +297,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Ganancias por mes */}
+          {/* Earnings per month */}
           <div className="bg-paper border border-ink-200 rounded-2xl p-5 mb-4 shadow-card">
             <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
               <div>
@@ -320,7 +320,7 @@ export default function ReportsPage() {
             )}
           </div>
 
-          {/* Ganancias por integrante */}
+          {/* Earnings per member */}
           <div className="bg-paper border border-ink-200 rounded-2xl p-5 mb-6 shadow-card">
             <div className="flex items-center justify-between mb-4 gap-3">
               <h2 className="text-sm font-semibold text-ink-900">Ganancias por integrante</h2>

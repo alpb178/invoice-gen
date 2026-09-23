@@ -54,9 +54,9 @@ export default function AcceptInvitationPage() {
     }
   };
 
-  // Auto-accept cuando el usuario ya está autenticado con el email correcto
-  // y la invitación sigue viva. Así al entrar por el link del email + login
-  // va directo al dashboard del equipo sin pasos extra.
+  // Auto-accept when the user is already signed in with the right email and
+  // the invitation is still live. That way, coming in through the email link
+  // + login goes straight to the team dashboard with no extra steps.
   useEffect(() => {
     if (autoRef.current) return;
     if (!info || loading) return;
@@ -181,7 +181,7 @@ export default function AcceptInvitationPage() {
                 ) : emailMismatch ? (
                   <button
                     onClick={() => {
-                      // cerrar sesión y volver a login con next
+                      // sign out and go back to login with next
                       if (typeof window !== 'undefined') {
                         window.localStorage.removeItem('invoice_jwt');
                         window.localStorage.removeItem('invoice_user');

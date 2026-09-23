@@ -5,7 +5,7 @@
     "singularName": "team",
     "pluralName": "teams",
     "displayName": "Team",
-    "description": "Equipo o compañía que agrupa usuarios y facturas"
+    "description": "Team or company that groups users and invoices"
   },
   "options": {
     "draftAndPublish": false

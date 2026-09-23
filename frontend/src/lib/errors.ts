@@ -1,20 +1,20 @@
 // src/lib/errors.ts
 //
-// Traducción de errores a español. Todo lo que se le muestra al usuario pasa
-// por aquí, así nunca se filtra un mensaje en inglés del backend (Strapi manda
-// cosas como "Invalid identifier or password") ni un error técnico de red.
+// Error translation into Spanish. Everything shown to the user goes through
+// here, so an English backend message (Strapi sends things like "Invalid
+// identifier or password") or a technical network error never leaks through.
 //
-// Los mensajes propios del backend ya vienen en español y se dejan tal cual;
-// solo se reemplazan los que se detectan como inglés o técnicos.
+// The backend's own messages already come in Spanish and are left as they are;
+// only the ones detected as English or technical are replaced.
 
 export const NETWORK_MESSAGE =
   'No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.';
 export const GENERIC_MESSAGE = 'Algo salió mal. Inténtalo de nuevo.';
 export const SESSION_EXPIRED_MESSAGE = 'Tu sesión ha caducado. Vuelve a iniciar sesión.';
 
-// Mensajes conocidos (comparación en minúsculas y sin puntuación final).
+// Known messages (compared lowercased and without trailing punctuation).
 const EXACT: Record<string, string> = {
-  // — plugin users-permissions de Strapi (login / registro) —
+  // — Strapi users-permissions plugin (login / sign-up) —
   'invalid identifier or password': 'Email o contraseña incorrectos.',
   'email or username are already taken': 'Ese email ya tiene una cuenta. Inicia sesión.',
   'email already taken': 'Ese email ya tiene una cuenta. Inicia sesión.',
@@ -30,7 +30,7 @@ const EXACT: Record<string, string> = {
   'auth.form.error.invalid': 'Email o contraseña incorrectos.',
   'auth.form.error.email.taken': 'Ese email ya tiene una cuenta. Inicia sesión.',
 
-  // — respuestas HTTP genéricas de Strapi (ctx.forbidden() y compañía sin texto) —
+  // — generic Strapi HTTP responses (ctx.forbidden() and friends with no text) —
   unauthorized: SESSION_EXPIRED_MESSAGE,
   forbidden: 'No tienes permisos para hacer esto.',
   'not found': 'No encontramos lo que buscabas.',
@@ -42,14 +42,14 @@ const EXACT: Record<string, string> = {
   validationerror: 'Hay datos incorrectos en el formulario. Revísalos e inténtalo de nuevo.',
   'validation error': 'Hay datos incorrectos en el formulario. Revísalos e inténtalo de nuevo.',
 
-  // — errores de red del navegador —
+  // — browser network errors —
   'failed to fetch': NETWORK_MESSAGE,
   'load failed': NETWORK_MESSAGE,
   'network request failed': NETWORK_MESSAGE,
   'the internet connection appears to be offline': NETWORK_MESSAGE,
 };
 
-// Nombres de campo que Strapi devuelve en inglés dentro de sus validaciones.
+// Field names Strapi returns in English inside its validation messages.
 const FIELDS: Record<string, string> = {
   email: 'el email',
   password: 'la contraseña',
@@ -87,9 +87,9 @@ const PATTERNS: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// Heurística para no dejar pasar un mensaje en inglés que no esté en el
-// diccionario: los mensajes del backend propio están en español (llevan tildes,
-// eñes o palabras castellanas frecuentes).
+// Heuristic so an English message missing from the dictionary does not slip
+// through: the backend's own messages are in Spanish (they carry accents, ñ or
+// common Spanish words).
 const SPANISH_HINT =
   /[áéíóúñü¿¡]|\b(el|la|los|las|de|del|no|que|para|con|una|este|esta|solo|tu|tus|ya|debe|falta|puedes|perteneces|equipo|factura|sección|tarea|invitación|correo|enlace|servidor|inténtalo|revisa)\b/i;
 const ENGLISH_HINT =
@@ -109,8 +109,8 @@ export function messageForStatus(status?: number): string {
 }
 
 /**
- * Traduce un mensaje suelto. `status` se usa como respaldo cuando el texto
- * viene en inglés y no está en el diccionario.
+ * Translates a single message. `status` is the fallback when the text is in
+ * English and not in the dictionary.
  */
 export function translateMessage(raw?: string | null, status?: number): string {
   const text = (raw || '').trim();
@@ -124,23 +124,23 @@ export function translateMessage(raw?: string | null, status?: number): string {
     if (m) return build(m);
   }
 
-  // Español (o algo que no parece inglés): se muestra tal cual.
+  // Spanish (or something that does not look English): shown as is.
   if (SPANISH_HINT.test(text) || !ENGLISH_HINT.test(text)) return text;
 
-  // Inglés desconocido o traza técnica: no se le enseña al usuario.
+  // Unknown English or a technical trace: never shown to the user.
   if (typeof console !== 'undefined') {
-    console.debug('[errores] mensaje sin traducción:', text);
+    console.debug('[errors] untranslated message:', text);
   }
   return messageForStatus(status);
 }
 
-/** Traduce cualquier cosa que llegue a un `catch` o a un handler global. */
+/** Translates anything that reaches a `catch` or a global handler. */
 export function translateError(err: unknown, status?: number): string {
   if (err == null) return messageForStatus(status);
   if (typeof err === 'string') return translateMessage(err, status);
 
   if (err instanceof Error) {
-    // Un fetch caído lanza TypeError («Failed to fetch», «Load failed»…).
+    // A failed fetch throws TypeError ("Failed to fetch", "Load failed"…).
     if (err instanceof TypeError && /fetch|network|load failed/i.test(err.message)) {
       return NETWORK_MESSAGE;
     }
@@ -158,7 +158,7 @@ export function translateError(err: unknown, status?: number): string {
   return messageForStatus(status);
 }
 
-/** Error de API que conserva el código HTTP para poder decidir en el `catch`. */
+/** API error that keeps the HTTP status so the `catch` can decide on it. */
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -168,7 +168,7 @@ export class ApiError extends Error {
   }
 }
 
-/** ¿Se está sin conexión? Se usa para no culpar al servidor. */
+/** Are we offline? Used to avoid blaming the server. */
 export function isOffline() {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }

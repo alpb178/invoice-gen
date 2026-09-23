@@ -5,7 +5,7 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
 import { Invoice, Section } from '@/types';
 
-// Paleta editorial (papel blanco + tinta + sello)
+// Editorial palette (white paper + ink + stamp)
 const PAPER = '#ffffff';
 const INK = '#1c1c1f';
 const MUTED = '#8a8782';
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     backgroundColor: PAPER,
   },
 
-  // — etiquetas pequeñas tipográficas —
+  // — small typographic labels —
   label: {
     fontSize: 7,
     fontFamily: 'Helvetica',
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
   },
 
-  // — cabecera —
+  // — header —
   invoiceTitle: { fontFamily: 'Times-Bold', fontSize: 22, color: INK, marginBottom: 6 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   headerLeft: { flex: 1, paddingRight: 24 },
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   ruleStrong: { borderTopWidth: 1, borderTopColor: RULE, borderStyle: 'solid', marginTop: 16 },
   ruleHair: { borderTopWidth: 0.6, borderTopColor: HAIR, borderStyle: 'solid' },
 
-  // — bloques de información (emisor / receptor), estilo factura —
+  // — information blocks (issuer / recipient), invoice style —
   infoBlock: { marginTop: 18 },
   infoCompany: { fontFamily: 'Times-Bold', fontSize: 11, color: INK },
   infoHeader: { fontFamily: 'Times-Bold', fontSize: 10.5, color: INK },
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   itemQty: { width: 48, textAlign: 'right', fontFamily: 'Courier', fontSize: 10, color: INK },
   itemAmount: { width: 92, textAlign: 'right', fontFamily: 'Courier', fontSize: 10, color: INK },
 
-  // — totales —
+  // — totals —
   totalsBlock: { marginTop: 26, alignItems: 'flex-end' },
   totalsInner: { width: 260 },
   subtotalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
@@ -112,11 +112,11 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 8, fontFamily: 'Helvetica', color: MUTED, letterSpacing: 2 },
   totalValue: { fontFamily: 'Times-Bold', fontSize: 24, color: INK },
 
-  // — notas —
+  // — notes —
   notes: { marginTop: 22 },
   notesText: { fontSize: 9, color: '#555', lineHeight: 1.5 },
 
-  // — firma (al final del contenido, alineada a la derecha) —
+  // — signature (at the end of the content, right-aligned) —
   signatureBlock: { marginTop: 48, marginBottom: 8, width: 240, alignSelf: 'flex-end' },
   signatureLine: { borderTopWidth: 0.6, borderTopColor: '#777', borderStyle: 'solid', marginBottom: 6 },
   signatureLabel: {
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // — pie (todas las páginas) —
+  // — footer (every page) —
   footer: {
     position: 'absolute',
     bottom: 28,
@@ -157,27 +157,27 @@ const styles = StyleSheet.create({
 
 const calcSubtotal = (sec: Section) => sec.tasks.reduce((a, t) => a + (t.amount || 0), 0);
 
-// — ¿Puede partirse una fila entre páginas? —
+// — Can a row break across pages? —
 //
-// Lo normal es que no: una fila cortada por la mitad queda fea. Pero con
-// `wrap={false}` react-pdf no puede paginar una fila más alta que la página y
-// la RECORTA (avisa por consola "can't wrap between pages and it's bigger than
-// available page height"), perdiendo texto de la descripción sin que se note.
-// Así que estimamos la altura de la fila y, si se acerca al alto útil de la
-// página, dejamos que se parta: es más feo, pero no se pierde información.
+// Normally not: a row cut in half looks bad. But with `wrap={false}` react-pdf
+// cannot paginate a row taller than the page and CLIPS it (it warns in the
+// console "can't wrap between pages and it's bigger than available page
+// height"), silently losing description text. So we estimate the row height
+// and, if it gets close to the usable page height, let it break: uglier, but
+// no information is lost.
 //
-// A4 = 595.28 × 841.89pt. Ancho útil de la descripción:
-//   595.28 − 96 (padding horizontal) − 92 (importe) − 48 (horas) − 12 (gutter) ≈ 347
-// Alto útil de la página: 841.89 − 48 (arriba) − 96 (abajo) ≈ 698
+// A4 = 595.28 × 841.89pt. Usable description width:
+//   595.28 − 96 (horizontal padding) − 92 (amount) − 48 (hours) − 12 (gutter) ≈ 347
+// Usable page height: 841.89 − 48 (top) − 96 (bottom) ≈ 698
 const DESC_WIDTH = 347;
 const DESC_FONT_SIZE = 10.5;
 const DESC_LINE_HEIGHT = DESC_FONT_SIZE * 1.35;
-// Sobreestimamos el ancho medio de carácter (0.6em, Helvetica ronda 0.5em) para
-// que la cuenta de líneas salga por exceso y nunca nos quedemos cortos.
+// We overestimate the average character width (0.6em; Helvetica is around
+// 0.5em) so the line count errs on the high side and never falls short.
 const CHARS_PER_LINE = Math.max(1, Math.floor(DESC_WIDTH / (DESC_FONT_SIZE * 0.6)));
 const PAGE_CONTENT_HEIGHT = 698;
-// Umbral holgado (60% de la página): la estimación es aproximada y preferimos
-// permitir el corte antes de arriesgarnos a que react-pdf recorte la fila.
+// Generous threshold (60% of the page): the estimate is rough and we would
+// rather allow the break than risk react-pdf clipping the row.
 const MAX_UNBREAKABLE_HEIGHT = PAGE_CONTENT_HEIGHT * 0.6;
 
 export const estimateRowHeight = (description?: string) => {
@@ -186,7 +186,7 @@ export const estimateRowHeight = (description?: string) => {
   return lines * DESC_LINE_HEIGHT;
 };
 
-/** ¿Se permite que esta fila se parta entre páginas? (ver tests/invoice-pdf.test.ts) */
+/** Is this row allowed to break across pages? (see tests/invoice-pdf.test.ts) */
 export const isRowBreakable = (description?: string) =>
   estimateRowHeight(description) > MAX_UNBREAKABLE_HEIGHT;
 
@@ -221,12 +221,12 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* ——— Cabecera: izquierda emisor/cliente · derecha sello + fecha + moneda ——— */}
+        {/* ——— Header: issuer/client on the left · stamp + date + currency on the right ——— */}
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <Text style={styles.invoiceTitle}>FACTURA - No. {invoice.number || '—'}</Text>
 
-            {/* — Emisor — */}
+            {/* — Issuer — */}
             <View style={styles.infoBlock}>
               {invoice.companyName ? <Text style={styles.infoCompany}>{invoice.companyName}</Text> : null}
               {invoice.companyCIF ? (
@@ -244,7 +244,7 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
                 : null}
             </View>
 
-            {/* — Receptor — */}
+            {/* — Recipient — */}
             {invoice.clientName || invoice.clientIBAN || invoice.clientSwift || invoice.clientBank ? (
               <View style={styles.infoBlock}>
                 <Text style={styles.infoHeader}>Emitido a favor de:</Text>
@@ -268,7 +268,7 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
             ) : null}
           </View>
 
-          {/* — Sello + fecha + moneda (derecha) — */}
+          {/* — Stamp + date + currency (right) — */}
           <View style={styles.headerRight}>
             <View style={styles.stamp}>
               <Text style={styles.stampText}>{statusLabel}</Text>
@@ -296,11 +296,11 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
         </View>
         <View style={styles.ruleHair} />
 
-        {/* OJO: `minPresenceAhead` NUNCA en el View que envuelve la sección completa.
-            Ese wrapper puede ser más alto que una página; react-pdf entra en un bucle
-            infinito de paginación (`paginate()` no tiene tope de iteraciones) y, al ser
-            síncrono, congela la pestaña y el navegador aborta por timeout. La pista
-            anti-huérfanos va en la cabecera de sección, que sí cabe en una página. */}
+        {/* CAREFUL: NEVER put `minPresenceAhead` on the View that wraps a whole section.
+            That wrapper can be taller than a page; react-pdf enters an infinite
+            pagination loop (`paginate()` has no iteration cap) and, being synchronous,
+            freezes the tab until the browser aborts on timeout. The anti-orphan hint
+            goes on the section header, which does fit on a page. */}
         {invoice.sections.map((sec, sIdx) => (
           <View key={sIdx}>
             {sec.title || sec.subtitle ? (
@@ -317,7 +317,7 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
 
         <View style={styles.ruleHair} />
 
-        {/* ——— Totales ——— */}
+        {/* ——— Totals ——— */}
         <View style={styles.totalsBlock} wrap={false}>
           <View style={styles.totalsInner}>
             {multiSection &&
@@ -338,7 +338,7 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
           </View>
         </View>
 
-        {/* ——— Notas ——— */}
+        {/* ——— Notes ——— */}
         {invoice.notes ? (
           <View style={styles.notes} wrap={false}>
             <Text style={styles.label}>NOTAS</Text>
@@ -350,10 +350,10 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
           </View>
         ) : null}
 
-        {/* ——— Firma: última página, abajo a la derecha ———
-            Bloque absoluto NO fixed: al ser el último hijo del flujo se ancla
-            a la última página, sin depender de `totalPages` (que con `fixed`
-            fallaba y hacía desaparecer el "EMITIDO POR" en facturas largas). */}
+        {/* ——— Signature: last page, bottom right ———
+            A NON-fixed block: being the last child in the flow it anchors to
+            the last page, without depending on `totalPages` (which failed with
+            `fixed` and made "EMITIDO POR" disappear on long invoices). */}
         <View style={styles.signatureBlock} wrap={false}>
           <View style={styles.signatureLine} />
           <Text style={styles.signatureLabel}>EMITIDO POR</Text>
@@ -365,7 +365,7 @@ const InvoicePDF = ({ invoice, showHours }: Props) => {
           </Link>
         </View>
 
-        {/* ——— Pie: todas las páginas ——— */}
+        {/* ——— Footer: every page ——— */}
         <View
           style={styles.footer}
           fixed

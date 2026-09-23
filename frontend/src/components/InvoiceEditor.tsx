@@ -44,10 +44,10 @@ export default function InvoiceEditor({ initial }: Props) {
   const [isTeamOwner, setIsTeamOwner] = useState(false);
   const [importSectionIdx, setImportSectionIdx] = useState<number | null>(null);
   const [partiesOpen, setPartiesOpen] = useState(true);
-  // Secciones plegadas (acordeón). Guardamos los índices plegados, así una
-  // sección nueva nace desplegada sin tener que tocar este estado.
+  // Collapsed sections (accordion). We store the collapsed indexes, so a new
+  // section starts expanded without touching this state.
   const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
-  // Equipo cuyos valores por defecto ya se han pre-rellenado en esta factura nueva.
+  // Team whose defaults have already been prefilled into this new invoice.
   const prefilledTeamRef = useRef<number | null>(null);
   const user = typeof window !== 'undefined' ? getUser() : null;
   const toast = useToast();
@@ -82,11 +82,10 @@ export default function InvoiceEditor({ initial }: Props) {
     setIsTeamOwner(ownerId != null && ownerId === user?.id);
     if (!team) return;
 
-    // Los datos del equipo son un pre-relleno al CREAR la factura, no un
-    // respaldo permanente: se aplican una sola vez por equipo elegido. Una
-    // factura ya guardada muestra exactamente lo que hay en base de datos, así
-    // que un campo que el dueño ha borrado (el banco, por ejemplo) se queda
-    // vacío en vez de repoblarse con el valor del equipo.
+    // Team details are a prefill when CREATING the invoice, not a permanent
+    // fallback: they are applied once per selected team. A saved invoice shows
+    // exactly what is in the database, so a field the owner cleared (the bank,
+    // for example) stays empty instead of being refilled with the team value.
     if (initial) return;
     if (prefilledTeamRef.current === teamId) return;
     prefilledTeamRef.current = teamId;
@@ -105,31 +104,31 @@ export default function InvoiceEditor({ initial }: Props) {
     }));
   }, [teamId, teams, user?.id, initial]);
 
-  // Nueva factura solo la puede crear el dueño del equipo.
+  // Only the team owner can create a new invoice.
   const isNew = !initial;
   const canCreateInvoice = !isNew || isTeamOwner;
-  // Una factura pagada queda congelada: nadie puede editarla. El bloqueo aplica
-  // solo cuando llega ya pagada desde la base de datos (initial), no cuando el
-  // usuario cambia el estado a "pagada" en el editor (debe poder guardarlo).
+  // A paid invoice is frozen: nobody can edit it. The lock only applies when it
+  // arrives already paid from the database (initial), not when the user changes
+  // the status to "paid" in the editor (they must be able to save that).
   const isLocked = initial?.status === 'paid';
-  // La cabecera (nº, fecha, estado, moneda, notas) solo la edita el dueño, y no
-  // si la factura está pagada.
+  // The header (number, date, status, currency, notes) is edited only by the
+  // owner, and not when the invoice is paid.
   const canEditHeader = isTeamOwner && !isLocked;
-  // Emisor y cliente son datos de identidad, no importes: el dueño los puede
-  // corregir en cualquier estado de la factura, incluso pagada (un IBAN o una
-  // dirección mal escritos no cambian lo facturado).
+  // Issuer and client are identity details, not amounts: the owner can correct
+  // them in any invoice status, even paid (a mistyped IBAN or address does not
+  // change what was billed).
   const canEditParties = isTeamOwner;
-  // Una sección es editable si: la estás creando (sin id), eres el autor,
-  // o eres dueño del equipo. Y nunca si la factura está pagada.
+  // A section is editable if: you are creating it (no id), you are its author,
+  // or you own the team. And never if the invoice is paid.
   const canEditSection = (sec: Section) => {
     if (isLocked) return false;
     if (!sec.id) return true;
     if (isTeamOwner) return true;
     return sec.author?.id === user?.id;
   };
-  // Cualquier miembro del equipo puede añadir secciones (salvo si está pagada).
+  // Any team member can add sections (unless the invoice is paid).
   const canAddSection = !!teamId && !isLocked;
-  // El botón "Guardar" tiene sentido siempre que el usuario pueda tocar algo.
+  // The "Guardar" button makes sense whenever the user can change something.
   const hasEditableSection = useMemo(
     () => invoice.sections.some((s) => canEditSection(s)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -166,8 +165,8 @@ export default function InvoiceEditor({ initial }: Props) {
 
   const removeSection = (sIdx: number) => {
     setInvoice((prev) => ({ ...prev, sections: prev.sections.filter((_, i) => i !== sIdx) }));
-    // Los índices por encima del eliminado se desplazan una posición: hay que
-    // recolocarlos o el acordeón acabaría plegando la sección equivocada.
+    // Indexes above the removed one shift down by one: they have to be remapped
+    // or the accordion would end up collapsing the wrong section.
     setCollapsedSections((prev) => {
       const next = new Set<number>();
       prev.forEach((i) => {
@@ -224,15 +223,15 @@ export default function InvoiceEditor({ initial }: Props) {
 
   const calcSectionTotal = (sec: Section) => sec.tasks.reduce((a, t) => a + (t.amount || 0), 0);
   const calcTotal = () => invoice.sections.reduce((a, s) => a + calcSectionTotal(s), 0);
-  // Se calcula una sola vez por render: es el denominador del reparto por
-  // sección, y así no puede desincronizarse del total que se muestra.
+  // Computed once per render: it is the denominator of the per-section split,
+  // so it cannot drift from the total being shown.
   const grandTotal = calcTotal();
 
-  // Objeto que se pasa al botón de PDF. Lo memoizamos para que su referencia solo
-  // cambie cuando cambian los datos reales (no en cada render), evitando que
-  // PDFDownloadLink regenere el PDF de forma continua y bloquee la página.
-  // El PDF imprime lo que hay en el formulario, sin volver a mezclar los valores
-  // del equipo: si un campo está vacío es porque se ha vaciado a propósito.
+  // Object passed to the PDF button. Memoized so its reference only changes when
+  // the real data changes (not on every render), which kept PDFDownloadLink from
+  // regenerating the PDF continuously and blocking the page.
+  // The PDF prints what is in the form, without mixing the team values back in:
+  // if a field is empty it is because it was cleared on purpose.
   const pdfInvoice = useMemo(
     () => ({ ...invoice, totalAmount: calcTotal() }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -250,8 +249,8 @@ export default function InvoiceEditor({ initial }: Props) {
     setSaving(true);
     try {
       if (isLocked) {
-        // Factura congelada: solo viajan emisor y cliente. Secciones e importes
-        // no se envían, y el backend rechazaría el payload si lo hicieran.
+        // Frozen invoice: only issuer and client travel. Sections and amounts are
+        // not sent, and the backend would reject the payload if they were.
         await saveInvoiceParties(invoice);
         toast.success('Datos de emisor y cliente guardados.');
       } else {
@@ -273,7 +272,7 @@ export default function InvoiceEditor({ initial }: Props) {
     try {
       await markInvoiceExported(invoice.id);
     } catch (e) {
-      // No es crítico: el PDF ya se descargó, solo falló el registro.
+      // Not critical: the PDF was already downloaded, only recording it failed.
       toast.error(e);
     }
   };
@@ -538,13 +537,13 @@ export default function InvoiceEditor({ initial }: Props) {
         const isCollapsed = collapsedSections.has(sIdx);
         return (
         <div key={sIdx} className="bg-paper border border-ink-200 rounded-2xl mb-4 shadow-card overflow-hidden">
-          {/* Cabecera del acordeón: visible siempre. Plegada, resume la sección
-              con responsable, título y subtotal. */}
+          {/* Accordion header: always visible. When collapsed, it summarizes the
+              section with owner, title and subtotal. */}
           <button
             type="button"
             onClick={() => toggleSection(sIdx)}
             aria-expanded={!isCollapsed}
-            aria-controls={`seccion-${sIdx}`}
+            aria-controls={`section-${sIdx}`}
             className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left hover:bg-ink-50 transition-colors"
           >
             <div className="min-w-0">
@@ -568,7 +567,7 @@ export default function InvoiceEditor({ initial }: Props) {
           </button>
 
           {!isCollapsed && (
-          <div id={`seccion-${sIdx}`} className="px-6 pb-6 border-t border-ink-200 pt-5">
+          <div id={`section-${sIdx}`} className="px-6 pb-6 border-t border-ink-200 pt-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
               <ClearableField
@@ -602,8 +601,8 @@ export default function InvoiceEditor({ initial }: Props) {
           )}
 
           <div className="overflow-x-auto">
-            {/* min-w: por debajo de ~640px la tabla se desplaza en vez de
-                comprimir Descripción hasta dejarla ilegible. */}
+            {/* min-w: below ~640px the table scrolls instead of squeezing the
+                description column until it is unreadable. */}
             <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="text-ink-500 text-xs uppercase tracking-wider font-mono-tight border-b border-ink-200">
@@ -698,7 +697,7 @@ export default function InvoiceEditor({ initial }: Props) {
                 >
                   + Agregar tarea
                 </button>
-                {/* Ocultado temporalmente — opción de importar texto o PDF
+                {/* Temporarily hidden — option to import text or PDF
                 <button
                   onClick={() => setImportSectionIdx(sIdx)}
                   className="text-xs text-ink-900 bg-paper hover:bg-ink-100 border border-ink-200 rounded-lg px-3 py-1.5 transition-colors"
@@ -729,8 +728,8 @@ export default function InvoiceEditor({ initial }: Props) {
       )}
 
       <div className="bg-paper border border-ink-300 rounded-2xl p-6 shadow-card">
-        {/* Con desglose el bloque de la izquierda es alto y los dos casan por
-            abajo; sin desglose solo queda el título y se centra. */}
+        {/* With a breakdown the left block is tall and both align at the bottom;
+            without one only the title remains and it is centred. */}
         <div
           className={`flex flex-col md:flex-row md:justify-between gap-6 ${
             invoice.sections.length > 1 ? 'md:items-end' : 'md:items-center'
@@ -739,9 +738,9 @@ export default function InvoiceEditor({ initial }: Props) {
           <div className="min-w-0 md:flex-1 md:max-w-lg">
             <h3 className="font-serif-display text-xl font-medium text-ink-900">Total General</h3>
 
-            {/* Desglose por sección. La regla entre el nombre y el importe hace
-                de barra de proporción: el tramo en tinta es lo que aporta esa
-                sección al total, así se ve el reparto de un vistazo. */}
+            {/* Per-section breakdown. The rule between the name and the amount acts
+                as a proportion bar: the inked stretch is what that section
+                contributes to the total, so the split reads at a glance. */}
             {invoice.sections.length > 1 && (
               <ul className="mt-4 space-y-2.5">
                 {invoice.sections.map((sec, i) => {
@@ -749,8 +748,8 @@ export default function InvoiceEditor({ initial }: Props) {
                   const share = grandTotal > 0 ? (amount / grandTotal) * 100 : 0;
                   return (
                     <li key={i} className="flex items-center gap-3 text-sm">
-                      {/* Ancho fijo: todas las reglas arrancan en el mismo punto,
-                          si no las barras no serían comparables entre filas. */}
+                      {/* Fixed width: every rule starts at the same point, otherwise
+                          the bars would not be comparable across rows. */}
                       <span
                         className="shrink-0 w-28 sm:w-40 truncate text-ink-900"
                         title={[sec.title?.trim(), sec.subtitle?.trim()].filter(Boolean).join(' · ')}

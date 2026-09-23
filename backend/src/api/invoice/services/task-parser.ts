@@ -1,5 +1,5 @@
 // src/api/invoice/services/task-parser.ts
-// Parser heurístico de tareas a partir de texto plano. Sin dependencias externas.
+// Heuristic task parser for plain text. No external dependencies.
 
 export interface ParsedTask {
   code?: string;
@@ -51,13 +51,13 @@ function stripCommonNoise(line: string): string {
     .trim();
 }
 
-// Pre-procesa líneas huérfanas típicas de extracción de PDF donde una celda
-// de tabla aparece repartida en varias líneas:
+// Pre-processes orphan lines typical of PDF text extraction, where a table
+// cell ends up split across several lines:
 //   "1" / "Descripción" / "70.00"  ->  "1 Descripción 70.00"
-// Reglas conservadoras para no pegar líneas independientes:
-//  - si la línea es SOLO un número, se une al buffer (probable celda de monto).
-//  - si el buffer es SOLO un número y la línea empieza por letra, se une.
-//  - en el resto de casos, flush y empieza un nuevo buffer.
+// Conservative rules so independent lines are not glued together:
+//  - if the line is ONLY a number, it joins the buffer (likely an amount cell).
+//  - if the buffer is ONLY a number and the line starts with a letter, it joins.
+//  - otherwise, flush and start a new buffer.
 function coalesceOrphanedLines(lines: string[]): string[] {
   const out: string[] = [];
   let buffer = '';
@@ -82,8 +82,8 @@ function coalesceOrphanedLines(lines: string[]): string[] {
     }
 
     if (isLoneNumber(line)) {
-      // Si el buffer ya tiene texto y TERMINA con un número (hemos visto importe),
-      // la siguiente línea suelta probablemente sea el índice de la próxima fila.
+      // If the buffer already has text and ENDS with a number (we saw an amount),
+      // the next loose line is probably the index of the next row.
       const bufferEndsWithNumber = /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(buffer) && /\s-?\d+(?:[.,]\d+)?$/.test(buffer);
       if (bufferEndsWithNumber) {
         flush();
@@ -110,11 +110,11 @@ function parseLine(line: string): ParsedTask | null {
   const cleaned = stripCommonNoise(line);
   if (shouldSkip(cleaned)) return null;
 
-  // captura código TF-123 / TIK-456 / etc.
+  // capture a code like TF-123 / TIK-456 / etc.
   const codeMatch = cleaned.match(CODE_REGEX);
   const code = codeMatch ? `${codeMatch[1]}-${codeMatch[2]}` : undefined;
 
-  // extrae todos los números de la línea
+  // extract every number on the line
   const numbers: { raw: string; index: number; value: number }[] = [];
   let m: RegExpExecArray | null;
   NUMBER_REGEX.lastIndex = 0;
@@ -124,7 +124,7 @@ function parseLine(line: string): ParsedTask | null {
 
   if (numbers.length === 0) return null;
 
-  // descartar un posible índice de fila al inicio: "1 Tarea 70.00"
+  // drop a possible leading row index: "1 Tarea 70.00"
   const first = numbers[0];
   const startsWithRowIndex =
     first.index <= 3 && /^\d{1,3}$/.test(first.raw) && numbers.length >= 2;
@@ -134,18 +134,18 @@ function parseLine(line: string): ParsedTask | null {
   const last = amountCandidates[amountCandidates.length - 1];
   const amount = last.value;
 
-  // hours: si hay al menos 2 candidatos, el penúltimo
+  // hours: if there are at least 2 candidates, the second to last
   let hours: number | undefined;
   if (amountCandidates.length >= 2) {
     const penult = amountCandidates[amountCandidates.length - 2];
-    // solo si es razonable (<= 500 para no capturar importes grandes)
+    // only if it is reasonable (<= 500, so large amounts are not captured)
     if (penult.value > 0 && penult.value < 500) hours = penult.value;
   }
 
-  // build description: quitar código, los números de amount (y opcional hours), y el índice inicial
+  // build description: strip the code, the amount number (and optional hours), and the leading index
   let description = cleaned;
   if (code) description = description.replace(CODE_REGEX, '').trim();
-  // quitar el último número (amount) de la cadena
+  // strip the last number (amount) from the string
   description = description.replace(new RegExp(`${escapeRegex(last.raw)}\\s*(USD|EUR|GBP)?\\s*$`, 'i'), '').trim();
   if (startsWithRowIndex) {
     description = description.replace(new RegExp(`^${escapeRegex(first.raw)}\\s*`), '');
@@ -154,7 +154,7 @@ function parseLine(line: string): ParsedTask | null {
   description = description.replace(/\s{2,}/g, ' ');
 
   if (!description) return null;
-  // descripción "basura" sin letras (solo dígitos/puntuación/espacios)
+  // "junk" description with no letters (only digits/punctuation/spaces)
   if (!/[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(description)) return null;
 
   return { code, description, amount, hours };

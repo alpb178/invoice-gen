@@ -14,22 +14,21 @@ import { describeClick, isPrivatePath } from '@/lib/click-target';
 const PRIVATE_SEGMENTS = ['app', 'invoices', 'teams', 'reports', 'settings', 'invitations'] as const;
 
 /**
- * Manda al hub del grupo la visita y los clics que se van a un sitio hermano.
+ * Sends the visit, and the clicks that leave for a sibling site, to the group hub.
  *
- * Es la única analítica de este sitio: hasta ahora no se contaba ni una
- * visita.
+ * It is this site's only analytics: until now not a single visit was counted.
  *
- * Todo pasa por `/api/hub-track`, que es quien tiene la clave: en el navegador
- * sería pública y cualquiera podría escribir métricas de este proyecto.
+ * Everything goes through `/api/hub-track`, which holds the key: in the browser
+ * it would be public and anyone could write metrics for this project.
  *
- * Los clics se escuchan en el documento y no enlace por enlace, así el cintillo
- * del grupo o lo que se añada mañana se cuenta sin que nadie se acuerde de
- * ponerle un handler.
+ * Clicks are listened to on the document and not link by link, so the group
+ * ticker, or whatever is added tomorrow, is counted without anyone having to
+ * remember to attach a handler.
  */
 export function HubAnalytics() {
   const pathname = usePathname();
-  // Última ruta enviada: sin esto la misma página cuenta dos veces, porque
-  // StrictMode ejecuta el efecto por duplicado y un remontaje lo repetiría.
+  // Last path sent: without it the same page counts twice, because StrictMode
+  // runs the effect twice and a remount would repeat it.
   const lastPath = useRef<string | null>(null);
   // The first page view of this load is the landing: only it carries the
   // source. Later client-side navigations keep the same document.referrer.
@@ -67,7 +66,7 @@ export function HubAnalytics() {
       );
     }
 
-    // En captura: el clic cuenta aunque algo más abajo llame a stopPropagation.
+    // Capture phase: the click counts even if something below calls stopPropagation.
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);
   }, [pathname]);
@@ -98,6 +97,6 @@ function send(event: HubEvent, beacon = false): void {
     body,
     keepalive: true,
   }).catch(() => {
-    /* noop: la analítica nunca rompe la navegación */
+    /* noop: analytics never breaks navigation */
   });
 }
