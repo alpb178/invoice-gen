@@ -5,7 +5,7 @@ import { NextIntlClientProvider, useTranslations } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import AuthGuard from '@/components/AuthGuard';
 import AppShell from '@/components/AppShell';
-import { HubAnalytics } from '@/components/HubAnalytics';
+import { SiteAnalytics } from '@/components/SiteAnalytics';
 import { ToastProvider } from '@/components/Toast';
 import { isLocale, langTag, locales, type Locale } from '@/i18n/config';
 import { SITE_URL, localePath, openGraphLocale } from '@/lib/seo';
@@ -165,7 +165,7 @@ export default function LocaleLayout({ children, params }: Props) {
           </ToastProvider>
         </NextIntlClientProvider>
         {/* Renders nothing: sends the visit and the clicks to the group hub. */}
-        <HubAnalytics />
+        <SiteAnalytics />
       </body>
     </html>
   );
