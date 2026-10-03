@@ -57,7 +57,7 @@ Task (tarea)
 ### 1. Strapi Backend
 
 ```bash
-cd backend
+cd api
 npm install
 # Configurar .env con tu PostgreSQL
 cp .env.example .env
@@ -70,7 +70,7 @@ Crear admin user y configurar permisos de la API.
 ### 2. Frontend Next.js
 
 ```bash
-cd frontend
+cd web
 npm install
 cp .env.example .env.local
 npm run dev
