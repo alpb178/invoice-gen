@@ -1,6 +1,6 @@
 # invoice-gen
 
-Generador de facturas. Monorepo: `frontend/` (Next.js 14 App Router + Tailwind), `backend/` (Strapi), `mobile/`.
+Generador de facturas. Monorepo: `web/` (Next.js 14 App Router + Tailwind), `api/` (Strapi), `mobile/`.
 
 Todo lo que ve el usuario va **en español**.
 
@@ -70,14 +70,14 @@ Rama `hotfix/descripcion` + PR exprés. Nunca push directo, ni en urgencias.
 
 ### Errores y avisos
 
-Todos los mensajes al usuario pasan por el sistema de toasts: `useToast()` de `frontend/src/components/Toast.tsx`.
+Todos los mensajes al usuario pasan por el sistema de toasts: `useToast()` de `web/src/components/Toast.tsx`.
 
 - Nunca `alert()`, ni banners de error propios, ni dejar un fallo solo en `console.error`.
-- La traducción vive en `frontend/src/lib/errors.ts`. Los mensajes del backend propio ya están en español y pasan intactos; los de Strapi (inglés) se traducen ahí. Si aparece un mensaje nuevo sin traducir, añadirlo al diccionario, no parchearlo en la pantalla.
+- La traducción vive en `web/src/lib/errors.ts`. Los mensajes del backend propio ya están en español y pasan intactos; los de Strapi (inglés) se traducen ahí. Si aparece un mensaje nuevo sin traducir, añadirlo al diccionario, no parchearlo en la pantalla.
 - Los errores de API se lanzan ya traducidos desde `lib/api.ts` y `lib/auth.ts`: en un `catch` basta `toast.error(e)`.
 - Se deja inline lo que es un resultado, no un error (por ejemplo "No se detectaron tareas en el PDF").
 
-### PDF (`frontend/src/components/InvoicePDF.tsx`)
+### PDF (`web/src/components/InvoicePDF.tsx`)
 
 - Generar el PDF **solo bajo demanda**, al hacer clic. Nunca `PDFDownloadLink` ni `PDFViewer` en una pantalla de edición: react-pdf regenera en cada tecla y congela la página.
 - **Nunca `minPresenceAhead` en un `View` que pueda ser más alto que una página** (por ejemplo el que envuelve una sección completa). react-pdf entra en un bucle infinito de paginación, y al ser síncrono congela la pestaña y el navegador aborta por timeout. Esa pista va en nodos pequeños, como la cabecera de sección.
@@ -87,18 +87,18 @@ Todos los mensajes al usuario pasan por el sistema de toasts: `useToast()` de `f
 
 - Diseño editorial: papel crema, tinta, Fraunces para display, JetBrains Mono para datos. Usar los tokens existentes (`bg-paper`, `border-ink-200`, `shadow-card`, `font-serif-display`, `font-mono-tight`, `num-dot`), no colores sueltos.
 - Importes siempre en mono y alineados a la derecha.
-- Permisos: el dueño del equipo edita la cabecera; cada miembro solo sus secciones; una factura `paid` queda congelada (secciones, tareas e importes), salvo los datos de emisor y cliente, que el dueño puede corregir en cualquier estado (`canEditInvoiceParties`, y `partiesOnly` en `POST /invoices/save-full`). La autorización real está en el backend (`backend/src/api/*/controllers`), el frontend solo la refleja.
+- Permisos: el dueño del equipo edita la cabecera; cada miembro solo sus secciones; una factura `paid` queda congelada (secciones, tareas e importes), salvo los datos de emisor y cliente, que el dueño puede corregir en cualquier estado (`canEditInvoiceParties`, y `partiesOnly` en `POST /invoices/save-full`). La autorización real está en el backend (`api/src/api/*/controllers`), el frontend solo la refleja.
 - Los valores por defecto del equipo son un **pre-relleno al crear** la factura, no un respaldo permanente: una factura guardada muestra lo que hay en base de datos, así que un campo vaciado a propósito (el banco, por ejemplo) se queda vacío.
 
 ### Comprobaciones antes de dar algo por hecho
 
 ```bash
-cd frontend && ./node_modules/.bin/tsc --noEmit && yarn test && yarn build
-cd backend  && yarn test
+cd web && ./node_modules/.bin/tsc --noEmit && yarn test && yarn build
+cd api && yarn test
 ```
 
 Tests con `node:test` + `tsx` (`tests/*.test.ts`), sin framework extra.
 
-`frontend/tests/invoice-pdf.test.ts` renderiza la factura en un **proceso aparte** con timeout duro: el bucle de paginación de react-pdf es síncrono y desde el propio proceso de test no se puede detectar. Si se toca `InvoicePDF.tsx`, ese test es la red de seguridad — no lo debilites.
+`web/tests/invoice-pdf.test.ts` renderiza la factura en un **proceso aparte** con timeout duro: el bucle de paginación de react-pdf es síncrono y desde el propio proceso de test no se puede detectar. Si se toca `InvoicePDF.tsx`, ese test es la red de seguridad — no lo debilites.
 
 Los cambios de UI se verifican en el navegador, no solo con el typecheck.
