@@ -45,6 +45,11 @@ export interface SignupAggRow {
   count: string | number;
 }
 
+export interface UsersTotalRow {
+  d: string;
+  total: string | number;
+}
+
 export interface DayPayload {
   date: string;
   metrics: Record<string, number>;
@@ -57,7 +62,7 @@ export interface HubPayload {
   timezone: string;
   generatedAt: string;
   range: { from: string; to: string };
-  definitions: { key: string; label: string; unit: string }[];
+  definitions: { key: string; label: string; unit: string; aggregation?: 'sum' | 'last' | 'max' }[];
   days: DayPayload[];
 }
 
@@ -66,6 +71,7 @@ export interface HubPayload {
 export function buildPayload(
   invoiceRows: InvoiceAggRow[],
   signupRows: SignupAggRow[],
+  usersTotalRows: UsersTotalRow[],
   from: string,
   to: string,
 ): HubPayload {
@@ -127,6 +133,14 @@ export function buildPayload(
     }
   }
 
+  // users_total: a point-in-time snapshot (cumulative users registered on or
+  // before that day), not a per-day aggregate — hence `aggregation: 'last'`
+  // (contract rule 3). Distinct from `signups`, which is new registrations
+  // that day.
+  for (const r of usersTotalRows) {
+    day(r.d).metrics.users_total = Number(r.total);
+  }
+
   return {
     schemaVersion: 1,
     project: 'invoice-gen',
@@ -140,6 +154,7 @@ export function buildPayload(
       // breakdown above, never as a single mixed number.
       { key: 'revenue', label: 'Importe facturado', unit: 'currency' },
       { key: 'signups', label: 'Altas', unit: 'count' },
+      { key: 'users_total', label: 'Usuarios registrados', unit: 'count', aggregation: 'last' },
     ],
     days: [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date)),
   };
@@ -182,7 +197,7 @@ export default () => ({
     const localDate = (column: string) =>
       `((${column}) AT TIME ZONE 'UTC' AT TIME ZONE ?)::date`;
 
-    const [invoices, signups] = await Promise.all([
+    const [invoices, signups, usersTotal] = await Promise.all([
       knex.raw(
         `SELECT to_char(${localDate('created_at')}, 'YYYY-MM-DD') AS d,
                 coalesce(status, 'draft')     AS status,
@@ -203,8 +218,18 @@ export default () => ({
           GROUP BY 1, 2`,
         [TZ, TZ, from, to],
       ),
+      // users_total: cumulative count as of each day in the window — a
+      // correlated subquery per day, not a running sum over the grouped
+      // rows above, since a user created before `from` must still count.
+      knex.raw(
+        `SELECT to_char(gs.day, 'YYYY-MM-DD') AS d,
+                (SELECT count(*)::int FROM ${USERS} u
+                  WHERE (u.created_at AT TIME ZONE 'UTC' AT TIME ZONE ?)::date <= gs.day)::int AS total
+           FROM generate_series(?::date, ?::date, '1 day') AS gs(day)`,
+        [TZ, from, to],
+      ),
     ]);
 
-    return buildPayload(invoices.rows, signups.rows, from, to);
+    return buildPayload(invoices.rows, signups.rows, usersTotal.rows, from, to);
   },
 });
